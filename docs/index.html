@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MAMSS Prep — Mater Misericordiae Secondary School | Exam Prep Portal</title>
+<meta name="description" content="SS1–SS3 exam prep: Practice quizzes, CBT Hall, Flashcards, Rapid Fire, Tools — 195 questions across 9 subjects.">
+<link rel="icon" href="mamss-logo.png">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#06080a;--panel:#0c0f13;--panel2:#10141a;--line:rgba(235,238,230,.09);--paper:#edece2;--dim:#8a93a0;--lime:#c8f169;--lime2:#a5d845;--iris:#a78bfa;--coral:#f87171;--font:'Segoe UI',system-ui,sans-serif;--mono:'Courier New',monospace}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--paper);font-family:var(--font);line-height:1.6;overflow-x:hidden}
+::selection{background:var(--lime);color:var(--bg)}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-track{background:#0a0d10}::-webkit-scrollbar-thumb{background:#232a33;border-radius:8px}
+a{color:var(--lime);text-decoration:none}
+button{cursor:pointer;border:none;font-family:inherit}
+.container{max-width:1100px;margin:0 auto;padding:0 16px}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:50;border-bottom:1px solid var(--line);background:rgba(6,8,10,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:60px;max-width:1100px;margin:0 auto;padding:0 16px}
+.nav-logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
+.nav-logo img{width:36px;height:36px;object-fit:contain}
+.nav-links{display:flex;gap:4px;align-items:center}
+.nav-links a{padding:8px 14px;border-radius:99px;font-size:13px;font-weight:600;color:var(--dim);transition:.2s}
+.nav-links a:hover,.nav-links a.active{color:var(--paper);background:rgba(255,255,255,.08)}
+.nav-cta{background:var(--lime);color:var(--bg);padding:8px 18px;border-radius:99px;font-size:13px;font-weight:800;transition:.2s}
+.nav-cta:hover{background:var(--lime2);box-shadow:0 0 24px rgba(200,241,105,.3)}
+.hamburger{display:none;background:none;border:1px solid var(--line);border-radius:8px;width:40px;height:40px;color:var(--paper);font-size:18px}
+@media(max-width:768px){.nav-links,.nav-cta{display:none}.hamburger{display:grid;place-items:center}}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;padding:100px 16px 60px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 70% 30%,rgba(200,241,105,.06),transparent 60%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);padding:6px 16px;border-radius:99px;font-size:11px;letter-spacing:.2em;color:var(--dim);font-family:var(--mono);margin-bottom:20px}
+.hero-badge .dot{width:6px;height:6px;border-radius:50%;background:var(--lime);animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+.hero-logo{width:72px;height:72px;object-fit:contain;margin-bottom:16px;filter:drop-shadow(0 0 20px rgba(200,241,105,.15))}
+.hero h1{font-size:clamp(2.5rem,8vw,5rem);font-weight:900;line-height:.92;letter-spacing:-.03em;margin-bottom:20px}
+.hero h1 .stroke{-webkit-text-stroke:1.5px rgba(237,236,226,.45);color:transparent}
+.hero h1 .accent{color:var(--lime)}
+.hero-desc{max-width:540px;color:var(--dim);font-size:clamp(15px,2vw,18px);margin-bottom:28px}
+.hero-actions{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:32px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:14px 28px;border-radius:99px;font-size:14px;font-weight:700;transition:.2s}
+.btn-primary{background:var(--lime);color:var(--bg)}.btn-primary:hover{background:var(--lime2);box-shadow:0 0 30px rgba(200,241,105,.35)}
+.btn-outline{border:1px solid rgba(255,255,255,.2);color:var(--paper);background:transparent}.btn-outline:hover{border-color:var(--lime);color:var(--lime)}
+.hero-stats{display:flex;flex-wrap:wrap;gap:10px}
+.stat-pill{display:inline-flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);padding:8px 14px;border-radius:10px;font-family:var(--mono);font-size:11px;color:var(--dim)}
+.stat-pill strong{color:var(--paper)}
+.stat-pill .lime{color:var(--lime)}
+
+/* SECTIONS */
+section{padding:60px 0;border-top:1px solid var(--line)}
+.section-label{font-family:var(--mono);font-size:11px;letter-spacing:.3em;color:var(--dim);margin-bottom:8px}
+.section-title{font-size:clamp(1.5rem,4vw,2.8rem);font-weight:900;letter-spacing:-.02em;margin-bottom:24px;line-height:1.05}
+
+/* TOOL GRID */
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.tool-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;cursor:pointer;transition:.25s}
+.tool-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,.18);box-shadow:0 8px 30px rgba(0,0,0,.3)}
+.tool-card .icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:20px;margin-bottom:12px}
+.tool-card h3{font-size:14px;font-weight:700;margin-bottom:4px}
+.tool-card p{font-size:11px;color:var(--dim);line-height:1.5}
+
+/* CLASS CARDS */
+.class-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.class-card{border-radius:20px;padding:32px;text-align:center;color:#fff;cursor:pointer;transition:.25s;position:relative;overflow:hidden}
+.class-card:hover{transform:translateY(-4px);box-shadow:0 12px 40px rgba(0,0,0,.4)}
+.class-card .roman{width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.25);display:grid;place-items:center;margin:0 auto 12px;font-weight:900;font-size:20px}
+.class-card h3{font-size:24px;font-weight:900}
+.class-card .tag{display:inline-block;margin-top:8px;padding:6px 16px;border:1px solid rgba(255,255,255,.3);border-radius:99px;font-size:10px;font-weight:700;letter-spacing:.15em}
+
+/* WORD/QUOTE */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:640px){.info-grid{grid-template-columns:1fr}}
+.info-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px}
+.info-card .tag{font-family:var(--mono);font-size:10px;letter-spacing:.25em;color:var(--dim);display:flex;align-items:center;gap:6px;margin-bottom:10px}
+.info-card .word{font-size:24px;font-weight:900;color:var(--lime)}
+.info-card blockquote{font-size:16px;font-weight:600;line-height:1.5}
+.info-card .author{margin-top:8px;font-size:12px;color:var(--dim)}
+
+/* STATS ROW */
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:10px;margin-top:32px}
+.stat-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center}
+.stat-box .emoji{font-size:18px}
+.stat-box .val{font-size:24px;font-weight:900;color:var(--lime);font-variant-numeric:tabular-nums}
+.stat-box .lbl{font-family:var(--mono);font-size:8px;letter-spacing:.2em;color:var(--dim);margin-top:4px}
+
+/* QUIZ APP */
+.app-overlay{position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto;display:none}
+.app-overlay.open{display:block}
+.app-bar{position:sticky;top:0;z-index:10;background:var(--panel);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+.app-body{max-width:700px;margin:0 auto;padding:24px 16px 80px}
+.progress-bar{height:6px;background:rgba(255,255,255,.08);border-radius:99px;overflow:hidden;margin-bottom:24px}
+.progress-bar .fill{height:100%;background:var(--lime);border-radius:99px;transition:.4s}
+.q-card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:24px}
+.q-topic{display:inline-block;background:rgba(255,255,255,.05);padding:4px 10px;border-radius:6px;font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim);margin-bottom:12px}
+.q-text{font-size:18px;font-weight:600;line-height:1.5;margin-bottom:20px}
+.options{display:grid;gap:10px}
+.opt-btn{display:flex;align-items:center;gap:14px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:14px 18px;font-size:14px;text-align:left;color:var(--paper);transition:.2s;width:100%}
+.opt-btn:hover:not(:disabled){border-color:rgba(200,241,105,.5);background:rgba(200,241,105,.05)}
+.opt-btn .letter{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.08);display:grid;place-items:center;font-family:var(--mono);font-size:12px;font-weight:700;flex-shrink:0}
+.opt-btn.correct{border-color:var(--lime);background:rgba(200,241,105,.08)}.opt-btn.correct .letter{background:var(--lime);color:var(--bg)}
+.opt-btn.wrong{border-color:var(--coral);background:rgba(248,113,113,.08)}.opt-btn.wrong .letter{background:var(--coral);color:var(--bg)}
+.opt-btn.faded{opacity:.4}
+.explanation{margin-top:16px;padding:14px;border-radius:12px;border:1px solid rgba(251,191,36,.2);background:rgba(251,191,36,.04);font-size:13px;line-height:1.6;color:var(--paper);display:none}
+.explanation.show{display:block}
+.q-nav{display:flex;justify-content:space-between;align-items:center;margin-top:20px}
+.q-nav button{padding:10px 20px;border-radius:10px;font-size:12px;font-weight:700}
+.q-nav .prev-btn{background:transparent;border:1px solid var(--line);color:var(--dim)}
+.q-nav .next-btn{background:var(--lime);color:var(--bg)}
+.q-nav .next-btn:disabled{opacity:.3}
+
+/* RESULT */
+.result{text-align:center;padding:40px 16px}
+.result .score{font-size:64px;font-weight:900;color:var(--lime);font-variant-numeric:tabular-nums}
+.result .grade{display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:10px;font-size:18px;font-weight:900;margin-top:12px}
+
+/* TIMER */
+.timer{font-family:var(--mono);font-size:18px;font-weight:900;color:var(--lime);font-variant-numeric:tabular-nums;padding:6px 14px;border:1px solid rgba(200,241,105,.3);border-radius:10px}
+.timer.low{color:var(--coral);border-color:rgba(248,113,113,.3);animation:pulse .8s infinite}
+
+/* TOOLS */
+.formula-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;transition:.2s}
+.formula-card:hover{transform:translateY(-2px)}
+.formula-card .name{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)}
+.formula-card .formula{font-family:var(--mono);font-size:18px;font-weight:700;color:var(--lime);margin:8px 0}
+.formula-card .note{font-size:12px;color:var(--dim)}
+
+.element{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;transition:.15s}
+.element:hover{transform:scale(1.06);border-color:rgba(255,255,255,.2)}
+.element .z{font-family:var(--mono);font-size:9px;color:var(--dim)}
+.element .sym{font-size:22px;font-weight:900}
+.element .ename{font-size:9px;font-weight:600;margin-top:2px}
+.element .mass{font-family:var(--mono);font-size:9px;color:var(--dim)}
+
+.calc-display{min-height:48px;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px 14px;text-align:right;font-family:var(--mono);font-size:24px;color:var(--lime);overflow:hidden;margin-bottom:10px;font-variant-numeric:tabular-nums}
+.calc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.calc-btn{padding:14px;border-radius:10px;font-family:var(--mono);font-size:14px;font-weight:700;background:rgba(255,255,255,.05);color:var(--paper);transition:.15s}
+.calc-btn:hover{background:rgba(255,255,255,.1)}
+.calc-btn.accent{background:var(--lime);color:var(--bg)}
+.calc-btn.danger{background:rgba(248,113,113,.15);color:var(--coral)}
+
+/* FLASHCARD */
+.flashcard-container{perspective:1000px;max-width:500px;margin:0 auto}
+.flashcard{width:100%;aspect-ratio:4/3;position:relative;transform-style:preserve-3d;transition:transform .6s;cursor:pointer}
+.flashcard.flipped{transform:rotateY(180deg)}
+.flashcard .face{position:absolute;inset:0;backface-visibility:hidden;border-radius:18px;border:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.flashcard .back{transform:rotateY(180deg);border-color:rgba(200,241,105,.3)}
+
+/* FOOTER */
+footer{border-top:1px solid var(--line);background:var(--panel);padding:40px 16px;text-align:center}
+footer .big-text{font-size:clamp(3rem,12vw,8rem);font-weight:900;color:rgba(255,255,255,.03);white-space:nowrap;overflow:hidden;margin-bottom:20px}
+footer p{font-size:12px;color:var(--dim)}
+
+/* MOBILE MENU */
+.mobile-menu{position:fixed;inset:0;z-index:60;display:none}
+.mobile-menu.open{display:block}
+.mobile-menu .overlay{position:absolute;inset:0;background:rgba(6,8,10,.6);backdrop-filter:blur(4px)}
+.mobile-menu .sheet{position:absolute;top:0;right:0;bottom:0;width:280px;background:var(--panel);border-left:1px solid var(--line);padding:24px;display:flex;flex-direction:column}
+.mobile-menu .sheet a{display:block;padding:14px;font-size:18px;font-weight:700;border-radius:12px;color:var(--paper);margin-bottom:4px}
+.mobile-menu .sheet a:hover{background:rgba(255,255,255,.05);color:var(--lime)}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+<div class="nav-inner">
+  <a href="#" class="nav-logo" onclick="showPage('home')"><img src="mamss-logo.png" alt="MAMSS">MAMSS <span style="color:var(--lime)">PREP</span></a>
+  <div class="nav-links">
+    <a href="#" onclick="showPage('home')" id="nav-home" class="active">Home</a>
+    <a href="#" onclick="showPage('study')" id="nav-study">Study Hall</a>
+    <a href="#" onclick="showPage('practice')" id="nav-practice">Practice</a>
+    <a href="#" onclick="showPage('cbt')" id="nav-cbt">CBT Hall</a>
+    <a href="#" onclick="showPage('tools')" id="nav-tools">Tools</a>
+    <a href="#" onclick="showPage('hq')" id="nav-hq">HQ</a>
+  </div>
+  <a href="#" class="nav-cta" onclick="showPage('cbt')">⚡ CBT Hall</a>
+  <button class="hamburger" onclick="document.getElementById('mobile-menu').classList.add('open')">☰</button>
+</div>
+</nav>
+
+<div id="mobile-menu" class="mobile-menu">
+<div class="overlay" onclick="this.parentElement.classList.remove('open')"></div>
+<div class="sheet">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+    <span style="font-weight:800">Menu</span>
+    <button onclick="this.closest('.mobile-menu').classList.remove('open')" style="background:none;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;color:var(--paper);font-size:16px">✕</button>
+  </div>
+  <a href="#" onclick="showPage('home');this.closest('.mobile-menu').classList.remove('open')">🏠 Home</a>
+  <a href="#" onclick="showPage('study');this.closest('.mobile-menu').classList.remove('open')">📚 Study Hall</a>
+  <a href="#" onclick="showPage('practice');this.closest('.mobile-menu').classList.remove('open')">✏️ Practice</a>
+  <a href="#" onclick="showPage('cbt');this.closest('.mobile-menu').classList.remove('open')">⚡ CBT Hall</a>
+  <a href="#" onclick="showPage('tools');this.closest('.mobile-menu').classList.remove('open')">🧰 Tools</a>
+  <a href="#" onclick="showPage('hq');this.closest('.mobile-menu').classList.remove('open')">📊 HQ</a>
+</div>
+</div>
+
+<!-- PAGES -->
+<div id="page-home"></div>
+<div id="page-study" style="display:none"></div>
+<div id="page-practice" style="display:none"></div>
+<div id="page-cbt" style="display:none"></div>
+<div id="page-tools" style="display:none"></div>
+<div id="page-hq" style="display:none"></div>
+
+<!-- QUIZ OVERLAY -->
+<div id="quiz-overlay" class="app-overlay"></div>
+
+<footer>
+<div class="big-text">MAMSS PREP</div>
+<p>© 2025 Mater Misericordiae Secondary School — Morals and Excellence</p>
+<p style="margin-top:8px;font-family:var(--mono);font-size:10px">WAEC · NECO · JAMB-UTME aligned · 195 questions · 9 subjects</p>
+</footer>
+
+<script>
+/* ═══════ DATA ═══════ */
+let DB = { subjects: [], questions: {} };
+let history = JSON.parse(localStorage.getItem('mamss-history') || '[]');
+
+fetch('data.json').then(r=>r.json()).then(d=>{DB=d;renderAll()}).catch(()=>{
+  document.getElementById('page-home').innerHTML='<div style="padding:120px 24px;text-align:center"><h2>Loading question bank...</h2><p style="color:var(--dim)">If this persists, check your connection.</p></div>';
+});
+
+const LETTERS=['A','B','C','D'];
+const QUOTES=[
+  {t:"A person who never made a mistake never tried anything new.",a:"Albert Einstein"},
+  {t:"Education is the most powerful weapon which you can use to change the world.",a:"Nelson Mandela"},
+  {t:"The beautiful thing about learning is that no one can take it away from you.",a:"B.B. King"},
+  {t:"It does not matter how slowly you go as long as you do not stop.",a:"Confucius"},
+  {t:"Success is no accident. It is hard work, perseverance, learning, studying, sacrifice.",a:"Pelé"},
+];
+const WORDS=[
+  {w:"Inherent",p:"adjective",d:"existing as a permanent quality",e:"Risk is inherent in every investment question."},
+  {w:"Elucidate",p:"verb",d:"to make something clear; explain",e:"The teacher elucidated the concept of valency."},
+  {w:"Diligent",p:"adjective",d:"showing careful effort in work",e:"A diligent student always reviews before exams."},
+  {w:"Tenacious",p:"adjective",d:"holding firmly; persistent",e:"The tenacious scholar kept studying till dawn."},
+  {w:"Ubiquitous",p:"adjective",d:"present or found everywhere",e:"Mobile phones are ubiquitous in modern society."},
+];
+const dayIdx=Math.floor(Date.now()/864e5);
+const todayQuote=QUOTES[dayIdx%QUOTES.length];
+const todayWord=WORDS[dayIdx%WORDS.length];
+
+function waecGrade(p){if(p>=75)return{g:'A1',l:'Excellent'};if(p>=70)return{g:'B2',l:'Very Good'};if(p>=65)return{g:'B3',l:'Good'};if(p>=60)return{g:'C4',l:'Credit'};if(p>=55)return{g:'C5',l:'Credit'};if(p>=50)return{g:'C6',l:'Credit'};if(p>=45)return{g:'D7',l:'Pass'};if(p>=40)return{g:'E8',l:'Pass'};return{g:'F9',l:'Fail'}}
+function shuffle(a){const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b}
+function fmtClock(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function totalQ(){return Object.values(DB.questions).reduce((a,v)=>a+v.length,0)}
+function getQs(subj,level){const qs=DB.questions[subj]||[];return qs.filter(q=>!level||q.level===level)}
+
+/* ═══════ PAGES ═══════ */
+function showPage(id){
+  ['home','study','practice','cbt','tools','hq'].forEach(p=>{
+    document.getElementById('page-'+p).style.display=p===id?'block':'none';
+    const nav=document.getElementById('nav-'+p);
+    if(nav)nav.className=p===id?'active':'';
+  });
+  window.scrollTo(0,0);
+  if(id==='home')renderHome();
+  if(id==='study')renderStudy();
+  if(id==='practice')renderPractice();
+  if(id==='cbt')renderCBT();
+  if(id==='tools')renderTools();
+  if(id==='hq')renderHQ();
+}
+
+function renderAll(){renderHome()}
+
+/* ═══════ HOME ═══════ */
+function renderHome(){
+  const t=totalQ();
+  const jamb=new Date(new Date().getFullYear(),3,24);if(jamb<new Date())jamb.setFullYear(jamb.getFullYear()+1);
+  const waec=new Date(new Date().getFullYear(),4,4);if(waec<new Date())waec.setFullYear(waec.getFullYear()+1);
+  const jd=Math.max(0,Math.ceil((jamb-new Date())/864e5));
+  const wd=Math.max(0,Math.ceil((waec-new Date())/864e5));
+
+  document.getElementById('page-home').innerHTML=`
+  <section class="hero">
+    <div class="container">
+      <img src="mamss-logo.png" alt="MAMSS Logo" class="hero-logo">
+      <div class="hero-badge"><span class="dot"></span>MATER MISERICORDIAE SECONDARY SCHOOL</div>
+      <h1>FAIL IS NOT<br><span class="stroke">IN YOUR</span><br>SYLLABUS<span class="accent">.</span></h1>
+      <p class="hero-desc">MAMSS Prep — curriculum-true quizzes for every term of senior secondary, a live CBT hall built the JAMB way, and worked answers to the questions WAEC repeats.</p>
+      <div class="hero-actions">
+        <a href="#" class="btn btn-primary" onclick="showPage('practice')">▶ Start practicing</a>
+        <a href="#" class="btn btn-outline" onclick="showPage('cbt')">⏱ Enter CBT Hall</a>
+        <a href="#" class="btn btn-outline" onclick="showPage('study')">📚 Study Hall</a>
+      </div>
+      <div class="hero-stats">
+        <span class="stat-pill"><span class="lime">📝</span> <strong>${t}</strong> exam-grade questions</span>
+        <span class="stat-pill"><span class="lime">JAMB ${jamb.getFullYear()}</span> <strong>${jd}d</strong></span>
+        <span class="stat-pill" style="color:var(--iris)">WAEC ${waec.getFullYear()} <strong>${wd}d</strong></span>
+      </div>
+    </div>
+  </section>
+
+  <section><div class="container">
+    <div class="info-grid">
+      <div class="info-card">
+        <div class="tag">📘 WORD OF THE DAY</div>
+        <div class="word">${todayWord.w}</div>
+        <div style="font-size:12px;color:var(--dim);margin:4px 0">(${todayWord.p}) — ${todayWord.d}</div>
+        <div style="background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:12px;font-style:italic;color:var(--dim)">"${todayWord.e}"</div>
+      </div>
+      <div class="info-card">
+        <div class="tag">🔥 QUOTE OF THE DAY</div>
+        <blockquote>"${todayQuote.t}"</blockquote>
+        <div class="author">— ${todayQuote.a}</div>
+      </div>
+    </div>
+  </div></section>
+
+  <section><div class="container">
+    <div class="section-label">CHOOSE YOUR CLASS</div>
+    <div class="class-grid">
+      <div class="class-card" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="launchPractice('','SS1')">
+        <div class="roman">I</div><h3>SS1</h3>
+        <p style="font-size:12px;opacity:.7">${DB.subjects.length} subjects</p>
+        <span class="tag">PRELIMINARY</span>
+      </div>
+      <div class="class-card" style="background:linear-gradient(135deg,#3b82f6,#2563eb)" onclick="launchPractice('','SS2')">
+        <div class="roman">II</div><h3>SS2</h3>
+        <p style="font-size:12px;opacity:.7">${DB.subjects.length} subjects</p>
+        <span class="tag">INTERMEDIATE</span>
+      </div>
+      <div class="class-card" style="background:linear-gradient(135deg,#ec4899,#db2777)" onclick="launchPractice('','SS3')">
+        <div class="roman">III</div><h3>SS3</h3>
+        <p style="font-size:12px;opacity:.7">${DB.subjects.length} subjects</p>
+        <span class="tag">ADVANCED</span>
+      </div>
+    </div>
+  </div></section>
+
+  <section><div class="container">
+    <div class="stats-row">
+      ${[{v:t,l:'QUESTIONS',e:'📝'},{v:DB.subjects.length,l:'SUBJECTS',e:'📚'},{v:3,l:'CLASSES',e:'🏫'},{v:9,l:'TERMS',e:'📋'},{v:'100%',l:'EXPLAINED',e:'💡'},{v:history.length,l:'PAPERS SAT',e:'📄'}].map(s=>`<div class="stat-box"><div class="emoji">${s.e}</div><div class="val">${s.v}</div><div class="lbl">${s.l}</div></div>`).join('')}
+    </div>
+  </div></section>`;
+}
+
+/* ═══════ STUDY HALL ═══════ */
+function renderStudy(){
+  const tools=[
+    {n:'Flashcards',i:'📇',c:'#A78BFA',d:'Flip cards · recall & lock in',fn:'launchFlashcards'},
+    {n:'Rapid Fire',i:'⚡',c:'#FBBF24',d:'30–90 s sprints · beat your streak',fn:'launchRapidFire'},
+    {n:'Spelling Lab',i:'⌨️',c:'#34D399',d:'Type the answer · spelling counts',fn:'launchSpelling'},
+    {n:'Report Card',i:'📄',c:'#F87171',d:'Your results & grades',fn:"showPage('hq')"},
+    {n:'Mastery Map',i:'🗺️',c:'#38BDF8',d:'Topic heat-map · drill weak spots',fn:"showPage('hq')"},
+    {n:'Mock Hall',i:'⏱️',c:'#F472B6',d:'Full timed exam · auto-submit',fn:"showPage('cbt')"},
+    {n:'Formula Vault',i:'📐',c:'#C8F169',d:'Maths · Physics · Chemistry',fn:"showPage('tools')"},
+    {n:'Periodic Table',i:'🧪',c:'#7DD3FC',d:'Elements + atomic masses',fn:"showPage('tools')"},
+    {n:'Calculator',i:'🔢',c:'#E879F9',d:'Scientific · WAEC/JAMB ready',fn:"showPage('tools')"},
+    {n:'Records Hall',i:'🏅',c:'#F87171',d:'Personal bests · fastest papers',fn:"showPage('hq')"},
+    {n:'Exam Planner',i:'📅',c:'#38BDF8',d:'Countdown to your exam date',fn:''},
+    {n:'Mistake Master',i:'🧠',c:'#F472B6',d:'Spaced revision · lock in gaps',fn:'launchFlashcards'},
+    {n:'Recall Blitz',i:'🔥',c:'#E879F9',d:'Answer before options appear',fn:'launchRapidFire'},
+    {n:'Quiz Me',i:'🎮',c:'#FBBF24',d:'Two players · pass the device',fn:"showPage('practice')"},
+    {n:'Focus Lab',i:'🕐',c:'#F87171',d:'Pomodoro timer · study sessions',fn:'launchFocus'},
+    {n:'Converter',i:'🔄',c:'#34D399',d:'Units & rates · instant',fn:"showPage('tools')"},
+  ];
+  document.getElementById('page-study').innerHTML=`
+  <div style="padding-top:80px"><div class="container">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <img src="mamss-logo.png" alt="" style="width:48px;height:48px;object-fit:contain">
+      <div><h1 style="font-size:28px;font-weight:900">Study Hall</h1>
+      <p style="font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)">MATER MISERICORDIAE · SS1–SS3</p></div>
+    </div>
+    <div class="section-label">STUDY TOOLS · ${tools.length} AVAILABLE</div>
+    <div class="tool-grid">
+      ${tools.map(t=>`<div class="tool-card" onclick="${t.fn||''}">
+        <div class="icon" style="background:${t.c}18;color:${t.c}">${t.i}</div>
+        <h3>${t.n}</h3><p>${t.d}</p>
+      </div>`).join('')}
+    </div>
+
+    <div style="margin-top:32px"><div class="info-grid">
+      <div class="info-card"><div class="tag">📘 WORD OF THE DAY</div><div class="word">${todayWord.w}</div><div style="font-size:12px;color:var(--dim)">(${todayWord.p}) — ${todayWord.d}</div></div>
+      <div class="info-card"><div class="tag">🔥 QUOTE OF THE DAY</div><blockquote>"${todayQuote.t}"</blockquote><div class="author">— ${todayQuote.a}</div></div>
+    </div></div>
+
+    <div style="margin-top:32px" class="section-label">CHOOSE YOUR CLASS</div>
+    <div class="class-grid">
+      <div class="class-card" style="background:linear-gradient(135deg,#10b981,#059669)" onclick="launchPractice('','SS1')"><div class="roman">I</div><h3>SS1</h3><span class="tag">PRELIMINARY</span></div>
+      <div class="class-card" style="background:linear-gradient(135deg,#3b82f6,#2563eb)" onclick="launchPractice('','SS2')"><div class="roman">II</div><h3>SS2</h3><span class="tag">INTERMEDIATE</span></div>
+      <div class="class-card" style="background:linear-gradient(135deg,#ec4899,#db2777)" onclick="launchPractice('','SS3')"><div class="roman">III</div><h3>SS3</h3><span class="tag">ADVANCED</span></div>
+    </div>
+  </div></div>`;
+}
+
+/* ═══════ PRACTICE ═══════ */
+function renderPractice(){
+  document.getElementById('page-practice').innerHTML=`
+  <div style="padding-top:80px"><div class="container" style="max-width:600px">
+    <div class="section-label">DRILL MODE · INSTANT FEEDBACK</div>
+    <h1 class="section-title">Practice Ground</h1>
+    <div class="q-card">
+      <div class="q-topic">BUILD YOUR DRILL</div>
+      <div style="margin-bottom:16px"><label style="font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)">SUBJECT</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px">
+        ${DB.subjects.map(s=>`<button class="opt-btn" style="padding:8px;font-size:11px;justify-content:center" onclick="this.parentElement.querySelectorAll('.opt-btn').forEach(b=>b.style.borderColor='var(--line)');this.style.borderColor='var(--lime)';document.getElementById('prac-subj').value='${s.slug}'">${s.name}</button>`).join('')}
+      </div></div>
+      <input type="hidden" id="prac-subj" value="mathematics">
+      <div style="margin-bottom:16px"><label style="font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)">CLASS</label>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        ${['SS1','SS2','SS3'].map(l=>`<button class="opt-btn" style="flex:1;padding:8px;justify-content:center;font-size:12px" onclick="this.parentElement.querySelectorAll('.opt-btn').forEach(b=>{b.style.borderColor='var(--line)';b.style.background='var(--bg)'});this.style.borderColor='var(--lime)';this.style.background='rgba(200,241,105,.08)';document.getElementById('prac-level').value='${l}'">${l}</button>`).join('')}
+      </div></div>
+      <input type="hidden" id="prac-level" value="SS2">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="launchPractice(document.getElementById('prac-subj').value,document.getElementById('prac-level').value)">START DRILL ➜</button>
+    </div>
+  </div></div>`;
+}
+
+/* ═══════ QUIZ ENGINE ═══════ */
+let quizState={};
+
+function launchPractice(subj,level){
+  let pool=[];
+  if(subj){pool=getQs(subj,level)}
+  else{Object.keys(DB.questions).forEach(k=>{pool.push(...getQs(k,level))})}
+  pool=shuffle(pool).slice(0,15);
+  if(!pool.length){alert('No questions found for this selection.');return}
+  quizState={qs:pool,idx:0,answers:{},mode:'practice',label:(subj||'Mixed')+' · '+level,started:Date.now()};
+  renderQuiz();
+}
+
+function renderQuiz(){
+  const s=quizState;const q=s.qs[s.idx];const answered=s.answers[s.idx]!==undefined;
+  const ol=document.getElementById('quiz-overlay');ol.classList.add('open');
+  const isRight=answered&&s.answers[s.idx]===q.answerIndex;
+  const pct=Math.round(((s.idx+(answered?1:0))/s.qs.length)*100);
+
+  ol.innerHTML=`
+  <div class="app-bar">
+    <div style="font-size:13px;font-weight:700">${s.label||'Practice'}</div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span style="font-family:var(--mono);font-size:11px;color:var(--dim)">${s.idx+1}/${s.qs.length}</span>
+      ${s.timer!==undefined?`<span class="timer ${s.timer<=10?'low':''}">${fmtClock(s.timer)}</span>`:''}
+      <button onclick="closeQuiz()" style="background:none;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;color:var(--paper);font-size:14px">✕</button>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="progress-bar"><div class="fill" style="width:${pct}%"></div></div>
+    <div class="q-card">
+      <div class="q-topic">${q.topic.toUpperCase()} · ${q.level}</div>
+      <div class="q-text">${q.question}</div>
+      <div class="options">
+        ${q.options.map((o,i)=>{
+          let cls='opt-btn';
+          if(answered){
+            if(i===q.answerIndex)cls+=' correct';
+            else if(i===s.answers[s.idx]&&i!==q.answerIndex)cls+=' wrong';
+            else cls+=' faded';
+          }
+          return`<button class="${cls}" ${answered?'disabled':''} onclick="pickAnswer(${i})">
+            <span class="letter">${answered&&i===q.answerIndex?'✓':answered&&i===s.answers[s.idx]?'✗':LETTERS[i]}</span>${o}</button>`;
+        }).join('')}
+      </div>
+      <div class="explanation ${answered?'show':''}">
+        <strong style="color:${isRight?'var(--lime)':'var(--coral)'}">
+          ${answered?(isRight?'Correct. ':'Not quite. '):''}
+        </strong>${q.explanation}
+      </div>
+      <div class="q-nav">
+        <button class="prev-btn" onclick="quizPrev()" ${s.idx===0?'disabled':''}>← PREV</button>
+        <button class="next-btn" onclick="quizNext()" ${!answered?'disabled':''}>${s.idx+1>=s.qs.length?'FINISH →':'NEXT →'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function pickAnswer(i){
+  if(quizState.answers[quizState.idx]!==undefined)return;
+  quizState.answers[quizState.idx]=i;
+  renderQuiz();
+}
+function quizNext(){
+  if(quizState.idx+1>=quizState.qs.length){finishQuiz();return}
+  quizState.idx++;renderQuiz();
+}
+function quizPrev(){if(quizState.idx>0){quizState.idx--;renderQuiz()}}
+
+function finishQuiz(){
+  const s=quizState;
+  const correct=s.qs.filter((_,i)=>s.answers[i]===s.qs[i].answerIndex).length;
+  const pct=Math.round((correct/s.qs.length)*100);
+  const grade=waecGrade(pct);
+  const dur=Math.round((Date.now()-s.started)/1000);
+  const utme=s.mode==='cbt'?pct*4:null;
+
+  history.unshift({label:s.label,total:s.qs.length,correct,pct,grade:grade.g,utme,dur,date:new Date().toISOString()});
+  if(history.length>50)history=history.slice(0,50);
+  localStorage.setItem('mamss-history',JSON.stringify(history));
+
+  const wrong=s.qs.map((q,i)=>({q,picked:s.answers[i]})).filter(x=>x.picked!==x.q.answerIndex);
+
+  document.getElementById('quiz-overlay').innerHTML=`
+  <div class="app-bar"><span style="font-weight:700">${s.label}</span><button onclick="closeQuiz()" style="background:none;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;color:var(--paper)">✕</button></div>
+  <div class="app-body">
+    <div class="result">
+      <p style="font-family:var(--mono);font-size:11px;letter-spacing:.25em;color:var(--dim)">SCRIPT MARKED</p>
+      <div class="score">${pct}%</div>
+      <p style="font-size:13px;color:var(--dim)">${correct}/${s.qs.length} correct · ${Math.round(dur/60)}m ${dur%60}s</p>
+      <div class="grade" style="background:${pct>=50?'rgba(200,241,105,.1)':'rgba(248,113,113,.1)'};color:${pct>=50?'var(--lime)':'var(--coral)'}">
+        ${grade.g} — ${grade.l}
+      </div>
+      ${utme!==null?`<p style="margin-top:12px;font-family:var(--mono);font-size:18px;color:var(--iris)">${utme}/400 UTME</p>`:''}
+      <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="closeQuiz();showPage('practice')">New drill</button>
+        <button class="btn btn-outline" onclick="closeQuiz()">Home</button>
+      </div>
+    </div>
+    ${wrong.length?`<div style="text-align:left;margin-top:24px"><h3 style="font-size:14px;font-weight:700;color:var(--coral);margin-bottom:12px">REVIEW GAPS — ${wrong.length}</h3>
+      ${wrong.map(x=>`<div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:10px">
+        <p style="font-family:var(--mono);font-size:10px;color:var(--dim)">${x.q.topic.toUpperCase()}</p>
+        <p style="font-size:14px;font-weight:600;margin:6px 0">${x.q.question}</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:11px;margin-top:8px">
+          <span style="padding:8px;border-radius:8px;border:1px solid rgba(248,113,113,.3);background:rgba(248,113,113,.05);color:var(--coral)">You: ${x.picked!=null?LETTERS[x.picked]+'. '+x.q.options[x.picked]:'(skipped)'}</span>
+          <span style="padding:8px;border-radius:8px;border:1px solid rgba(200,241,105,.3);background:rgba(200,241,105,.05);color:var(--lime)">Answer: ${LETTERS[x.q.answerIndex]}. ${x.q.options[x.q.answerIndex]}</span>
+        </div>
+        <p style="margin-top:8px;font-size:12px;color:var(--dim)">💡 ${x.q.explanation}</p>
+      </div>`).join('')}
+    </div>`:''}
+  </div>`;
+}
+
+function closeQuiz(){document.getElementById('quiz-overlay').classList.remove('open')}
+
+/* ═══════ CBT ═══════ */
+function renderCBT(){
+  document.getElementById('page-cbt').innerHTML=`
+  <div style="padding-top:80px"><div class="container" style="max-width:700px">
+    <div class="section-label">LIVE CBT SIMULATION</div>
+    <h1 class="section-title">The CBT Hall</h1>
+    <p style="color:var(--dim);margin-bottom:24px">Full JAMB-style exam: Use of English + 3 subjects, a running clock, and your aggregate scaled to /400.</p>
+    <div class="q-card">
+      <div class="q-topic">CHOOSE YOUR COMBINATION</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px">
+        ${[{id:'med',n:'Medicine',s:['english','biology','chemistry','physics']},{id:'eng',n:'Engineering',s:['english','mathematics','physics','chemistry']},{id:'soc',n:'Social Sciences',s:['english','mathematics','economics','government']},{id:'art',n:'Arts / Law',s:['english','literature','government','civic-education']}].map(p=>`<button class="opt-btn" style="padding:10px;font-size:12px;flex-direction:column;align-items:flex-start" onclick="this.parentElement.querySelectorAll('.opt-btn').forEach(b=>b.style.borderColor='var(--line)');this.style.borderColor='var(--lime)';document.getElementById('cbt-combo').value='${p.s.join(',')}'"><strong>${p.n}</strong><span style="font-size:10px;color:var(--dim)">${p.s.join(', ')}</span></button>`).join('')}
+      </div>
+      <input type="hidden" id="cbt-combo" value="english,biology,chemistry,physics">
+      <div style="margin-bottom:16px"><label style="font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--dim)">TIME (MINUTES)</label>
+      <div style="display:flex;gap:6px;margin-top:6px">
+        ${[8,12,20,30].map(m=>`<button class="opt-btn" style="flex:1;padding:8px;justify-content:center;font-size:12px" onclick="this.parentElement.querySelectorAll('.opt-btn').forEach(b=>{b.style.borderColor='var(--line)'});this.style.borderColor='var(--lime)';document.getElementById('cbt-mins').value='${m}'">${m}m</button>`).join('')}
+      </div></div>
+      <input type="hidden" id="cbt-mins" value="12">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="launchCBT()">⏱ ENTER HALL</button>
+    </div>
+  </div></div>`;
+}
+
+function launchCBT(){
+  const combo=document.getElementById('cbt-combo').value.split(',');
+  const mins=parseInt(document.getElementById('cbt-mins').value)||12;
+  let pool=[];
+  combo.forEach(slug=>{const qs=DB.questions[slug]||[];pool.push(...shuffle(qs).slice(0,8))});
+  if(!pool.length){alert('Not enough questions.');return}
+  quizState={qs:pool,idx:0,answers:{},mode:'cbt',label:'UTME Mock · '+combo.length+' papers',started:Date.now(),timer:mins*60};
+  // start timer
+  if(quizState._interval)clearInterval(quizState._interval);
+  quizState._interval=setInterval(()=>{
+    quizState.timer--;
+    if(quizState.timer<=0){clearInterval(quizState._interval);finishQuiz()}
+    else{const te=document.querySelector('.timer');if(te){te.textContent=fmtClock(quizState.timer);if(quizState.timer<=10)te.classList.add('low')}}
+  },1000);
+  renderQuiz();
+}
+
+/* ═══════ FLASHCARDS ═══════ */
+function launchFlashcards(){
+  let pool=[];Object.values(DB.questions).forEach(qs=>pool.push(...qs));
+  pool=shuffle(pool).slice(0,15);
+  let idx=0,flipped=false,known=new Set();
+
+  function render(){
+    const q=pool[idx];const rem=pool.length-known.size;
+    document.getElementById('quiz-overlay').classList.add('open');
+    document.getElementById('quiz-overlay').innerHTML=`
+    <div class="app-bar"><span style="font-weight:700">📇 Flashcards</span><div style="display:flex;align-items:center;gap:10px"><span style="font-family:var(--mono);font-size:11px;color:var(--dim)">${rem} remaining</span><button onclick="closeQuiz()" style="background:none;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;color:var(--paper)">✕</button></div></div>
+    <div class="app-body">
+      <div class="progress-bar"><div class="fill" style="width:${Math.round((known.size/pool.length)*100)}%"></div></div>
+      <div class="flashcard-container">
+        <div class="flashcard ${flipped?'flipped':''}" onclick="document.querySelector('.flashcard').classList.toggle('flipped')">
+          <div class="face"><p style="font-family:var(--mono);font-size:10px;color:var(--dim)">${q.topic.toUpperCase()}</p><p style="font-size:18px;font-weight:600;text-align:center;margin-top:12px">${q.question}</p><p style="font-family:var(--mono);font-size:10px;color:var(--dim);margin-top:16px">TAP TO FLIP</p></div>
+          <div class="face back"><p style="font-family:var(--mono);font-size:10px;color:var(--lime)">ANSWER</p><p style="font-size:20px;font-weight:900;color:var(--lime);margin-top:10px">${q.options[q.answerIndex]}</p><p style="font-size:13px;color:var(--dim);margin-top:12px;text-align:center">${q.explanation}</p></div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:20px">
+        <button class="btn btn-outline" style="padding:10px 16px;font-size:12px" onclick="fcPrev()">← PREV</button>
+        <button class="btn" style="padding:10px 16px;font-size:12px;background:rgba(200,241,105,.1);color:var(--lime)" onclick="fcKnow()">✓ I KNOW THIS</button>
+        <button class="btn btn-primary" style="padding:10px 16px;font-size:12px" onclick="fcNext()">NEXT →</button>
+      </div>
+    </div>`;
+  }
+  window.fcNext=()=>{flipped=false;if(idx+1<pool.length)idx++;else if(pool.length-known.size<=0){closeQuiz();alert('🎉 Deck mastered!')}else idx=0;render()};
+  window.fcPrev=()=>{flipped=false;if(idx>0)idx--;render()};
+  window.fcKnow=()=>{known.add(pool[idx].id);window.fcNext()};
+  render();
+}
+
+/* ═══════ RAPID FIRE ═══════ */
+function launchRapidFire(){
+  let pool=[];Object.values(DB.questions).forEach(qs=>pool.push(...qs));
+  pool=shuffle(pool).slice(0,30);
+  let idx=0,correct=0,wrong=0,streak=0,best=0,timer=60;
+
+  function render(){
+    const q=pool[idx];
+    document.getElementById('quiz-overlay').classList.add('open');
+    document.getElementById('quiz-overlay').innerHTML=`
+    <div class="app-bar"><span style="font-weight:700">⚡ Rapid Fire</span><div style="display:flex;align-items:center;gap:10px"><span style="font-family:var(--mono);font-size:11px;color:var(--dim)">${correct}✓ ${wrong}✗ 🔥×${streak}</span><span class="timer ${timer<=10?'low':''}">${timer}s</span></div></div>
+    <div class="app-body">
+      <div class="q-card">
+        <div class="q-topic">${q.topic.toUpperCase()}</div>
+        <div class="q-text">${q.question}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${q.options.map((o,i)=>`<button class="opt-btn" style="font-size:13px" onclick="rfPick(${i})">${LETTERS[i]}. ${o}</button>`).join('')}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  const interval=setInterval(()=>{
+    timer--;
+    const te=document.querySelector('.timer');
+    if(te){te.textContent=timer+'s';if(timer<=10)te.classList.add('low')}
+    if(timer<=0){clearInterval(interval);rfDone()}
+  },1000);
+
+  window.rfPick=(i)=>{
+    const q=pool[idx];
+    if(i===q.answerIndex){correct++;streak++;if(streak>best)best=streak}else{wrong++;streak=0}
+    if(idx+1<pool.length){idx++;render()}else{clearInterval(interval);rfDone()}
+  };
+
+  function rfDone(){
+    const total=correct+wrong;const pct=total?Math.round((correct/total)*100):0;
+    history.unshift({label:'Rapid Fire',total,correct,pct,grade:waecGrade(pct).g,dur:60-timer,date:new Date().toISOString()});
+    localStorage.setItem('mamss-history',JSON.stringify(history));
+    document.getElementById('quiz-overlay').innerHTML=`
+    <div class="app-bar"><span style="font-weight:700">⚡ Rapid Fire</span><button onclick="closeQuiz()" style="background:none;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;color:var(--paper)">✕</button></div>
+    <div class="app-body"><div class="result">
+      <p style="font-size:48px">⚡</p><h2 style="margin:12px 0">Time's up!</h2>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:400px;margin:20px auto">
+        <div class="stat-box"><div class="val" style="color:var(--lime)">${correct}</div><div class="lbl">CORRECT</div></div>
+        <div class="stat-box"><div class="val" style="color:var(--coral)">${wrong}</div><div class="lbl">WRONG</div></div>
+        <div class="stat-box"><div class="val" style="color:var(--iris)">×${best}</div><div class="lbl">BEST STREAK</div></div>
+      </div>
+      <div class="score">${pct}%</div>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:center"><button class="btn btn-primary" onclick="closeQuiz();launchRapidFire()">Again</button><button class="btn btn-outline" onclick="closeQuiz()">Done</button></div>
+    </div></div>`;
+  }
+  render();
+}
+
+/* ═══════ SPELLING LAB ═══════ */
+function launchSpelling(){
+  let pool=shuffle([...DB.questions.english||[],...DB.questions.mathematics||[]]).slice(0,10);
+  let idx=0,results=[];
+
+  function render(){
+    const q=pool[idx];
+    document.getElementById('quiz-overlay').classList.add('open');
+    document.getElementById('quiz-overlay').innerHTML=`
+    <div class="app-bar"><span style="font-weight:700">⌨️ Spelling Lab</span><span style="font-family:var(--mono);font-size:11px;color:var(--dim)">${idx+1}/${pool.length}</span></div>
+    <div class="app-body">
+      <div class="progress-bar"><div class="fill" style="width:${Math.round((idx/pool.length)*100)}%"></div></div>
+      <div class="q-card">
+        <div class="q-topic">${q.topic.toUpperCase()}</div>
+        <div class="q-text">${q.question}</div>
+        <form onsubmit="event.preventDefault();spSubmit()">
+          <div style="display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--bg)">
+            <input id="sp-input" type="text" placeholder="Type the correct answer..." style="flex:1;padding:14px;background:transparent;border:none;outline:none;color:var(--paper);font-size:14px" autofocus>
+            <button type="submit" style="width:50px;background:var(--lime);color:var(--bg);font-size:18px">✓</button>
+          </div>
+        </form>
+        <p style="text-align:center;font-family:var(--mono);font-size:9px;color:var(--dim);margin-top:10px">TYPE YOUR ANSWER · ENTER TO SUBMIT · SPELLING COUNTS</p>
+      </div>
+    </div>`;
+    setTimeout(()=>document.getElementById('sp-input')?.focus(),100);
+  }
+
+  window.spSubmit=()=>{
+    const q=pool[idx];const typed=document.getElementById('sp-input').value.trim();
+    const correct=typed.toLowerCase()===q.options[q.answerIndex].toLowerCase();
+    results.push({q,typed,correct});
+    if(idx+1<pool.length){idx++;render()}else{spDone()}
+  };
+
+  function spDone(){
+    const c=results.filter(r=>r.correct).length;const pct=Math.round((c/results.length)*100);
+    document.getElementById('quiz-overlay').innerHTML=`
+    <div class="app-bar"><span style="font-weight:700">⌨️ Spelling Lab</span><button onclick="closeQuiz()" style="background:none;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;color:var(--paper)">✕</button></div>
+    <div class="app-body"><div class="result">
+      <p style="font-size:48px">⌨️</p><h2 style="margin:12px 0">Spelling Score</h2>
+      <div class="score">${pct}%</div><p style="color:var(--dim)">${c}/${results.length} correct</p>
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:center"><button class="btn btn-primary" onclick="closeQuiz();launchSpelling()">Again</button><button class="btn btn-outline" onclick="closeQuiz()">Done</button></div>
+    </div>
+    ${results.filter(r=>!r.correct).length?`<div style="text-align:left;margin-top:24px"><h3 style="font-size:14px;font-weight:700;color:var(--coral);margin-bottom:10px">CORRECTIONS</h3>${results.filter(r=>!r.correct).map(r=>`<div style="background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:8px"><p style="font-size:13px;font-weight:600">${r.q.question}</p><div style="display:flex;gap:8px;font-size:11px;margin-top:8px"><span style="padding:6px 10px;border-radius:8px;border:1px solid rgba(248,113,113,.3);color:var(--coral)">You: ${r.typed||'(blank)'}</span><span style="padding:6px 10px;border-radius:8px;border:1px solid rgba(200,241,105,.3);color:var(--lime)">Answer: ${r.q.options[r.q.answerIndex]}</span></div></div>`).join('')}</div>`:''}</div>`;
+  }
+  render();
+}
+
+/* ═══════ FOCUS LAB ═══════ */
+function launchFocus(){
+  let work=25*60,rest=5*60,mode='work',running=false,remaining=25*60,sessions=0;
+  const ol=document.getElementById('quiz-overlay');ol.classList.add('open');
+  let interval=null;
+
+  function render(){
+    const total=mode==='work'?work:rest;
+    const pct=((total-remaining)/total)*100;
+    ol.innerHTML=`
+    <div class="app-bar"><span style="font-weight:700">🔥 Focus Lab</span><button onclick="clearInterval(${interval});closeQuiz()" style="background:none;border:1px solid var(--line);border-radius:8px;width:36px;height:36px;color:var(--paper)">✕</button></div>
+    <div class="app-body" style="text-align:center;padding-top:40px">
+      <p style="font-family:var(--mono);font-size:12px;font-weight:700;color:${mode==='work'?'var(--lime)':'var(--iris)'}">${mode==='work'?'🧠 FOCUS':'☕ REST'}</p>
+      <p style="font-family:var(--mono);font-size:64px;font-weight:900;margin:20px 0;font-variant-numeric:tabular-nums">${fmtClock(remaining)}</p>
+      <div style="display:flex;justify-content:center;gap:16px;margin-top:20px">
+        <button onclick="focusReset()" style="width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:none;color:var(--paper);font-size:16px">↺</button>
+        <button onclick="focusToggle()" style="width:64px;height:64px;border-radius:50%;background:${running?'var(--coral)':'var(--lime)'};color:var(--bg);font-size:22px;border:none">${running?'⏸':'▶'}</button>
+      </div>
+      <div style="display:flex;gap:24px;justify-content:center;margin-top:32px">
+        <div><p style="font-size:28px;font-weight:900;color:var(--lime)">${sessions}</p><p style="font-family:var(--mono);font-size:9px;color:var(--dim)">SESSIONS</p></div>
+      </div>
+    </div>`;
+  }
+
+  window.focusToggle=()=>{
+    running=!running;
+    if(running){
+      interval=setInterval(()=>{
+        remaining--;
+        if(remaining<=0){
+          if(mode==='work'){sessions++;mode='rest';remaining=rest}else{mode='work';remaining=work}
+        }
+        render();
+      },1000);
+    }else{clearInterval(interval)}
+    render();
+  };
+  window.focusReset=()=>{clearInterval(interval);running=false;mode='work';remaining=work;render()};
+  render();
+}
+
+/* ═══════ TOOLS ═══════ */
+function renderTools(){
+  const formulas={Mathematics:[{n:'Quadratic Formula',f:'x = (-b ± √(b²-4ac)) / 2a',t:'Solves ax² + bx + c = 0'},{n:'Area of Circle',f:'A = πr²',t:'r = radius'},{n:'Pythagoras',f:'c² = a² + b²',t:'Right triangle'},{n:'AP nth term',f:'Tₙ = a + (n-1)d',t:'Arithmetic Progression'},{n:'GP nth term',f:'Tₙ = arⁿ⁻¹',t:'Geometric Progression'}],Physics:[{n:"Newton's 2nd Law",f:'F = ma',t:'Force = mass × accel'},{n:"Ohm's Law",f:'V = IR',t:'Voltage = Current × Resistance'},{n:'Wave Equation',f:'v = fλ',t:'velocity = freq × wavelength'},{n:'Kinetic Energy',f:'KE = ½mv²',t:'Energy of motion'},{n:'Density',f:'ρ = m/V',t:'mass per volume'}],Chemistry:[{n:'Moles',f:'n = m/M',t:'moles = mass / molar mass'},{n:"Boyle's Law",f:'P₁V₁ = P₂V₂',t:'Constant temperature'},{n:'pH',f:'pH = -log[H⁺]',t:'Hydrogen ion concentration'},{n:'Avogadro',f:'Nₐ = 6.02 × 10²³',t:'Particles per mole'}]};
+
+  const elements=[{z:1,s:'H',n:'Hydrogen',m:1.008,c:'#34D399'},{z:2,s:'He',n:'Helium',m:4.003,c:'#A78BFA'},{z:3,s:'Li',n:'Lithium',m:6.941,c:'#F87171'},{z:4,s:'Be',n:'Beryllium',m:9.012,c:'#F472B6'},{z:6,s:'C',n:'Carbon',m:12.01,c:'#34D399'},{z:7,s:'N',n:'Nitrogen',m:14.01,c:'#34D399'},{z:8,s:'O',n:'Oxygen',m:16.00,c:'#34D399'},{z:9,s:'F',n:'Fluorine',m:19.00,c:'#FBBF24'},{z:11,s:'Na',n:'Sodium',m:22.99,c:'#F87171'},{z:12,s:'Mg',n:'Magnesium',m:24.31,c:'#F472B6'},{z:13,s:'Al',n:'Aluminium',m:26.98,c:'#7DD3FC'},{z:14,s:'Si',n:'Silicon',m:28.09,c:'#38BDF8'},{z:15,s:'P',n:'Phosphorus',m:30.97,c:'#34D399'},{z:16,s:'S',n:'Sulphur',m:32.07,c:'#34D399'},{z:17,s:'Cl',n:'Chlorine',m:35.45,c:'#FBBF24'},{z:19,s:'K',n:'Potassium',m:39.10,c:'#F87171'},{z:20,s:'Ca',n:'Calcium',m:40.08,c:'#F472B6'},{z:26,s:'Fe',n:'Iron',m:55.85,c:'#C8F169'},{z:29,s:'Cu',n:'Copper',m:63.55,c:'#C8F169'},{z:30,s:'Zn',n:'Zinc',m:65.38,c:'#C8F169'},{z:35,s:'Br',n:'Bromine',m:79.90,c:'#FBBF24'},{z:47,s:'Ag',n:'Silver',m:107.9,c:'#C8F169'},{z:79,s:'Au',n:'Gold',m:197.0,c:'#C8F169'},{z:82,s:'Pb',n:'Lead',m:207.2,c:'#7DD3FC'}];
+
+  document.getElementById('page-tools').innerHTML=`
+  <div style="padding-top:80px"><div class="container">
+    <div class="section-label">REFERENCE & UTILITIES</div>
+    <h1 class="section-title">Study Tools</h1>
+
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:32px">
+      <button class="btn btn-primary" style="padding:10px 20px;font-size:13px" onclick="showToolTab('formulas')">📐 Formula Vault</button>
+      <button class="btn btn-outline" style="padding:10px 20px;font-size:13px" onclick="showToolTab('periodic')">🧪 Periodic Table</button>
+      <button class="btn btn-outline" style="padding:10px 20px;font-size:13px" onclick="showToolTab('calc')">🔢 Calculator</button>
+    </div>
+
+    <div id="tool-formulas">
+      ${Object.entries(formulas).map(([subj,fs])=>`<h2 style="font-size:18px;font-weight:900;margin:24px 0 12px">${subj}</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px">${fs.map(f=>`<div class="formula-card"><div class="name">${f.n.toUpperCase()}</div><div class="formula">${f.f}</div><div class="note">${f.t}</div></div>`).join('')}</div>`).join('')}
+    </div>
+
+    <div id="tool-periodic" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px">
+        ${elements.map(e=>`<div class="element"><div class="z">${e.z}</div><div class="sym" style="color:${e.c}">${e.s}</div><div class="ename">${e.n}</div><div class="mass">${e.m}</div></div>`).join('')}
+      </div>
+    </div>
+
+    <div id="tool-calc" style="display:none;max-width:320px">
+      <div class="calc-display" id="calc-display">0</div>
+      <div class="calc-grid">
+        ${'C,⌫,(,),7,8,9,÷,4,5,6,×,1,2,3,-,0,.,+,='.split(',').map(k=>`<button class="calc-btn ${k==='='?'accent':k==='C'?'danger':''}" onclick="calcFeed('${k}')">${k}</button>`).join('')}
+      </div>
+    </div>
+  </div></div>`;
+}
+
+function showToolTab(id){
+  ['formulas','periodic','calc'].forEach(t=>{
+    const el=document.getElementById('tool-'+t);if(el)el.style.display=t===id?'block':'none';
+  });
+}
+
+let calcExpr='';
+function calcFeed(k){
+  if(k==='C'){calcExpr=''}
+  else if(k==='⌫'){calcExpr=calcExpr.slice(0,-1)}
+  else if(k==='='){
+    const safe=calcExpr.replace(/×/g,'*').replace(/÷/g,'/');
+    if(!/^[0-9+\-*/.() ]+$/.test(safe)||!safe){calcExpr='ERR'}
+    else{try{const v=Function('"use strict"; return ('+safe+')')();calcExpr=Number.isFinite(v)?String(Math.round(v*1e8)/1e8):'ERR'}catch{calcExpr='ERR'}}
+  }
+  else{if(calcExpr==='ERR')calcExpr='';calcExpr+=k}
+  document.getElementById('calc-display').textContent=calcExpr||'0';
+}
+
+/* ═══════ PROGRESS HQ ═══════ */
+function renderHQ(){
+  const total=history.reduce((a,x)=>a+x.total,0);
+  const correct=history.reduce((a,x)=>a+x.correct,0);
+  const avg=history.length?Math.round(history.reduce((a,x)=>a+x.pct,0)/history.length):0;
+  const best=history.length?Math.max(...history.map(h=>h.pct)):0;
+  const readiness=Math.min(100,Math.round(avg*0.8+(history.length>3?20:history.length*5)));
+
+  document.getElementById('page-hq').innerHTML=`
+  <div style="padding-top:80px"><div class="container">
+    <div class="section-label">📊 YOUR COMMAND CENTER</div>
+    <h1 class="section-title">Progress HQ</h1>
+
+    <div style="display:grid;grid-template-columns:200px 1fr;gap:16px;margin-bottom:32px">
+      <div class="q-card" style="text-align:center;border-color:rgba(251,191,36,.2)">
+        <p style="font-family:var(--mono);font-size:10px;color:rgba(251,191,36,.7)">✦ ADAPTIVE ENGINE</p>
+        <p style="font-size:48px;font-weight:900;margin:12px 0">${readiness}%</p>
+        <span style="display:inline-block;padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;background:${readiness>=60?'rgba(200,241,105,.1)':'rgba(248,113,113,.1)'};color:${readiness>=60?'var(--lime)':'var(--coral)'}">
+          ${readiness>=60?'Exam ready':readiness>=35?'Keep revising':'Start drilling'}
+        </span>
+      </div>
+      <div class="q-card" style="border-color:rgba(251,191,36,.2)">
+        <p style="font-family:var(--mono);font-size:10px;color:rgba(251,191,36,.7)">✦ TODAY'S PLAN</p>
+        <div style="margin-top:12px;display:grid;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px"><div><strong>Smart paper</strong><br><span style="font-size:11px;color:var(--dim)">10 questions aimed at weak areas</span></div><button class="btn btn-primary" style="padding:8px 16px;font-size:11px" onclick="showPage('practice')">Start</button></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:12px"><div><strong>⚡ Rapid Fire sprint</strong><br><span style="font-size:11px;color:var(--dim)">60-second dash</span></div><button class="btn" style="padding:8px 16px;font-size:11px;background:var(--iris);color:var(--bg)" onclick="launchRapidFire()">Go</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row" style="margin-bottom:32px">
+      ${[{v:history.length,l:'PAPERS',e:'📋'},{v:total,l:'QUESTIONS',e:'📝'},{v:correct,l:'CORRECT',e:'✅'},{v:avg+'%',l:'AVG SCORE',e:'📊'},{v:best+'%',l:'BEST',e:'🏆'}].map(s=>`<div class="stat-box"><div class="emoji">${s.e}</div><div class="val">${s.v}</div><div class="lbl">${s.l}</div></div>`).join('')}
+    </div>
+
+    <h2 style="font-size:18px;font-weight:900;margin-bottom:12px">🏅 Records Hall</h2>
+    ${!history.length?'<div class="q-card" style="text-align:center"><p style="font-size:32px">📭</p><p style="font-weight:700;margin-top:8px">No records yet</p><p style="color:var(--dim);font-size:13px">Take a quiz to start building records.</p><button class="btn btn-primary" style="margin-top:12px" onclick="showPage(\'practice\')">Start practicing</button></div>':''}
+    ${history.map((h,i)=>{
+      const g=waecGrade(h.pct);
+      return`<div style="display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:8px">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--dim)">#${i+1}</span>
+        <div style="flex:1;min-width:0"><p style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.label}</p><p style="font-family:var(--mono);font-size:10px;color:var(--dim)">${h.total}Q · ${new Date(h.date).toLocaleDateString()}</p></div>
+        <span style="padding:6px 12px;border-radius:8px;font-weight:900;font-size:13px;background:${h.pct>=50?'rgba(200,241,105,.1)':'rgba(248,113,113,.1)'};color:${h.pct>=50?'var(--lime)':'var(--coral)'}">${h.pct}%</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--dim)">${g.g}</span>
+        ${h.utme!=null?`<span style="font-family:var(--mono);font-size:10px;color:var(--iris)">${h.utme}/400</span>`:''}
+      </div>`;
+    }).join('')}
+
+    <div style="margin-top:32px"><h2 style="font-size:18px;font-weight:900;margin-bottom:12px">💾 Backup</h2>
+    <div class="q-card"><p style="color:var(--dim);font-size:13px">Export your progress as JSON.</p>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="const d=JSON.stringify(history,null,2);const b=new Blob([d],{type:'application/json'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download='mamss-backup.json';a.click()">📥 Export data</button></div></div>
+  </div></div>`;
+}
+
+/* ═══════ KEYBOARD SHORTCUTS ═══════ */
+document.addEventListener('keydown',e=>{
+  if(!document.getElementById('quiz-overlay').classList.contains('open'))return;
+  const k=e.key.toUpperCase();
+  const map={A:0,B:1,C:2,D:3,'1':0,'2':1,'3':2,'4':3};
+  if(k in map&&quizState.qs){pickAnswer(map[k])}
+  if(e.key==='Enter'&&quizState.answers?.[quizState.idx]!==undefined){quizNext()}
+});
+
+/* ═══════ INIT ═══════ */
+showPage('home');
+</script>
+</body>
+</html>
