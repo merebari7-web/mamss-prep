@@ -1,0 +1,16 @@
+{
+ "SS2|Mathematics": {
+  "fix": {
+   "Which of the following is NOT an algebra?": {
+    "e": "Density is a physical quantity, not an algebraic expression. Coefficients, indices and equations all belong to algebra."
+   }
+  }
+ },
+ "SS3|Mathematics": {
+  "fix": {
+   "Which of the following is NOT an algebra?": {
+    "e": "Acceleration is a rate of change, so it is a physical quantity rather than an algebraic expression. Surds, moduli and determinants are all algebra."
+   }
+  }
+ }
+}

@@ -1,0 +1,41 @@
+/* v19 — Responsiveness across all devices (shell). Fixes found by the
+   21-viewport audit: 280px plan-grid overflow, hero3d decor clipping,
+   iOS zoom-on-focus (<16px inputs), landscape/ultra-wide tuning. */
+.hero3d{contain:paint}
+h2,h3{text-wrap:balance}
+@supports (text-wrap:balance){.hero h1,.ai-tx h2{text-wrap:balance}}
+@media(max-width:479px){
+  .plan-grid{grid-template-columns:1fr}
+  .plan-gauge{display:flex;flex-direction:column}
+  .plan-gauge,.plan-items{min-width:0;max-width:100%}
+  .plan-num{font-size:1.7rem}
+  .cd-form{flex-wrap:wrap}
+}
+@media(max-width:400px){
+  .h-ring{width:220px;height:220px;margin:-110px 0 0 -110px}
+  .h-ring.r2{width:240px;height:240px;margin:-120px 0 0 -120px}
+  .hero3d{overflow:visible}
+}
+@media(max-width:479px){
+  #classTabs{display:flex;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  #classTabs::-webkit-scrollbar{display:none}
+  #classTabs .tab{flex:1 0 84px;min-width:0}
+}
+@media(max-width:319px){
+  .wrap{padding-left:12px;padding-right:12px}
+  .hero{padding-left:14px;padding-right:14px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat b{font-size:1.3rem}
+  .tab{padding:6px 8px;font-size:.7rem}
+}
+@media(pointer:coarse){
+  input,select,textarea{font-size:16px}
+}
+@media(max-height:520px){
+  .hero{padding-top:12px;padding-bottom:56px}
+  .hero p.tag{margin-top:6px}
+}
+@media(min-width:1440px){
+  .wrap{max-width:1060px}
+  .hero-copy{max-width:1120px}
+}

@@ -1,0 +1,11 @@
+/* v17 Lumina II — Teaching Suite refinement (appended to the edu.css chain
+   by patch_v17.py). */
+.edu-head{background:linear-gradient(180deg,rgba(201,162,39,.12),transparent);border-bottom:1px solid rgba(201,162,39,.28)}
+.edu-opt{transition:transform .14s ease,border-color .18s ease,background .18s ease}
+.edu-opt:hover{transform:translateY(-1px);border-color:rgba(201,162,39,.6);background:rgba(201,162,39,.07)}
+.edu-tag{background:var(--grad-gold);color:#31220a;font-weight:900;border-radius:999px;padding:2px 10px;box-shadow:0 6px 14px -6px rgba(201,162,39,.8)}
+.edu-week{transition:background .15s ease}
+.edu-week:hover{background:rgba(201,162,39,.09)}
+@media(max-width:560px){
+  .edu-head{padding:10px 12px}
+}

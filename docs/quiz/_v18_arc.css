@@ -1,0 +1,34 @@
+/* v18 Aurum — Study Arcade first-class: ambient modal gold mist, flowing
+   shimmer on progress fills, gold pill chips, gradient KPIs, corner glow
+   on question plates. Motion-gated, variable-based (dark-aware). */
+#arcModal{box-shadow:inset 0 2px 0 -1px rgba(201,162,39,.95),inset 0 0 0 1px rgba(201,162,39,.16),0 0 100px -32px rgba(201,162,39,.5),0 44px 100px -30px rgba(4,10,20,.7)}
+/* progress fills: liquid gold shimmer */
+.arc-bar{position:relative;overflow:hidden}
+.arc-bar i,.arc-wbar i{position:relative;overflow:hidden}
+.arc-bar i::after,.arc-wbar i::after{content:"";position:absolute;inset:-20% -60%;background:linear-gradient(100deg,transparent 38%,rgba(255,255,255,.55) 50%,transparent 62%);transform:translateX(-70%);pointer-events:none}
+.arc-wbar{border:1px solid rgba(201,162,39,.28)}
+/* pills */
+.arc-pill{border:1px solid rgba(201,162,39,.5);background:linear-gradient(180deg,rgba(255,252,244,.95),rgba(249,240,219,.85));box-shadow:inset 0 1px 0 rgba(255,255,255,.7);border-radius:999px}
+.arc-hud .arc-pill{font-weight:900;color:#7a5c1a}
+[data-theme=dark] .arc-pill{background:linear-gradient(180deg,rgba(35,46,74,.95),rgba(22,31,52,.9));color:#e6c47a}
+/* KPI numerals: gold gradient */
+.arc-kpi{border:1px solid rgba(201,162,39,.42);background:linear-gradient(180deg,#fffaf0,var(--panel,#fbf7ee));box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 14px 28px -18px rgba(20,35,70,.4)}
+.arc-kpi b{font-size:1.45rem}
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .arc-kpi b{-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;background-image:linear-gradient(135deg,#a97b2a,#e7c46a 55%,#9c742c)}
+}
+/* question plate corner glow */
+.arc-q{position:relative}
+.arc-q::before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(58% 88% at 100% 0,rgba(201,162,39,.1),transparent 62%);pointer-events:none}
+.arc-q>*{position:relative}
+/* flash card plate */
+.arc-fcard{border:1px solid rgba(201,162,39,.5);background:linear-gradient(180deg,var(--card-solid,#fffaf0),var(--panel,#fbf7ee));box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 14px 30px -20px rgba(20,35,70,.5)}
+/* selection chips + focus rings */
+.arc-chip:focus-visible,.arc-opt:focus-visible,.arc-cell:focus-visible,.arc-tab:focus-visible{outline:2px solid var(--gold,#c9a227);outline-offset:2px}
+@media (prefers-reduced-motion: no-preference){
+  html:not(.rmotion) .arc-bar i::after,html:not(.rmotion) .arc-wbar i::after{animation:auFlow 2.4s linear infinite}
+  html:not(.rmotion) .arc-tile span{animation:arcMfloat 4s ease-in-out infinite alternate}
+  html:not(.rmotion) .arc-tile:nth-child(2n) span{animation-delay:-1.3s}
+  html:not(.rmotion) .arc-tile:nth-child(3n) span{animation-delay:-2.6s}
+  @keyframes auFlow{to{transform:translateX(230%)}}
+}

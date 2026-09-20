@@ -1,0 +1,16 @@
+/* v16 Lumina — Teaching Suite polish (appended to the edu.js injectCss
+   string by patch_v16.py). Vars come from the app :root. */
+.edu-modal{box-shadow:0 44px 92px -30px rgba(20,35,70,.5),inset 0 2px 0 -1px rgba(201,162,39,.95),inset 0 0 0 1px rgba(201,162,39,.15)}
+.edu-sec h3{font-size:clamp(1.1rem,2.6vw,1.34rem)}
+.edu-card{transition:transform .18s ease,box-shadow .25s ease,border-color .25s ease}
+.edu-card:hover{transform:translateY(-2px);border-color:rgba(201,162,39,.55);box-shadow:0 18px 36px -20px rgba(20,35,70,.42)}
+.edu-chip{border-radius:999px;transition:transform .15s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease,color .2s ease}
+.edu-chip:hover{transform:translateY(-1px)}
+.edu-chip.on{background:var(--grad-gold);border-color:transparent;color:#31220a;font-weight:900;box-shadow:0 10px 20px -10px rgba(201,162,39,.85)}
+.edu-pill{background:rgba(201,162,39,.09);border-color:rgba(201,162,39,.4)}
+.edu-note{border-left:4px solid var(--gold);background:linear-gradient(90deg,rgba(201,162,39,.07),transparent 65%)}
+.edu-q{border-left:3px solid rgba(201,162,39,.55)}
+.edu-table tbody tr{transition:background .15s ease}
+.edu-table tbody tr:hover{background:rgba(201,162,39,.08)}
+.edu-btn{background:var(--grad-gold);border-color:transparent;color:#31220a;font-weight:900;box-shadow:0 10px 20px -10px rgba(201,162,39,.8)}
+.edu-sub b{display:inline-block;padding-bottom:3px;border-bottom:2px solid rgba(201,162,39,.5)}

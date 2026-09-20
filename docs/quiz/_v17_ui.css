@@ -1,0 +1,34 @@
+/* v17 Lumina II — shell refinement: button/control states, touch-device hover
+   suppression, AI Coach small-screen hardening, gold accents. Injected as the
+   LAST shell style block (id=v17ui) so it wins the cascade. */
+:where(input,select,textarea):focus-visible{outline:2px solid var(--gold,#c9a227);outline-offset:2px}
+:where(button:disabled,button[disabled]){opacity:.55;cursor:not-allowed;filter:saturate(.55);transform:none!important;box-shadow:none}
+[data-theme=dark] :where(button:disabled,button[disabled]){filter:saturate(.5) brightness(.8)}
+:where(.btn,.btn-mini,.edu-btn,.arc-btn,.cal-btn,.chip,.tab,.hd-btn,.arc-x):active{filter:brightness(.93)}
+/* touch devices: drop hover lifts/transforms (sticky-hover fix) */
+@media(hover:none){
+  :where(.card,.ai-it,.arc-tile,.edu-card,.lab-tile,.g-tile,.hd-btn,.btn,.chip,.tab):hover{transform:none!important}
+}
+/* ---------- AI Coach: small-screen hardening (the responsiveness ask) ---------- */
+.ai-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.ai-it,.ai-it .ai-main,.ai-main b,.ai-main small,.ai-main em,.ai-tx,.ai-tx h2,.ai-tx small{min-width:0}
+.ai-it .ai-main b,.ai-tx h2,.ai-tx small,.ai-it .ai-main small,.ai-it .ai-main em{overflow-wrap:anywhere}
+.ai-head .ai-ico{flex:none}
+.ai-it .ai-go{min-height:42px;flex:none}
+.ai-it.ai-top::after{max-width:calc(100% - 26px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:.56rem}
+@media(max-width:400px){
+  .ai-grid{grid-template-columns:1fr}
+  .ai-it{padding:12px 12px 12px 15px}
+  .ai-it.ai-top{padding-top:32px}
+  .ai-it.ai-top::after{font-size:.5rem;letter-spacing:.12em;padding:4px 9px}
+  .ai-go{min-height:44px}
+  .ai-ico{width:38px;height:38px;font-size:1.1rem}
+}
+/* ---------- gold accents on data surfaces ---------- */
+.hq-chip{transition:transform .16s ease,border-color .22s ease}
+.hq-chip:hover{transform:translateY(-2px);border-color:rgba(201,162,39,.55)}
+.map-chip{transition:transform .15s ease,box-shadow .2s ease}
+.map-chip:hover{transform:translateY(-1px);box-shadow:0 8px 18px -10px rgba(20,35,70,.35)}
+.qmedal{box-shadow:0 0 0 1px rgba(201,162,39,.4),0 8px 18px -10px rgba(201,162,39,.55)}
+#aurora .au1{opacity:.95}
+.lab-tile{background-image:radial-gradient(60% 46% at 100% 0,rgba(201,162,39,.13),transparent 70%)}

@@ -1,0 +1,27 @@
+/* v16 Lumina — Study Arcade premium refresh (appended to the arcade CSS
+   string in _arc_app.js by patch_v16.py). Vars come from the app :root. */
+#arcModal{box-shadow:inset 0 2px 0 -1px rgba(201,162,39,.95),inset 0 0 0 1px rgba(201,162,39,.16),0 44px 100px -30px rgba(4,10,20,.66)}
+#arcBody>*{animation:arcIn .34s ease backwards}
+@keyframes arcIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+#arcTitle{font-size:clamp(1.05rem,2.6vw,1.3rem)}
+.arc-x{transition:transform .25s ease,background .2s ease,color .2s ease,border-color .2s ease,box-shadow .2s ease}
+.arc-x:hover{background:var(--grad-gold);border-color:transparent;color:#31220a;transform:rotate(90deg);box-shadow:0 8px 18px -8px rgba(201,162,39,.8)}
+.arc-tile{position:relative;overflow:hidden;border-radius:16px;background:linear-gradient(180deg,var(--card-solid),var(--panel));transition:transform .18s ease,box-shadow .25s ease,border-color .25s ease}
+.arc-tile::before{content:"";position:absolute;inset:0;background:radial-gradient(130% 95% at 50% -30%,rgba(201,162,39,.17),transparent 55%);opacity:0;transition:opacity .25s ease;pointer-events:none}
+.arc-tile:hover{transform:translateY(-3px);border-color:rgba(201,162,39,.62);box-shadow:0 20px 38px -20px rgba(20,35,70,.5)}
+.arc-tile:hover::before{opacity:1}
+.arc-tile span{width:44px;height:44px;display:grid;place-items:center;border-radius:13px;font-size:1.4rem;background:var(--grad-gold);box-shadow:0 12px 22px -10px rgba(201,162,39,.8),inset 0 1px 0 rgba(255,255,255,.55);margin-bottom:8px;transition:transform .18s ease}
+.arc-tile:hover span{transform:scale(1.1) rotate(-5deg)}
+.arc-tile:nth-child(4n+2) span{background:linear-gradient(135deg,#bda7f7,#8b5cf6 50%,#6d28d9);box-shadow:0 12px 22px -10px rgba(139,92,246,.72),inset 0 1px 0 rgba(255,255,255,.4)}
+.arc-tile:nth-child(4n+3) span{background:linear-gradient(135deg,#93dcb4,#2f9e63 52%,#1b6b42);box-shadow:0 12px 22px -10px rgba(47,158,99,.68),inset 0 1px 0 rgba(255,255,255,.42)}
+.arc-tile:nth-child(4n+4) span{background:linear-gradient(135deg,#f6b9b2,#d95f54 52%,#a33a30);box-shadow:0 12px 22px -10px rgba(217,95,84,.62),inset 0 1px 0 rgba(255,255,255,.42)}
+.arc-tile b{font-size:.98rem;display:block}
+.arc-tile small{color:var(--mut,#8a7a5e);font-size:.74rem;line-height:1.5}
+.arc-best{display:inline-block;margin-top:9px;padding:4px 11px;font-size:.68rem;font-weight:900;letter-spacing:.05em;color:#3a2a08;background:var(--grad-gold);border-radius:999px;box-shadow:0 8px 16px -8px rgba(201,162,39,.85)}
+.arc-chip.on{background:var(--grad-gold);border-color:transparent;color:#31220a;font-weight:900;box-shadow:0 10px 20px -10px rgba(201,162,39,.85)}
+.arc-q{border-left:3px solid rgba(201,162,39,.55)}
+@media(max-width:640px){
+  .arc-modal{border-radius:18px 18px 0 0}
+  .arc-tile span{width:40px;height:40px;border-radius:12px}
+  .arc-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+}

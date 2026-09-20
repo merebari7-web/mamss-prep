@@ -61,3 +61,15 @@ You can deploy this instantly to Vercel using the button below. Remember to conf
 
 ---
 *Built for Morals and Excellence.*
+
+---
+
+## Deployment note (2026-09-20)
+
+The GitHub Pages site at **https://merebari7-web.github.io/mamss-prep/** now serves a full
+copy of the **My Personal Study App** static site (previously the lighter MAMSS Prep portal
+with 195 questions). The static source lives in [`docs/`](docs/) and is kept in sync with
+the `my-personal-study-app` repository. When you release an update of the study app, copy
+the updated static files into `docs/`, update the `mamss-prep` URLs in `index.html`,
+`robots.txt`, `sitemap.xml`, `manifest.webmanifest` and `quiz/atlas.js`, then commit —
+GitHub Pages will republish automatically.

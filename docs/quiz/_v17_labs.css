@@ -1,0 +1,25 @@
+/* v17 Lumina II — Exam-Room Labs polish (appended to the labs.js CSS string
+   by patch_v17.py). Scoped .lx-*, gold-on-ivory consistent with the shell. */
+.lx-modal{box-shadow:0 30px 70px -22px rgba(20,35,70,.5),inset 0 2px 0 -1px rgba(201,162,39,.95),inset 0 0 0 1px rgba(201,162,39,.15)}
+.lx-head{background:linear-gradient(180deg,rgba(201,162,39,.12),transparent);border-bottom:1px solid rgba(201,162,39,.28)}
+.lx-x{transition:transform .25s ease,background .2s ease,color .2s ease,border-color .2s ease}
+.lx-x:hover{background:var(--grad-gold);border-color:transparent;color:#31220a;transform:rotate(90deg)}
+.lx-trophy{filter:drop-shadow(0 6px 14px rgba(201,162,39,.55))}
+.lx-med{box-shadow:0 0 0 1px rgba(201,162,39,.4),0 8px 18px -10px rgba(201,162,39,.55)}
+.lx-tick{border-color:rgba(201,162,39,.6);transition:background .18s ease,border-color .18s ease}
+.lx-task:hover .lx-tick{background:rgba(201,162,39,.18)}
+.lx-fcard{transition:transform .18s ease,box-shadow .25s ease,border-color .2s ease}
+.lx-fcard:hover{transform:translateY(-2px);border-color:rgba(201,162,39,.55);box-shadow:0 16px 30px -18px rgba(20,35,70,.45)}
+.lx-cat,.lx-chip{transition:background .16s ease,border-color .16s ease,color .16s ease,transform .14s ease}
+.lx-cat:hover,.lx-chip:hover{transform:translateY(-1px)}
+.lx-focus-ring{box-shadow:0 0 0 3px rgba(201,162,39,.35),0 24px 60px -28px rgba(201,162,39,.55);transition:box-shadow .5s ease}
+.lx-pnum,.lx-score{font-variant-numeric:tabular-nums}
+.lx-qhead,.lx-qn{font-weight:800}
+.lx-opt{transition:transform .14s ease,border-color .18s ease,background .18s ease}
+.lx-opt:hover:not(:disabled){transform:translateY(-1px);border-color:rgba(201,162,39,.6)}
+.lx-opt.good{background:linear-gradient(135deg,rgba(47,158,99,.18),rgba(47,158,99,.08));border-color:#2f9e63;box-shadow:0 10px 22px -12px rgba(47,158,99,.65)}
+.lx-opt.bad{background:linear-gradient(135deg,rgba(217,95,84,.18),rgba(217,95,84,.08));border-color:#d95f54;animation:lxShake .4s ease}
+@keyframes lxShake{20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+@media(max-width:560px){
+  .lx-modal{border-radius:14px}
+}

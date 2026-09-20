@@ -1,0 +1,82 @@
+/* v16 Lumina — design system & premium refresh for the app shell.
+   Injected by patch_v16.py as the LAST <style> block in quiz/template.html,
+   so it wins cascade ties. Uses :where() (zero specificity) for baseline
+   interactions so it can never fight existing component styles. */
+:root{
+  --r-s:10px;--r-m:14px;--r-l:18px;--r-xl:26px;
+  --sh-1:0 1px 0 rgba(20,35,70,.05),0 14px 28px -16px rgba(20,35,70,.34);
+  --sh-2:0 2px 0 rgba(20,35,70,.04),0 26px 50px -22px rgba(20,35,70,.4);
+  --sh-gold:0 16px 34px -16px rgba(201,162,39,.65);
+  --grad-gold:linear-gradient(135deg,#eccf8e,#c9a25f 48%,#9c742c);
+}
+/* ---------- baseline interactions (zero specificity) ---------- */
+:where(button){transition:transform .14s ease,box-shadow .22s ease,border-color .22s ease,background .22s ease,filter .22s ease,color .22s ease}
+:where(button:active){transform:translateY(1px) scale(.985)}
+:where(button:focus-visible){outline:2px solid var(--gold,#c9a227);outline-offset:2px}
+:where(.btn:hover,.cal-btn:hover,.hd-btn:hover,.lab-tile:hover,.edu-btn:hover,.lib-item:hover){transform:translateY(-1px)}
+:where(.card,.ai-it,.arc-tile,.edu-card,.lab-tile,.g-tile){-webkit-tap-highlight-color:transparent}
+/* ---------- gold sheen sweep on primary actions ---------- */
+.btn-gold{position:relative;overflow:hidden}
+.btn-gold::after{content:"";position:absolute;top:-40%;left:-70%;width:44%;height:180%;background:linear-gradient(115deg,transparent 38%,rgba(255,252,240,.55) 50%,transparent 62%);transform:skewX(-18deg);opacity:0;pointer-events:none;transition:opacity .22s ease,transform .55s ease}
+.btn-gold:hover::after{opacity:1;transform:translateX(340%) skewX(-18deg)}
+/* ---------- cards lift with a gold hairline ---------- */
+.card{transition:transform .2s ease,box-shadow .25s ease,border-color .25s ease}
+.card:hover{transform:translateY(-3px);border-color:rgba(201,162,39,.5);box-shadow:var(--sh-2)}
+/* ---------- gold scrollbar + selection ---------- */
+::selection{background:rgba(201,162,39,.32)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:linear-gradient(180deg,#dcba7c,#a9853f);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ecca90,#b8934a);border-radius:99px;border:2px solid transparent;background-clip:content-box}
+/* ---------- gradient display text (progressive) ---------- */
+@supports ((-webkit-background-clip:text) or (background-clip:text)){
+  .hero h1{-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;background-image:linear-gradient(106deg,#fff 16%,#f7e2ae 38%,#ffffff 62%,#e8d9b2 90%)}
+  .ai-tx h2{-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;background-image:linear-gradient(100deg,var(--ink,#1b2a4a) 28%,#8a6c2f 52%,var(--ink,#1b2a4a) 76%)}
+  [data-theme=dark] .ai-tx h2{background-image:linear-gradient(100deg,#eef2fb 28%,#e6c47a 52%,#eef2fb 76%)}
+}
+.hero h1{letter-spacing:.03em;text-shadow:none}
+.hero h1::after{content:"";display:block;width:76px;height:4px;margin-top:12px;border-radius:99px;background:var(--grad-gold);box-shadow:0 8px 20px -6px rgba(201,162,39,.85)}
+/* ---------- AI Coach: premium suggestion cards ---------- */
+.ai-card{background:linear-gradient(165deg,var(--card) 0%,var(--card) 55%,rgba(201,162,39,.08) 100%);border:1px solid rgba(201,162,39,.3);box-shadow:var(--sh-2)}
+.ai-card::before{background:radial-gradient(480px 180px at 4% 0,rgba(201,162,39,.18),transparent 60%),radial-gradient(440px 170px at 97% 100%,rgba(124,58,237,.12),transparent 60%)}
+.ai-head .ai-ico{width:48px;height:48px;border-radius:var(--r-m);display:grid;place-items:center;background:var(--grad-gold);box-shadow:var(--sh-gold),inset 0 1px 0 rgba(255,255,255,.55);font-size:1.5rem;transition:transform .25s ease}
+.ai-card:hover .ai-head .ai-ico{transform:scale(1.06) rotate(-4deg)}
+.ai-tx h2{font-size:clamp(1.02rem,2.4vw,1.3rem)}
+.ai-tx small{color:var(--mut)}
+.ai-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,238px),1fr));gap:12px}
+.ai-it{position:relative;overflow:hidden;border-radius:var(--r-m);padding:13px 13px 13px 17px;border:1px solid var(--card-border);background:linear-gradient(180deg,var(--panel),rgba(201,162,39,.05));animation:aiIn .38s ease backwards;animation-delay:calc(var(--i,0)*55ms)}
+.ai-it::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:99px;background:linear-gradient(180deg,hsl(var(--ih,42) 68% 52%),hsl(var(--ih,42) 68% 34%))}
+.ai-it .ai-ico{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:1.22rem;background:hsl(var(--ih,42) 55% 93%);border:1px solid hsl(var(--ih,42) 45% 80%);box-shadow:inset 0 -8px 14px hsl(var(--ih,42) 50% 84%);transition:transform .2s ease}
+.ai-it:hover .ai-ico{transform:scale(1.08) rotate(4deg)}
+[data-theme=dark] .ai-it .ai-ico{background:hsl(var(--ih,42) 42% 20%);border-color:hsl(var(--ih,42) 46% 38%);box-shadow:inset 0 -8px 14px hsl(var(--ih,42) 55% 14%)}
+.ai-it:hover{transform:translateY(-2px);border-color:hsl(var(--ih,42) 55% 55%);box-shadow:var(--sh-1)}
+.ai-it .ai-main b{font-size:.96rem;color:var(--ink)}
+.ai-it .ai-main small{color:var(--ink-2)}
+.ai-it .ai-main em{display:block;font-style:normal;font-size:.78rem;line-height:1.55;color:var(--mut);margin-top:6px;padding:6px 9px;border-left:2px solid hsl(var(--ih,42) 55% 68%);background:rgba(20,35,70,.035);border-radius:0 9px 9px 0}
+[data-theme=dark] .ai-it .ai-main em{background:rgba(255,255,255,.045)}
+.ai-it.ai-top{border-color:rgba(201,162,39,.62);background:linear-gradient(180deg,var(--panel),rgba(201,162,39,.14));box-shadow:0 20px 40px -24px rgba(201,162,39,.62)}
+.ai-it.ai-top::after{content:"★ TOP PICK";position:absolute;top:0;right:0;padding:5px 12px;font-size:.58rem;font-weight:900;letter-spacing:.16em;color:#33250a;background:var(--grad-gold);border-radius:0 var(--r-m) 0 12px;box-shadow:0 6px 14px -6px rgba(201,162,39,.8)}
+.ai-it.ai-top{padding-top:30px}
+.ai-empty{border-radius:var(--r-m);background:var(--panel);padding:18px}
+@keyframes aiIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+/* ---------- floating launchers: glass + gold ring ---------- */
+.edu-launcher,.arc-launcher{border:1px solid rgba(201,162,39,.55);background:linear-gradient(150deg,var(--card-solid),#f3e8d0);box-shadow:0 16px 34px -18px rgba(20,35,70,.6),inset 0 1px 0 rgba(255,255,255,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.edu-launcher:hover,.arc-launcher:hover{transform:translateY(-2px);border-color:var(--gold);box-shadow:0 22px 46px -20px rgba(201,162,39,.62),inset 0 1px 0 rgba(255,255,255,.8)}
+[data-theme=dark] .edu-launcher,[data-theme=dark] .arc-launcher{background:linear-gradient(150deg,var(--card-solid),#141d33);border-color:rgba(201,162,39,.4)}
+/* ---------- home dock: glass pill, gold active ---------- */
+.home-dock{background:linear-gradient(180deg,rgba(251,247,236,.9),rgba(243,232,208,.94));border:1px solid rgba(201,162,39,.38);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+[data-theme=dark] .home-dock{background:linear-gradient(180deg,rgba(23,34,58,.94),rgba(16,24,42,.96));border-color:rgba(201,162,39,.3)}
+.hd-btn{border-radius:999px;padding:7px 13px}
+.hd-btn:hover{background:rgba(201,162,39,.15);transform:translateY(-1px)}
+.hd-btn.on{background:var(--grad-gold);border-color:transparent;color:#2b1d06;box-shadow:0 10px 22px -10px rgba(201,162,39,.85)}
+/* ---------- responsive tuning ---------- */
+@media(max-width:640px){
+  .ai-head .ai-ico{width:42px;height:42px;font-size:1.3rem}
+  .ai-grid{gap:9px}
+  .ai-it{flex-direction:column;align-items:stretch}
+  .ai-it .ai-main{min-width:0}
+  .ai-it .ai-go{width:100%}
+  .ai-tx h2{font-size:1rem}
+  .hero h1{font-size:clamp(1.35rem,5.6vw,1.9rem)}
+  .hd-btn{padding:7px 10px}
+}

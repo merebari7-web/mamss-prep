@@ -1,0 +1,18 @@
+/* v19 — Responsiveness across all devices (Study Arcade): landscape phones,
+   ultra-narrow, safe-area, sticky header while scrolling tall screens. */
+#arcModal{padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+@media(max-height:560px){
+  .arc-modal{max-height:100dvh;border-radius:0}
+  .arc-head{position:sticky;top:0;z-index:6;background:var(--card-solid,#fffaf0)}
+}
+@media(max-width:319px){
+  .arc-tile{padding:12px 10px}
+  .arc-tile b{font-size:.86rem}
+  .arc-tile small{font-size:.68rem}
+  .arc-hud{flex-wrap:wrap}
+  .arc-actions{flex-wrap:wrap}
+  .arc-calc{padding:6px;gap:4px}
+}
+@media(pointer:coarse){
+  .arc-btn,.arc-x,.arc-tab{min-height:38px}
+}

@@ -1,0 +1,11 @@
+/* v19 — Responsiveness across all devices (Exam-Room Labs): dvh modal,
+   safe-area, ultra-narrow padding, landscape. */
+.lx-modal{max-height:100dvh;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+@media(max-width:359px){
+  .lx-modal{padding:12px 10px}
+  .lx-head{flex-wrap:wrap;gap:8px}
+  .lx-opts{gap:6px}
+}
+@media(max-height:520px){
+  .lx-modal{max-height:100dvh;border-radius:0}
+}

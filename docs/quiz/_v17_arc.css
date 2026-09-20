@@ -1,0 +1,47 @@
+/* v17 Lumina II — Study Arcade deep refresh (appended to the arcade CSS
+   string by patch_v17.py). Light-theme modal; uses app :root vars. */
+/* header chrome */
+.arc-head{background:linear-gradient(180deg,rgba(201,162,39,.12),transparent);border-bottom:1px solid rgba(201,162,39,.28);border-radius:16px 16px 0 0;margin:-6px -8px 12px;padding:12px 8px 13px}
+.arc-tabs{scrollbar-width:thin}
+.arc-tab{transition:background .18s ease,border-color .18s ease,color .18s ease,box-shadow .18s ease}
+.arc-tab:hover{background:rgba(201,162,39,.12)}
+.arc-tab.on{background:var(--grad-gold);border-color:transparent;color:#31220a;box-shadow:0 8px 18px -8px rgba(201,162,39,.85)}
+/* tiles: in-bounds foil sheen (layered over the v16 gradient) + floating medallions */
+.arc-tile{background-image:radial-gradient(70% 52% at 100% 0,rgba(201,162,39,.16),transparent 72%),linear-gradient(180deg,var(--card-solid,#fffaf0),var(--panel,#fbf7ee))}
+.arc-tile span{animation:arcMfloat 4s ease-in-out infinite alternate}
+.arc-tile:nth-child(2n) span{animation-delay:-1.3s}
+.arc-tile:nth-child(3n) span{animation-delay:-2.6s}
+@keyframes arcMfloat{from{transform:translateY(0)}to{transform:translateY(-4px)}}
+/* HUD + pills */
+.arc-hud{background:linear-gradient(180deg,rgba(201,162,39,.14),rgba(201,162,39,.05));border:1px solid rgba(201,162,39,.35);border-radius:14px;box-shadow:inset 0 1px 0 rgba(255,255,255,.55)}
+.arc-pill,.arc-time,.arc-total{font-variant-numeric:tabular-nums}
+/* answer feedback: pop for correct, shake for wrong */
+.arc-opt{transition:transform .15s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease}
+.arc-opt:hover:not(:disabled){transform:translateY(-1px);border-color:rgba(201,162,39,.6)}
+.arc-opt.good{background:linear-gradient(135deg,rgba(47,158,99,.18),rgba(47,158,99,.08));border-color:#2f9e63;box-shadow:0 10px 22px -12px rgba(47,158,99,.65);animation:arcPop .34s ease}
+.arc-opt.bad{background:linear-gradient(135deg,rgba(217,95,84,.18),rgba(217,95,84,.08));border-color:#d95f54;box-shadow:0 10px 22px -12px rgba(217,95,84,.55);animation:arcShake .4s ease}
+@keyframes arcPop{50%{transform:scale(1.035)}}
+@keyframes arcShake{20%,60%{transform:translateX(-4px)}40%,80%{transform:translateX(4px)}}
+/* UTME grid + calculator */
+.arc-cell{transition:transform .14s ease,border-color .18s ease,background .18s ease}
+.arc-cell:not(.on):hover{transform:translateY(-1px);border-color:rgba(201,162,39,.55)}
+.arc-cell.on{background:var(--grad-gold);border-color:transparent;color:#31220a;box-shadow:0 8px 16px -8px rgba(201,162,39,.85)}
+.arc-calc{border:1px solid rgba(201,162,39,.35)}
+.arc-calcd{background:linear-gradient(180deg,#1a2440,#0e1524);color:#ffd98a;border-color:rgba(201,162,39,.4);box-shadow:inset 0 3px 10px rgba(0,0,0,.45);text-shadow:0 1px 2px rgba(0,0,0,.6)}
+/* cards, flash, pairs, video */
+.arc-fcard{transition:transform .2s ease,box-shadow .25s ease,border-color .2s ease}
+.arc-fcard:hover{transform:translateY(-2px);border-color:rgba(201,162,39,.55);box-shadow:0 16px 30px -18px rgba(20,35,70,.5)}
+.arc-pair{transition:transform .15s ease,border-color .18s ease,box-shadow .2s ease}
+.arc-pair:hover{transform:translateY(-2px);border-color:rgba(201,162,39,.55)}
+.arc-vid{transition:transform .18s ease,box-shadow .25s ease,border-color .2s ease}
+.arc-vid:hover{transform:translateY(-2px);border-color:rgba(201,162,39,.6);box-shadow:0 18px 34px -20px rgba(20,35,70,.5)}
+/* study stats */
+.arc-kpi{border:1px solid rgba(201,162,39,.35);background:linear-gradient(180deg,#fff8e6,var(--panel,#fbf7ee));box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.arc-week{color:#8a6d1f}
+.arc-wbar{background:linear-gradient(180deg,rgba(201,162,39,.22),rgba(201,162,39,.1));border:1px solid rgba(201,162,39,.3)}
+/* essay sheet */
+.arc-sheet{border-left:3px solid rgba(201,162,39,.55)}
+@media(max-width:640px){
+  .arc-head{margin:-6px -4px 10px;padding:10px 4px 11px}
+  .arc-tile span{animation:none}
+}
