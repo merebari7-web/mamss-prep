@@ -1,0 +1,60 @@
+name: Verify static site
+
+# Runs the release verifier on every push and pull request that touches the
+# published site. It is pure static analysis (no browser), so it finishes in
+# seconds and cannot deploy anything — it only tells you whether docs/ is safe
+# to publish.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'tools/**'
+      - '.github/workflows/verify.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'tools/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2        # the verifier compares against HEAD for CSS fidelity
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Set up Node (for JS syntax checks)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: JavaScript syntax check
+        run: |
+          for f in docs/sw.js docs/upgrade.js docs/bank.js; do
+            node --check "$f" && echo "  ok: $f"
+          done
+
+      - name: Release verifier
+        run: python3 tools/verify.py
+
+      - name: Report payload sizes
+        if: always()
+        run: |
+          echo "### Gzipped payload" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          for f in docs/index.html docs/app.css docs/upgrade.css docs/upgrade.js docs/sw.js docs/bank.js; do
+            printf '%-22s %8d bytes\n' "$f" "$(gzip -9 -c "$f" | wc -c)" >> "$GITHUB_STEP_SUMMARY"
+          done
+          echo '```' >> "$GITHUB_STEP_SUMMARY"

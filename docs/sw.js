@@ -1,46 +1,200 @@
 /* OFFLINE: service worker — after the first visit the whole app is cached, so
-   it re-opens instantly and works with zero network (airplane mode). While
-   online the network is tried first so updates arrive on the next visit.
-   Bump NSS_V on every release. */
-const NSS_V = "nssc-v20260907" + "-v42"; /* v40 — 3D scrollable website: lazy scroll-driven depth journey (hero stage layers + cards glide through 3D as you scroll, gold depth rail); small-layers-only compositor safety, reduced-motion off-switch */; /* v39 — zero-jump focus (every .focus() passes preventScroll) + bugfix sweep: palette Papers rows show real class/subject names, empty-quiz guards (no throw, no NaN), curriculum bank-lock fixed (tolerant guards + question reinject + self-heal) */; /* v38 — No auto-scroll: the last automatic scroll-to-top (setup-step card switch) is removed; the page never moves unless the learner taps Back-to-top, dock or palette navigation */; /* v37 — Find Everywhere (nav Find button opening the palette) + Video Studio Pro (search, class filter, thumbnails, watched tracking, up-next, AI Reels banner) + AI Explainer Reels: lazy quiz/reels.js auto-builds captioned voiceover video lessons for all 27 subjects x SS1-SS3 with transport, script, fullscreen and WebM export */; /* v36 — Curriculum Atlas: lazy quiz/atlas.js (27-subject explorer, topic drills, scheme of work, share) + AI curriculum brain + one-shot topic tagging of the lazy bank; polish chip glow + nav shadow */; /* v35 — Curriculum Expansion + Holo 3D Lab upgrade: lazy quiz/curriculum.js (27 subjects, 4,275 questions, CURR/SYLL for every subject) loads at idle; the 3D Lab gains ethanol + salt-crystal molecules, two new surfaces, Earth's Moon, tap-a-world facts and PNG export */; /* v34 — AI Tutor + Scientific Calculator: lazy quiz/ai.js (offline knowledge-engine tutor + live insights + optional BYO Gemini/OpenAI key) and quiz/calc.js (full scientific calculator, safe parser) loaded at idle by the polish module */; /* v33 — Holo 3D: lazy quiz/holo.js (interactive 3D molecule viewer, 3D surface plotter for maths, orbital solar-system model — orbit/zoom/auto-rotate, canvas 2D, no WebGL) loaded at idle by the polish module */; /* v32 — Aurum Gloss: polish.js graphics pass (toast gold countdown bar + spring pop, hero-badge rotating aurora ring, glass top-sheen on every card/modal/chip, gold focus glow on all inputs, dock active pill, heatmap hover pop, XP-bar glow, stat-icon bob) */; /* v31 — Study Studio: lazy quiz/studio.js (mind map studio, unit & rate converter, theme studio accents, daily word+quote spark, hero comets, palette entries) loaded at idle by the polish module */; /* v30 — Scholar Toolkit: lazy quiz/toolkit.js (periodic table explorer + element detective quiz, formula vault with search/bookmarks, scroll progress bar, overlay entrance + option stagger motion) loaded at idle by the polish module */; /* v29 — Pro Boost (merged over Apex HQ): lazy quiz/boost.js (Math Sprint arcade, WebAudio Soundscapes, 3D tile tilt + glare, gold aura rings, palette entries) loaded at idle by the polish module */; /* v28 — Apex HQ: lazy quiz/aura.js (trophy room gallery + exam sprint plan generator, dock pill, palette entries) loaded at idle by the pro module */; /* v27 — Pro Tools: lazy quiz/pro.js (command palette Ctrl+K, WAEC/NECO/JAMB countdowns, Zen focus timer with chime + notifications + study heatmap, personalised greeting, daily study tips, button ripple) loaded at idle by the polish module */; /* v26 — Aurum Design System: lazy polish.js now upgrades every surface (hero chip with date/term/streak, stat icons, nav glass, option/card/tile hovers, modal blur, toast frame, focus rings) and adds back-to-top + scroll reveal */; /* v25 — NERDC Lesson Notes: Primary (Basic 1-6) + Secondary curriculum module, full 8-part lesson notes, scheme-of-work generator, role dashboards and author mode (lazy quiz/notes_data.js + notes_app.js) */; /* v24 — aurum polish layer: lazy quiz/polish.js (hero shimmer, gold particle field, glass stat plates, gold-edged cards, shine-swept CTAs, gold scrollbar) added to the app */; /* v23 — library cleanup: the Mater Notes feature (floating launcher, lazy module and the PDF archive) has been removed from the site and the cache key bumped so clients purge the old entries */; /* v20 — AI Coach suggested-for-you desktop layout: generous 2-column grid >=1024px with centred, never-squeezed action buttons */; /* v19 — all-device responsiveness: 280px plan-grid fix, hero3d decor containment, iOS zoom-on-focus fix (16px touch inputs), landscape-phone modals, safe-area padding, ultra-wide layout, 21-viewport audit. */; /* v18 — Aurum first-class upgrade: glass hero stat plates + gold numerals, premium toast/keycap chips, launcher pulse ring, liquid-gold progress shimmer, gold question chips, breathing focus ring, ambient aurum glows. Bump per release (runtime cache key). */
-const NSS_CORE = ["./", "./index.html", "./sw.js", "./edu.js"];
-/* labs.js is NOT in NSS_CORE on purpose: the runtime fetch handler below caches
-   it the first time it is requested online, so an offline first-visit install
-   (which must never fail) stays independent of it. */
+   it re-opens instantly and works with zero network (airplane mode).
 
+   v43 "Ascension" rewrite. What changed and why:
+   • Precache now covers the app shell (index.html, app.css, upgrade layer,
+     bank.js, manifest, icons, 404). Previously only ./, index.html, sw.js and
+     edu.js were precached. Each entry is added individually and with the
+     DEFAULT cache mode, so files the page downloaded seconds earlier come
+     straight from the HTTP cache instead of being fetched a second time.
+   • Static assets are cache-first and are NOT re-fetched on every visit. A
+     release bumps NSS_V; `activate` then drops the old cache and the new set is
+     downloaded exactly once. The old worker was network-first for EVERYTHING,
+     so a returning student re-downloaded ~390 KB on every single visit — on
+     metered mobile data that is the difference between daily use and not.
+     NSS_REVALIDATE_AFTER is a safety net if a release ever forgets to bump.
+   • Navigations stay network-first (so new content arrives on the next visit)
+     but RACE a 3.5 s timeout, so a hung connection falls back to the cached
+     app instead of spinning forever.
+   • Range requests (audio/video) are left to the browser.
+   • skipWaiting() is no longer called on install. A waiting worker activates
+     only when the page asks (postMessage 'SKIP_WAITING'), which keeps
+     index.html and its JS/CSS on one single version — the old force-swap could
+     mix a new worker with an old document mid-session.
+   Bump NSS_V on every release. */
+const NSS_V = "nssc-v20260921" + "-v43"; /* v43 — Ascension: app-shell precache (no double download), cache-first assets keyed to the release version, timeout-raced navigations, range-request passthrough, user-confirmed updates, PING/version messaging, branded offline fallback */; /* v42 — question bank integrity fingerprint + guard-lock; 3D scroll hero */; /* v41 — zero-jump focus + bugfix sweep */; /* v40 — 3D scrollable website */; /* v39 — zero-jump focus + curriculum bank-lock fix */; /* v38 — no auto-scroll */; /* v37 — Find Everywhere + Video Studio Pro + AI Explainer Reels */; /* v36 — Curriculum Atlas */; /* v35 — Curriculum Expansion (27 subjects) + Holo 3D Lab */; /* v34 — AI Tutor + Scientific Calculator */; /* v33 — Holo 3D */; /* v32 — Aurum Gloss */; /* v31 — Study Studio */; /* v30 — Scholar Toolkit */; /* v29 — Pro Boost */; /* v28 — Apex HQ */; /* v27 — Pro Tools */; /* v26 — Aurum Design System */; /* v25 — NERDC Lesson Notes */; /* v24 — aurum polish layer */
+
+/* Everything an early-aborted or offline visit needs. Relative to the worker scope. */
+const NSS_CORE = [
+  "./",
+  "./app.css",
+  "./upgrade.css",
+  "./upgrade.js",
+  "./bank.js",
+  "./edu.js",
+  "./manifest.webmanifest",
+  "./icon-192.png",
+  "./icon-512.png",
+  "./apple-touch-icon.png",
+  "./404.html"
+];
+
+const NSS_NAV_TIMEOUT = 3500;                          /* ms before we serve the cached document */
+const NSS_REVALIDATE_AFTER = 7 * 24 * 60 * 60 * 1000;  /* safety net if NSS_V is not bumped */
+
+/* ------------------------------------------------------------------ helpers */
+function isAsset(u) {
+  return /\.(js|css|png|jpe?g|gif|svg|webp|ico|json|webmanifest|woff2?|zip|txt|xml)(\?|$)/i
+    .test(u.pathname + u.search);
+}
+
+/* Stamp the moment a response entered the cache so it can be aged out later. */
+function stamp(cache, req, res) {
+  try {
+    var h = new Headers(res.headers);
+    h.set("x-nssc-cached", String(Date.now()));
+    return res.blob().then(function (b) {
+      return cache.put(req, new Response(b, {
+        status: res.status, statusText: res.statusText, headers: h
+      }));
+    });
+  } catch (err) {
+    try { return cache.put(req, res); } catch (e2) { return Promise.resolve(); }
+  }
+}
+
+function cachedAge(res) {
+  try {
+    var t = res.headers.get("x-nssc-cached");
+    return t ? Date.now() - (+t) : null;
+  } catch (err) { return null; }
+}
+
+/* Last-resort document: only reachable when the cache is empty AND the network
+   is down. Keeps the learner on a branded page instead of a browser error. */
+function offlinePage() {
+  var html = '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
+    '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>MAMSS PREP — offline</title><style>' +
+    'body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;text-align:center;' +
+    'background:#faf3e8;color:#32373c;font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}' +
+    'b{display:block;font-size:2.6rem}h1{font-size:1.25rem;margin:.4rem 0}' +
+    'p{color:#6f5b3e;max-width:34ch;margin:0 auto 1.2rem}' +
+    'a{display:inline-block;padding:12px 20px;border-radius:12px;background:#002147;color:#fff;' +
+    'text-decoration:none;font-weight:700}</style></head><body><div><b>📴</b>' +
+    '<h1>You are offline and nothing is cached yet</h1>' +
+    '<p>Connect once, open MAMSS PREP, and the whole app — every question and tool — ' +
+    'is stored on this device for good.</p><a href="./">↻ Try again</a></div></body></html>';
+  return new Response(html, {
+    status: 503, statusText: "Offline",
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }
+  });
+}
+
+/* ------------------------------------------------------------------ lifecycle */
 self.addEventListener("install", function (e) {
-  e.waitUntil(caches.open(NSS_V).then(function (c) {
-    return c.addAll(NSS_CORE);
-  }).then(function () {
-    return self.skipWaiting();
-  }));
+  e.waitUntil(
+    caches.open(NSS_V).then(function (c) {
+      /* Fetch + stamp each entry individually: one missing file must never fail
+         the whole install, and a stamped entry is served without revalidation. */
+      return Promise.all(NSS_CORE.map(function (u) {
+        var url = new URL(u, self.location).href;
+        return fetch(url).then(function (res) {
+          if (!res || !res.ok) throw new Error("HTTP " + (res && res.status));
+          return stamp(c, new Request(url), res);
+        }).catch(function (err) {
+          console.warn("[sw " + NSS_V + "] precache skipped:", u, err && err.message);
+        });
+      }));
+    })
+  );
+  /* NOTE: no skipWaiting() here on purpose — see the header comment. */
 });
 
 self.addEventListener("activate", function (e) {
-  e.waitUntil(caches.keys().then(function (keys) {
-    return Promise.all(keys.map(function (k) {
-      if (k !== NSS_V) return caches.delete(k);
-    }));
-  }).then(function () {
-    return self.clients.claim();
-  }));
+  e.waitUntil(
+    caches.keys().then(function (keys) {
+      return Promise.all(keys.map(function (k) {
+        if (k !== NSS_V) return caches.delete(k);
+      }));
+    })
+      .then(function () { return self.clients.claim(); })
+      .then(function () {
+        return self.clients.matchAll({ type: "window" }).then(function (cs) {
+          cs.forEach(function (c) {
+            try { c.postMessage({ type: "sw-activated", version: NSS_V }); } catch (err) {}
+          });
+        });
+      })
+  );
 });
 
+self.addEventListener("message", function (e) {
+  var d = e && e.data;
+  if (!d) return;
+  if (d === "SKIP_WAITING" || d.type === "SKIP_WAITING") self.skipWaiting();
+  if (d === "PING" || d.type === "PING") {
+    try {
+      e.source && e.source.postMessage({
+        type: "PONG", version: NSS_V, waiting: !!self.registration.waiting
+      });
+    } catch (err) {}
+  }
+});
+
+/* ------------------------------------------------------------------ routing */
 self.addEventListener("fetch", function (e) {
-  var u;
-  try { u = new URL(e.request.url); } catch (err) { return; }
-  if (e.request.method !== "GET" || u.origin !== location.origin) return;
-  if (u.pathname.slice(-6) === "/sw.js") return;              // always re-checked by the browser
+  var req = e.request, u;
+  try { u = new URL(req.url); } catch (err) { return; }
+
+  if (req.method !== "GET") return;
+  if (u.origin !== location.origin) return;   /* never touch Google Identity etc. */
+  if (req.headers.has("range")) return;       /* media: let the browser stream it */
+  if (/\/sw\.js$/.test(u.pathname)) return;   /* the worker itself is always revalidated */
+
+  var accept = req.headers.get("accept") || "";
+  var wantsHtml = req.mode === "navigate" || (!isAsset(u) && accept.indexOf("text/html") > -1);
+
+  /* ---------- navigations: network-first, raced against a timeout ---------- */
+  if (wantsHtml) {
+    e.respondWith((async function () {
+      var net = fetch(req).then(function (res) {
+        if (res && res.ok && res.type === "basic") {
+          var a = res.clone(), b = res.clone();     /* clone BEFORE putting: a body is single-use */
+          caches.open(NSS_V).then(function (c) {
+            stamp(c, req, a);
+            if (u.pathname.indexOf("index.html") < 0) stamp(c, new Request("./index.html"), b);
+          });
+        }
+        return res;
+      });
+      var timer = new Promise(function (res) {
+        setTimeout(function () { res(null); }, NSS_NAV_TIMEOUT);
+      });
+      var out = await Promise.race([net, timer]);
+      if (out) return out;
+      var cached = await caches.match(req) || await caches.match("./index.html");
+      return cached || net;               /* nothing cached: keep waiting on the network */
+    })().catch(function () {
+      return caches.match("./index.html").then(function (m) { return m || offlinePage(); });
+    }));
+    return;
+  }
+
+  /* ---------- assets: cache-first, refresh only when stale or missing ---------- */
   e.respondWith(
-    fetch(e.request).then(function (res) {
-      if (res && res.ok) {
-        var cl = res.clone();
-        caches.open(NSS_V).then(function (c) { c.put(e.request, cl); });
-      }
-      return res;
-    }).catch(function () {
-      return caches.match(e.request).then(function (m) {
-        return m || caches.match("./index.html");             // any offline navigation still loads the app
+    caches.open(NSS_V).then(function (c) {
+      return c.match(req).then(function (hit) {
+        if (hit) {
+          var age = cachedAge(hit);
+          if (age === null || age < NSS_REVALIDATE_AFTER) return hit;   /* zero network */
+        }
+        return fetch(req).then(function (res) {
+          if (res && res.ok && res.type === "basic") stamp(c, req, res.clone());
+          return res;
+        }).catch(function () {
+          return hit || offlinePage();
+        });
       });
     })
   );
