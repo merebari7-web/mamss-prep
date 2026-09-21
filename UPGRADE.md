@@ -1,4 +1,4 @@
-# MAMSS PREP — v43 "Ascension" upgrade
+# MAMSS PREP — v43 "Ascension" + v44 "Carry" upgrades
 
 **Date:** 21 September 2026 · **Scope:** the published static site in `docs/` · **Zero breaking changes**
 
@@ -151,4 +151,39 @@ understood, and bumping `NSS_V` back simply invalidates the new cache.
 
 ---
 
-*v43 "Ascension" — built for Morals and Excellence.*
+## 7. v44 "Carry" — cross-device progress transfer (same session)
+
+The app's own gate says *"profiles and scores are stored on this device only"*.
+That is honest, but it means a student who changes phone — or a teacher moving
+between classroom tablets — loses every paper, badge and merit. v44 adds a way
+to carry them, with **no backend, no account and no upload**.
+
+**How it works.** Export calls the app's existing `backupPayload()`, gzips the
+JSON with `CompressionStream` and base64url-encodes it into one string prefixed
+`MAMSS1.` (browsers without compression fall back to plain base64url, `MAMSS0.`).
+Import accepts a sync code, a `.mamss`/`.json` file, *or* a whole raw `.json`
+backup pasted straight in, previews who/what/when, then applies it with the
+app's own `applyBackup(payload, "merge")` — so papers already on the target
+device are kept and de-duplicated by timestamp, and the local profile is never
+overwritten.
+
+Reached from a new App Centre row **and** a Study Hall tile ("Sync code"), so it
+is discoverable without adding an icon to the already-full nav.
+
+Measured in `tools/browser/synctest.js` (three separate browser profiles):
+
+| Check | Result |
+|---|---|
+| Code generated & compressed | ✔ 354 chars for 448 chars of JSON; scales with history |
+| XP / merits / papers / badges carried to a second device | ✔ 777 XP · 42 merits · 1 paper · 1 badge |
+| Local profile on the target kept | ✔ merge, not overwrite |
+| Re-importing the same code | ✔ papers not duplicated |
+| Garbage code | ✔ friendly "✘ …" message, no exception, no crash |
+| Page errors during the whole flow | 0 |
+
+`NSS_V` was bumped to `-v44`, which is what makes returning devices fetch the
+new `upgrade.js` exactly once.
+
+---
+
+*v43 "Ascension" · v44 "Carry" — built for Morals and Excellence.*

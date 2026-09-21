@@ -31,9 +31,16 @@ TLS_KEY=key.pem TLS_CERT=cert.pem node serve.js ../../docs 8443 # https
 ```bash
 node smoke.js   https://127.0.0.1:8443/ UPGRADED   # sign up -> sit a paper -> review (11 steps)
 node features.js https://127.0.0.1:8443/           # manifest, SW, offline, Data Saver, bank rescue
+node synctest.js                                   # v44: export on one profile, import on another
 node bench2.js  https://127.0.0.1:8443/ UPGRADED /tmp/upg.req.log 3   # true network bytes per visit
 node audit.js   https://127.0.0.1:8443/ UPGRADED shot.png             # head/DOM/perf snapshot
 ```
+
+`synctest.js` launches three separate browser profiles and proves a sync code
+carries XP, merits, papers and badges from one "device" to another, that the
+import merges (never overwrites the local profile), that re-importing the same
+code does not duplicate papers, and that garbage input fails with a friendly
+message instead of an exception.
 
 `bench2.js` measures bytes at the server, not `transferSize` in the page —
 once a service worker is involved the in-page numbers no longer reflect what

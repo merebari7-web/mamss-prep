@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 43, NAME = "Ascension";
+  var V = 44, NAME = "Carry";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -146,6 +146,15 @@
       '<span class="mp-act"><button class="mp-btn" id="mpPersistAct" type="button">Protect</button></span></div>';
     html += "</div>";
 
+    /* --- move progress between devices --- */
+    html += '<div class="mp-sec"><h4>Move your progress</h4>';
+    html += row("sync", "🔁", "Sync code — carry everything to another phone",
+      "Compresses your papers, XP, merits, badges and mistake list into one code. " +
+      "Copy it, message it to yourself, or save it as a file; paste it on the other device. " +
+      "<b>No server is involved — nothing leaves this phone unless you send it.</b>",
+      '<button class="mp-btn pri" id="mpSyncAct" type="button">Open</button>');
+    html += "</div>";
+
     /* --- health --- */
     html += '<div class="mp-sec"><h4>App health</h4>';
     html += row("bank", bankOk() ? "✅" : "⏳", "Question bank: <b>" + (bankOk() ? "decoded and ready" : "not decoded yet") + "</b>",
@@ -167,6 +176,7 @@
   }
 
   function wireHub() {
+    on($("mpSyncAct"), "click", openSync);
     var i = $("mpInstallAct"); on(i, "click", doInstall);
     var c = $("mpCheckUpdate"); on(c, "click", checkUpdate);
     var s = $("mpSaverSw"); on(s, "click", toggleSaver);
@@ -593,7 +603,8 @@
       ["🔄", "Safe updates", "A new version is downloaded in the background and applied only when you tap Reload — never in the middle of a timed paper."],
       ["🛡️", "Progress protection", "MAMSS PREP now asks the browser to keep your data when storage runs low, shows how much room it has, and nudges you to back up."],
       ["🔦", "Screen stays awake", "During a timed examination the screen no longer dims or locks mid-paper."],
-      ["🛟", "Bank rescue", "On older browsers that cannot decompress the question bank, a plain copy is fetched instead — all 4,167 questions still load."]
+      ["🛟", "Bank rescue", "On older browsers that cannot decompress the question bank, a plain copy is fetched instead — all 4,167 questions still load."],
+      ["🔁", "Carry your progress", "New in the App Centre and Study Hall: compress everything on this device into one sync code, then paste it on another phone. Papers already there are kept and de-duplicated. No server, no account, no upload."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -647,6 +658,12 @@
   function paintTile() {
     try {
       var g = $("labGrid"); if (!g || $("mpHubTile")) return;
+      var sy = el("button", "lab-tile");
+      sy.type = "button"; sy.id = "mpSyncTile";
+      sy.innerHTML = '<b class="li">🔁</b><span class="lt">Sync code</span>' +
+        '<small class="lc">Carry progress to another phone · no server</small>';
+      on(sy, "click", function () { openSync(); });
+      g.appendChild(sy);
       var t = el("button", "lab-tile");
       t.type = "button"; t.id = "mpHubTile";
       t.innerHTML = '<b class="li">🚀</b><span class="lt">App Centre</span>' +
@@ -656,6 +673,210 @@
       mark("tile", true);
     } catch (e) {}
   }
+
+  /* =====================================================================
+     v44 "Carry" — cross-device progress transfer, no backend.
+     Export: backupPayload() -> JSON -> gzip -> base64url  ("MAMSS1.…")
+             (browsers without CompressionStream fall back to plain
+              base64url, prefixed "MAMSS0.…")
+     Import: accepts a sync code, OR a raw .json backup pasted in, OR a file.
+             Applies with the app's own merge mode, so papers already on the
+             target device are kept and de-duplicated by timestamp.
+     ===================================================================== */
+  var SYNC_ID = "mpSyncOverlay";
+
+  function b64urlFromBytes(bytes) {
+    var bin = "", CH = 0x8000;
+    for (var i = 0; i < bytes.length; i += CH) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CH));
+    }
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function bytesFromB64url(str) {
+    var b = str.replace(/-/g, "+").replace(/_/g, "/");
+    while (b.length % 4) b += "=";
+    var bin = atob(b), out = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+    return out;
+  }
+  function utf8Bytes(str) { return new TextEncoder().encode(str); }
+  function utf8Text(bytes) { return new TextDecoder("utf-8").decode(bytes); }
+
+  function makeCode() {
+    var payload;
+    try { payload = window.backupPayload(); } catch (e) { T("Could not read your progress", "⚠️"); return; }
+    if (!payload || !payload.data || !Object.keys(payload.data).length) {
+      T("Nothing to carry yet — sit a paper first", "🌱"); return;
+    }
+    var json = JSON.stringify(payload);
+    var show = function (code, kind) {
+      var ta = $("mpSyncCode"); if (!ta) return;
+      ta.value = code;
+      var meta = $("mpSyncMeta");
+      var papers = 0;
+      try { Object.keys(payload.data).forEach(function (k) {
+        if (/^nssc_attempts_/.test(k) && Array.isArray(payload.data[k])) papers += payload.data[k].length;
+      }); } catch (e) {}
+      if (meta) meta.innerHTML = "<b>" + (payload.profile && payload.profile.name ? esc_(payload.profile.name) : "guest") +
+        "</b> · " + papers + " paper" + (papers === 1 ? "" : "s") + " · " +
+        (json.length / 1024).toFixed(1) + " KB of progress → <b>" + (code.length / 1024).toFixed(1) +
+        " KB code</b>" + (kind === "plain" ? " · uncompressed (this browser cannot compress)" : "");
+      var dl = $("mpSyncDl"); if (dl) dl.disabled = false;
+      var cp = $("mpSyncCopy"); if (cp) cp.disabled = false;
+      if (code.length > 24000) {
+        var hint = $("mpSyncHint");
+        if (hint) hint.innerHTML = "This code is long (" + (code.length / 1024).toFixed(0) +
+          " KB). Copying still works, but <b>Save as file</b> is more comfortable for a history this big.";
+      }
+      try { st.set("nssc_lastbackup", Date.now()); } catch (e) {}
+      mark("sync", true);
+    };
+    if (window.CompressionStream) {
+      try {
+        var cs = new CompressionStream("gzip");
+        var w = cs.writable.getWriter();
+        w.write(utf8Bytes(json)); w.close();
+        new Response(cs.readable).arrayBuffer().then(function (ab) {
+          show("MAMSS1." + b64urlFromBytes(new Uint8Array(ab)), "gzip");
+        }).catch(function () { show("MAMSS0." + b64urlFromBytes(utf8Bytes(json)), "plain"); });
+        return;
+      } catch (e) {}
+    }
+    show("MAMSS0." + b64urlFromBytes(utf8Bytes(json)), "plain");
+  }
+  function esc_(t) { return String(t == null ? "" : t).replace(/[<>&"]/g, function (c) {
+    return { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;" }[c]; }); }
+
+  function copyCode() {
+    var ta = $("mpSyncCode"); if (!ta || !ta.value) return;
+    var done = function () { T("Sync code copied — paste it on your other device", "📋"); };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(ta.value).then(done, function () { ta.select(); document.execCommand("copy"); done(); }); return; }
+    } catch (e) {}
+    try { ta.select(); document.execCommand("copy"); done(); } catch (e) { T("Select the code and copy it manually", "ℹ️"); }
+  }
+  function downloadCode() {
+    var ta = $("mpSyncCode"); if (!ta || !ta.value) return;
+    try {
+      var d = new Date();
+      var name = "MAMSS-Sync-" + d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0") + ".mamss";
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(new Blob([ta.value], { type: "text/plain" }));
+      a.download = name; document.body.appendChild(a); a.click(); a.remove();
+      T("Saved as " + name, "💾");
+    } catch (e) { T("Could not save the file", "⚠️"); }
+  }
+
+  function decodeCode(text) {
+    var t = String(text || "").trim();
+    if (!t) throw new Error("empty");
+    if (t.charAt(0) === "{") return JSON.parse(t);                 /* raw .json backup pasted in */
+    if (t.indexOf("MAMSS1.") === 0) {
+      if (!window.DecompressionStream) throw new Error("This browser cannot decompress a compressed code. Use the file from the other device instead.");
+      var bytes = bytesFromB64url(t.slice(7));
+      var ds = new DecompressionStream("gzip");
+      var w = ds.writable.getWriter();
+      w.write(bytes); w.close();
+      return new Response(ds.readable).arrayBuffer().then(function (ab) {
+        return JSON.parse(utf8Text(new Uint8Array(ab)));
+      });
+    }
+    if (t.indexOf("MAMSS0.") === 0) return JSON.parse(utf8Text(bytesFromB64url(t.slice(7))));
+    throw new Error("That does not look like a MAMSS sync code");
+  }
+
+  function importPreview(text) {
+    var out = $("mpSyncImportOut");
+    var render = function (obj) {
+      if (!obj || !obj.data) throw new Error("the code has no study data in it");
+      var papers = 0, keys = Object.keys(obj.data);
+      keys.forEach(function (k) { if (/^nssc_attempts_/.test(k) && Array.isArray(obj.data[k])) papers += obj.data[k].length; });
+      window.__mpSyncPending = obj;
+      if (out) out.innerHTML = '<span class="mp-ok">✔ code read</span> · ' +
+        (obj.profile && obj.profile.name ? esc_(obj.profile.name) : "guest") + " · " +
+        papers + " paper" + (papers === 1 ? "" : "s") + " · exported " +
+        (obj.exported ? new Date(obj.exported).toLocaleDateString() : "?") +
+        '<div style="margin-top:8px"><button class="mp-btn gold" id="mpSyncApply" type="button">Merge into this device</button></div>';
+      on($("mpSyncApply"), "click", applyImport);
+    };
+    try {
+      var r = decodeCode(text);
+      if (r && typeof r.then === "function") r.then(render).catch(function (e) { fail_(e, out); });
+      else render(r);
+    } catch (e) { fail_(e, out); }
+  }
+  function fail_(e, out) {
+    window.__mpSyncPending = null;
+    if (out) out.innerHTML = '<span class="mp-bad">✘ ' + esc_(e && e.message ? e.message : e) + "</span>";
+  }
+  function applyImport() {
+    var obj = window.__mpSyncPending;
+    if (!obj) { T("Read a code first", "ℹ️"); return; }
+    if (!window.confirm("Merge this progress into this device? Papers already here are kept; duplicates are skipped. This cannot be undone.")) return;
+    try {
+      window.applyBackup(obj, "merge");
+      window.__mpSyncPending = null;
+      T("Progress merged — refreshing…", "🎉");
+      setTimeout(function () { location.reload(); }, 900);
+    } catch (e) { T("Could not apply the code: " + (e && e.message), "⚠️"); }
+  }
+  function pickSyncFile(input) {
+    var f = input && input.files && input.files[0];
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function () {
+      var ta = $("mpSyncIn"); if (ta) ta.value = String(fr.result || "");
+      importPreview(String(fr.result || ""));
+    };
+    fr.onerror = function () { T("Could not read that file", "⚠️"); };
+    fr.readAsText(f);
+  }
+
+  function buildSync() {
+    if ($(SYNC_ID)) return $(SYNC_ID);
+    var ov = el("div", "overlay hidden");
+    ov.id = SYNC_ID;
+    ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
+    ov.setAttribute("aria-label", "Carry your progress");
+    ov.innerHTML =
+      '<div class="modal wide"><button class="x icon-btn" type="button" aria-label="Close">✕</button>' +
+      '<h3>🔁 Carry your progress</h3>' +
+      '<p style="color:var(--mut);font-size:.82rem;margin:0 0 14px">Everything below happens on this device. ' +
+      'The code is your data, compressed — send it to yourself by any means you like.</p>' +
+      '<div class="mp-sec"><h4>1 · From this device</h4>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap">' +
+      '<button class="mp-btn pri" id="mpSyncMake" type="button">Make my code</button>' +
+      '<button class="mp-btn" id="mpSyncCopy" type="button" disabled>Copy</button>' +
+      '<button class="mp-btn" id="mpSyncDl" type="button" disabled>Save as file</button></div>' +
+      '<div id="mpSyncMeta" style="font-size:.78rem;color:var(--mut);margin:9px 0 6px"></div>' +
+      '<textarea id="mpSyncCode" class="mp-log" readonly spellcheck="false" rows="5" ' +
+      'style="width:100%;resize:vertical;font:11px/1.5 ui-monospace,Menlo,Consolas,monospace" ' +
+      'placeholder="Your code appears here…"></textarea>' +
+      '<div id="mpSyncHint" style="font-size:.76rem;color:var(--gold,#c9a227);margin-top:6px"></div></div>' +
+      '<div class="mp-sec"><h4>2 · Into this device</h4>' +
+      '<textarea id="mpSyncIn" class="mp-log" spellcheck="false" rows="4" style="width:100%;resize:vertical;' +
+      'font:11px/1.5 ui-monospace,Menlo,Consolas,monospace" ' +
+      'placeholder="Paste a sync code here — or a whole .json backup"></textarea>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap;margin-top:9px">' +
+      '<button class="mp-btn pri" id="mpSyncRead" type="button">Read code</button>' +
+      '<label class="mp-btn" style="cursor:pointer">Choose file…' +
+      '<input type="file" id="mpSyncFile" accept=".mamss,.json,.txt,application/json,text/plain" hidden></label></div>' +
+      '<div id="mpSyncImportOut" style="font-size:.8rem;margin-top:10px"></div></div>' +
+      '</div>';
+    on(ov, "click", function (e) { if (e.target === ov) ov.classList.add("hidden"); });
+    on(ov.querySelector(".x"), "click", function () { ov.classList.add("hidden"); });
+    document.body.appendChild(ov);
+    on($("mpSyncMake"), "click", makeCode);
+    on($("mpSyncCopy"), "click", copyCode);
+    on($("mpSyncDl"), "click", downloadCode);
+    on($("mpSyncRead"), "click", function () { var ta = $("mpSyncIn"); importPreview(ta && ta.value); });
+    on($("mpSyncFile"), "change", function () { pickSyncFile($("mpSyncFile")); });
+    return ov;
+  }
+  function openSync() {
+    try { buildSync().classList.remove("hidden"); } catch (e) { T("Sync could not open", "⚠️"); }
+  }
+  window.openMpSync = openSync;
 
   /* ------------------------------------------------------------- boot */
   function boot() {

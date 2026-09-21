@@ -258,6 +258,10 @@ def main():
         ("MAMSS_SAVER_BLOCKED", "Data-Saver module pausing"),
         ("bank-raw.js", "bank rescue path"),
         ("SKIP_WAITING", "update confirmation"),
+        ("MAMSS1.", "v44 sync-code export (gzip + base64url)"),
+        ("MAMSS0.", "v44 uncompressed sync-code fallback"),
+        ("applyBackup(", "v44 import reuses the app's own merge"),
+        ("openMpSync", "v44 sync entry point"),
     ):
         (ok if needle in up else warn)("upgrade.js implements %s" % label)
 

@@ -36,8 +36,8 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DOCS = os.path.join(ROOT, "docs")
 HTML = os.path.join(DOCS, "index.html")
 
-BUILD_VERSION = "43"
-BUILD_STAMP = "v43.0 Ascension upgrade"
+BUILD_VERSION = "44"
+BUILD_STAMP = "v44.0 Carry upgrade"
 
 CHANGES = []
 
