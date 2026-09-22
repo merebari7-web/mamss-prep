@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, X, Zap } from "lucide-react";
+import { Menu, X, Zap, ScrollText } from "lucide-react";
 import { cx } from "@/lib/utils";
+import { RESULTS_PORTAL_URL } from "@/lib/constants";
 
 const LINKS = [
   { href: "/study", label: "Study Hall" },
@@ -70,6 +71,15 @@ export default function Nav() {
           </nav>
 
           <div className="flex items-center gap-3">
+            <a
+              href={RESULTS_PORTAL_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden items-center gap-2 rounded-full border border-lime/40 px-4 py-2.5 text-sm font-bold text-paper backdrop-blur transition-colors hover:border-lime hover:text-lime md:inline-flex"
+            >
+              <ScrollText size={15} strokeWidth={2.6} />
+              Check Result
+            </a>
             <Link
               href="/cbt"
               className="hidden items-center gap-2 rounded-full bg-lime px-5 py-2.5 text-sm font-bold text-ink transition-all hover:bg-lime2 hover:shadow-[0_0_28px_rgba(200,241,105,0.35)] md:inline-flex"
@@ -133,6 +143,14 @@ export default function Nav() {
         >
           <Zap size={15} /> Enter CBT Hall
         </Link>
+        <a
+          href={RESULTS_PORTAL_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-3 flex items-center justify-center gap-2 rounded-xl border border-lime/40 py-3.5 text-sm font-bold text-paper transition-colors hover:border-lime hover:text-lime"
+        >
+          <ScrollText size={15} /> Check Result — School Portal
+        </a>
       </aside>
     </>
   );

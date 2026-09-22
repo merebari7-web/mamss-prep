@@ -1,4 +1,8 @@
 export const LEVELS = ["SS1", "SS2", "SS3"] as const;
+
+/** External school CBT / result-check portal (Mater Misericordiae Sec. School). */
+export const RESULTS_PORTAL_URL =
+  "https://myschoolz-001-site16.rtempurl.com/materresults/";
 export type LevelName = (typeof LEVELS)[number];
 
 export const TERMS = [1, 2, 3] as const;
