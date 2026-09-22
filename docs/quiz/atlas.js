@@ -393,12 +393,12 @@
   function share(s) {
     var subj = s || view.subj;
     var text = subj
-      ? "I'm revising " + subj + " (SS1–SS3) on MAMSS Prep — 4,167 explained questions across 27 subjects, free and offline."
-      : "MAMSS Prep — 4,167 explained SS1–SS3 questions across 27 subjects, free and offline.";
+      ? "I'm revising " + subj + " (SS1–SS3) on My Personal Study App — 4,167 explained questions across 27 subjects, free and offline."
+      : "My Personal Study App — 4,167 explained SS1–SS3 questions across 27 subjects, free and offline.";
     var url = "https://merebari7-web.github.io/mamss-prep/";
     try { if (location && location.href && location.href.indexOf("http") === 0) url = location.href.split("#")[0]; } catch (e) {}
     if (navigator.share) {
-      navigator.share({ title: "MAMSS Prep", text: text, url: url }).catch(function () {});
+      navigator.share({ title: "My Personal Study App", text: text, url: url }).catch(function () {});
       return "share";
     }
     try {

@@ -1,0 +1,4 @@
+/* Optional: regenerate checked-in app/share icons after editing the SVG sources.
+   npm ci, then node ui/build-brand.cjs (headless Chrome). Not needed to serve. */
+const fs=require('fs'),pp=require('puppeteer');
+(async()=>{const b=await pp.launch({args:['--no-sandbox']});const p=await b.newPage();for(const [file,w,h,source] of [['icon-192.png',192,192,'favicon.svg'],['icon-512.png',512,512,'favicon.svg'],['apple-touch-icon.png',180,180,'favicon.svg'],['social-preview.png',1200,630,'social-preview.svg']]){await p.setViewport({width:w,height:h,deviceScaleFactor:1});await p.setContent('<style>html,body{margin:0}svg{display:block;width:100vw;height:100vh}</style>'+fs.readFileSync('ui/'+source,'utf8'));await p.screenshot({path:file});}await b.close()})().catch(e=>{console.error(e);process.exitCode=1});

@@ -1,6 +1,6 @@
 /* v15.0 — Complete Curriculum Library · lesson notes expansion (part A: core 1–5).
    Each entry: [topic, keywords, key-facts, authored-questions(2-3)] */
-var CURR = {
+var CURR = Object.assign(window.CURR || {}, {
 "Mathematics": [
  ["Sets & Venn Diagrams", ["set","venn","union","intersection","subset","element"],
   "A set is a well-defined collection of objects called elements. The union (A∪B) contains every element in A or B; the intersection (A∩B) contains only elements in both. Two sets are disjoint when their intersection is empty. Venn diagrams show these relationships as overlapping circles and are used to solve real counting problems.",
@@ -429,4 +429,4 @@ var CURR = {
   "Pour la compréhension: lire le texte deux fois, repérer les mots-clés, identifier qui/quoi/où/quand et répondre avec des phrases complètes. Pour l'expression écrite: suivre la consigne (longueur et type de texte), soigner les accords, les temps et la ponctuation, et présenter proprement (salutation, corps, formule de politesse pour une lettre). Relire avant de rendre.",
   [{"q":"Avant de répondre à une question de compréhension, il faut…","o":["écrire vite","lire le texte attentivement","copier le texte","ignorer la consigne"],"a":1,"e":"Lire deux fois et repérer les mots-clés donne des réponses exactes."},{"q":"Dans une lettre, la formule de politesse se place…","o":["au début","à la fin","au milieu","dans le titre"],"a":1,"e":"La formule de politesse clôt la lettre."}]
 ]]
-};
+});

@@ -330,7 +330,7 @@ var EXTRA_SUBJECTS = {
   }
   function curEnsure(repaint) {
     try {
-      if (typeof window.SYLL !== "undefined" && window.SYLL && typeof window.CURR !== "undefined" && window.CURR) return;
+      if (window.SYLL && window.SYLL.Mathematics && window.CURR && window.CURR.Mathematics) return;
       if (window.curo) window.curo(function () { try { if (repaint) repaint(); } catch (e) {} });
     } catch (e) {}
   }
@@ -1124,6 +1124,7 @@ var EXTRA_SUBJECTS = {
   window.EDU.ready = true;
   window.EDU.go = go;
   window.EDU.close = close;
+  document.addEventListener("keydown", function (e) { var ov=document.getElementById("eduModal"); if(e.key === "Escape" && ov && !ov.classList.contains("hidden")) close(); });
   window.EDU.open = open;
   window.EDU.topic = topic;
   window.EDU.subject = function (s) { try { state.subj = s; var tp = topicsOf(s); state.topic = tp.length ? tp[0][0] : null; paint(); } catch (e) {} };

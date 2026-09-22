@@ -1,26 +1,19 @@
 {
-  "name": "MAMSS Prep — Senior Secondary Practice Papers",
+  "name": "MAMSS Prep \u2014 Mater Misericordiae Secondary School",
   "short_name": "MAMSS Prep",
-  "description": "Free offline revision for Nigerian senior secondary students (SS1-SS3): 4,167 explained practice questions across 27 subjects, WAEC/NECO/JAMB examination simulator, adaptive drill engine, lesson notes, formula vault, scientific calculator and an AI study tutor.",
+  "description": "Mater Misericordiae Secondary School (MAMSS) \u2014 offline-ready SS1\u2013SS3 questions, lesson notes, daily challenges and private progress tracking.",
   "id": "mamss-prep",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui",
-    "browser"
-  ],
-  "orientation": "portrait-primary",
-  "background_color": "#faf3e8",
-  "theme_color": "#32373c",
-  "lang": "en-NG",
-  "dir": "ltr",
+  "orientation": "any",
+  "background_color": "#f8f7f3",
+  "theme_color": "#1b2638",
+  "lang": "en",
   "categories": [
     "education",
     "reference"
   ],
-  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icon-192.png",
@@ -37,24 +30,21 @@
     {
       "src": "apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     }
   ],
-  "screenshots": [
+  "shortcuts": [
     {
-      "src": "screenshot-mobile.jpg",
-      "sizes": "824x1824",
-      "type": "image/jpeg",
-      "form_factor": "narrow",
-      "label": "Practice papers for SS1-SS3 across 27 subjects"
+      "name": "Start practising",
+      "url": "./#practice"
     },
     {
-      "src": "social-preview.png",
-      "sizes": "1200x630",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "MAMSS Prep — 4,167 explained questions"
+      "name": "My progress",
+      "url": "./#progress"
+    },
+    {
+      "name": "Study toolkit",
+      "url": "./#tools"
     }
   ]
 }

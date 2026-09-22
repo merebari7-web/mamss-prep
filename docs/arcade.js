@@ -1994,6 +1994,7 @@ var ESSEY = {
     var ov = $("arcOv");
     if (!ov) {
       ov = document.createElement("div"); ov.id = "arcOv";
+      ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-labelledby", "arcTitle");
       ov.innerHTML = '<div class="arc-modal" id="arcModal">' +
         '<div class="arc-head"><h3 id="arcTitle">🎮 Study Arcade</h3><button type="button" class="arc-x" id="arcX" aria-label="Close">✕</button></div>' +
         '<div class="arc-tabs" id="arcTabs"></div><div id="arcBody"></div></div>';
@@ -3068,6 +3069,7 @@ var ESSEY = {
     lesson: lesson,
     _state: function () { return M; }
   };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && $("arcOv") && !$("arcOv").classList.contains("hidden")) close(); });
   window.ARC.ready = true;
   window.ESSEY = ESSEY;
 })();

@@ -1,7 +1,7 @@
 /* v15.0 — Complete Curriculum Library · syllabus index (all 19 subjects).
    Full SS1–SS3 term-by-term topic scheme for all 19 subjects, in the order
    WAEC/NECO schools deliver them (SS1 1st term → SS3 3rd term). */
-var SYLL = {
+var SYLL = Object.assign(window.SYLL || {}, {
 "Mathematics": [
  ["Number Bases & Fractions", "Indices & Logarithms", "Algebraic Expressions", "Simple Equations"],
  ["Linear Inequalities", "Geometry: Angles & Triangles", "Sets & Venn Diagrams", "Statistics: Mean, Median & Mode"],
@@ -213,4 +213,4 @@ var SYLL = {
  ["Les Loisirs & Les Sports", "Les Voyages & Le Tourisme", "La Technologie & Internet", "La Culture Francophone"],
  ["Le Subjonctif (introduction)", "Le Conditionnel (introduction)", "Les Textes & La Civilisation", "Past WAEC/NECO Practice"]
 ]
-};
+});

@@ -87,7 +87,7 @@
   ];
   var TPL = {
     n: [
-      { id: "t0", x: 520, y: 60, t: "My Study Plan", c: 4 },
+      { id: "t0", x: 520, y: 60, t: "My Prep Plan", c: 4 },
       { id: "t1", x: 220, y: 180, t: "Morning review", c: 0 },
       { id: "t2", x: 820, y: 180, t: "Class notes", c: 3 },
       { id: "t3", x: 220, y: 320, t: "Practice quiz", c: 1 },
