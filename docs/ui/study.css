@@ -71,3 +71,38 @@ html.study-app body{margin:0;background:var(--s-bg);color:var(--s-ink);font-fami
 /* MAMSS: external school-portal link in the sidebar */
 .study-nav .nav-external .open-ico{width:14px;height:14px;opacity:.55}
 .study-nav .nav-external:hover .open-ico{opacity:1}
+
+/* ============ MAMSS PREP · School essentials ============ */
+.mss-school{margin:30px 0 8px}
+.mss-school-head{margin-bottom:14px}
+.mss-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+.mss-col{display:grid;gap:14px;grid-template-rows:auto auto}
+.mss-panel{background:var(--s-card);border:1px solid var(--s-line);border-radius:14px;padding:16px 18px;box-shadow:var(--s-shadow)}
+.mss-panel-head{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.mss-panel-head .ico{width:17px;height:17px;color:#836349}
+.mss-panel-head h3{margin:0;font-size:.95rem;font-weight:700;color:var(--s-ink)}
+.mss-panel p{color:var(--s-body);font-size:.86rem;line-height:1.55;margin:0 0 12px}
+.mss-note-list{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.mss-note{display:block;border-top:1px dashed var(--s-line);padding-top:10px}
+.mss-note:first-child{border-top:0;padding-top:0}
+.mss-note-head{display:flex;align-items:center;gap:8px;color:var(--s-muted);font-size:.72rem;letter-spacing:.04em;margin-bottom:3px}
+.mss-note-head time{font-weight:600}
+.mss-tag{font-size:.62rem;font-weight:800;letter-spacing:.08em;padding:2px 7px;border-radius:999px;background:rgba(131,99,73,.12);color:#836349}
+.mss-note b{font-size:.87rem;color:var(--s-ink);display:block;margin-bottom:2px}
+.mss-note p{font-size:.8rem;margin:0}
+.mss-hint{font-size:.72rem;color:var(--s-muted);margin:12px 0 0}
+.mss-empty{color:var(--s-muted);font-size:.82rem;margin:0}
+.mss-results{background:linear-gradient(160deg,var(--s-card),#eef3ec);border-color:#d6e2d2}
+.mss-results .study-button{margin-top:2px}
+.mss-cd-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px}
+.mss-cd{background:var(--s-soft);border:1px solid var(--s-line);border-radius:10px;padding:10px 12px;text-align:center}
+.mss-cd-num{display:block;font-size:1.25rem;font-weight:800;color:var(--s-ink);font-variant-numeric:tabular-nums}
+.mss-cd-lbl{display:block;font-size:.66rem;letter-spacing:.03em;color:var(--s-muted);margin-top:2px}
+.mss-cd.soon .mss-cd-num{color:#b45309}
+.mss-cd.today .mss-cd-num{color:#b91c1c}
+[data-theme="dark"] .mss-panel-head .ico{color:#c9a25f}
+[data-theme="dark"] .mss-tag{background:rgba(201,162,95,.16);color:#dec392}
+[data-theme="dark"] .mss-results{background:linear-gradient(160deg,var(--s-card),#1a2430);border-color:#33424f}
+[data-theme="dark"] .mss-cd.soon .mss-cd-num{color:#e8a24b}
+[data-theme="dark"] .mss-cd.today .mss-cd-num{color:#ef7d7d}
+@media(max-width:900px){.mss-grid{grid-template-columns:1fr}}
