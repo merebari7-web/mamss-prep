@@ -432,6 +432,19 @@ def main():
     (ok if mk and int(mk.group(1)) >= 45 else fail)(
         "worker cache key at v%s (>= v45)" % (mk.group(1) if mk else "?"))
 
+
+    print("\n[11] v46 Trim — redesign-shell performance & PWA correctness")
+    if '"./", "./index.html"' in swsrc:
+        fail("sw.js precaches ./ AND ./index.html (duplicate document cache)")
+    else:
+        ok("sw.js precaches the document once")
+    (ok if 'cache:"reload"' not in swsrc and "cache: \"reload\"" not in swsrc else fail)(
+        "sw.js install does not force a second download (no cache:reload)")
+    (ok if swsrc.count('"-v5') >= 1 and re.search(r'"-v5[1-9]"', swsrc) else fail)("sw key at v51+")
+    n_pre = len(re.findall(r'rel="preload"', isrc))
+    (ok if n_pre >= 2 else warn)("index.html preloads above-the-fold assets (%d)" % n_pre)
+    (ok if 'rel="preconnect"' in isrc else warn)("index.html preconnects to the Google sign-in origin")
+    (ok if 'as="font"' in isrc else warn)("brand fonts are preloaded")
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))
     if FAIL:

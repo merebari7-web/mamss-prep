@@ -1,8 +1,8 @@
 /* Cache names are scoped: other GitHub Pages projects share this origin.
    Bump the release on changes to the app shell or its runtime assets. */
 const NSS_SCOPE = new URL(self.registration.scope).pathname;
-const NSS_V = "nssc-v20260923" + "-v50" + ":" + NSS_SCOPE;
-const NSS_CORE = ["./", "./index.html", "./bank.js", "./ui/study.css", "./ui/study.js?v=46", "./ui/atelier.css?v=46", "./ui/atelier.js?v=46", "./ui/favicon.svg"];
+const NSS_V = "nssc-v20260923" + "-v51" + ":" + NSS_SCOPE;
+const NSS_CORE = ["./index.html", "./bank.js", "./ui/study.css", "./ui/study.js?v=46", "./ui/atelier.css?v=46", "./ui/atelier.js?v=46", "./ui/favicon.svg"];
 const NSS_OPTIONAL = [
   "./ui/assets/atelier-560.webp", "./ui/assets/atelier-1000.webp", "./ui/assets/dm-regular.woff2", "./ui/assets/dm-semibold.woff2", "./ui/assets/caslon-display.woff2",
   "./manifest.webmanifest", "./icon-192.png", "./icon-512.png", "./apple-touch-icon.png",
@@ -18,7 +18,7 @@ self.addEventListener("install", event => {
   event.waitUntil((async () => {
     const cache = await caches.open(NSS_V);
     // A first visit must cache the bank, even if it was fetched before SW control.
-    await cache.addAll(NSS_CORE.map(path => new Request(localURL(path), {cache:"reload"})));
+    await cache.addAll(NSS_CORE.map(path => new Request(localURL(path))));
     // A missing optional module must not prevent the core app working offline.
     await Promise.all(NSS_OPTIONAL.map(path => cache.add(localURL(path)).catch(() => {})));
     await self.skipWaiting();

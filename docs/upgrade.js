@@ -1013,6 +1013,11 @@
     var l = $("mpLock");
     if (l) l.hidden = false;
     try { document.documentElement.classList.add("mp-codes-pending"); } catch (e) {}
+    try {
+      var f = $("mpLockName"), c = $("mpLockCode");
+      var t = (f && !f.value) ? f : c;
+      if (t) setTimeout(function () { t.focus({ preventScroll: true }); }, 60);
+    } catch (e) {}
   }
 
   function wireLock() {
