@@ -267,6 +267,32 @@ hard gate **on top of** the new design without rolling any of it back:
 * `tools/browser/codetest.js` retargeted at the lock: **31 assertions, all passing**,
   including "activated device without a profile is not locked out".
 
+
+### 6.2 The school ledger — one slip, one device, for real (Supabase)
+
+Per-device single-use was the honest ceiling of static hosting. With the ledger, the
+ceiling is gone: `docs/codes.js` may carry `ledger:{url,key}` (a Supabase project's
+**anon** key — public by design, like a Firebase config; the `service_role` key never
+goes anywhere near the site). `tools/supabase_schema.sql` creates one table whose
+**primary key is the enforcement**: a second claim of the same hash fails with a
+uniqueness violation, from any phone, anywhere. Row-level security lets the anon key
+insert-once and read hashes/dates — nothing else.
+
+* Redemption: local checks first, then `POST /rest/v1/code_redemptions`.
+  201 = claimed here; 409 → look the row up: ours = welcome back, someone else's =
+  "that slip was activated on another device on <date>" and the lock stays shut.
+* Offline classroom: the device activates **provisionally** (`act.pending`) and reconciles
+  on the next boot or `online` event. If another phone claimed the slip first, the
+  provisional activation is revoked, the device is signed out and told why.
+* No ledger configured = exactly the old per-device behaviour and the old honest note.
+* Tests: `tools/browser/ledgertest.js` + `mocksupabase.js` — 20 assertions across five
+  simulated devices (cross-device refusal, single ledger row, offline provisional,
+  confirmation, conflict revocation, no-ledger fallback). All passing.
+
+To switch it on: create the free Supabase project, run the SQL file once, then
+`python3 tools/issue_codes.py --count 0 --ledger-url https://<proj>.supabase.co --ledger-key <anon>`
+republishes `codes.js` with the ledger wired in (count 0 = config only, no new slips).
+
 ### Operating the roll call
 
 ```bash

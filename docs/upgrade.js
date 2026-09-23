@@ -969,8 +969,10 @@
     redeem(code).then(function (res) {
       if (res.r === "unknown") { lockFeedback("✘ That code is not on this school's list. Check the slip — O and 0, I and 1 look alike.", "bad"); return; }
       if (res.r === "used") { lockFeedback("✘ That code was already used on this device. Ask your teacher for another slip.", "bad"); return; }
+      if (res.r === "elsewhere") { lockFeedback("✘ That slip was already activated on another device" + (res.at ? " on " + new Date(res.at).toLocaleDateString() : "") + ". Ask your teacher for your own slip.", "bad"); return; }
+      if (res.r === "provisional") { /* fall through to activation; sync later */ }
       hideLock();
-      lockFeedback(res.r === "same" ? "✔ This device is already activated — welcome back." : "✔ Code accepted — opening your books…", "ok");
+      lockFeedback(res.r === "same" ? "✔ This device is already activated — welcome back." : res.r === "provisional" ? "✔ Code accepted (offline — will confirm with the school ledger)…" : "✔ Code accepted — opening your books…", "ok");
       mark("codes", true);
       try {
         if (res.r !== "same" && typeof window.createStudyAccount === "function" && !st.get("nssc_user", null))
@@ -1004,7 +1006,105 @@
     else if (CODES_STATE === "ok" && !isActivated() && !st.get("nssc_user", null)) showLock();
   }
 
+  /* =====================================================================
+     School ledger (Supabase) — makes a slip truly single-use ACROSS devices.
+     codes.js may carry ledger:{url,key}; the anon key is public by design and
+     row-level security allows insert-once (primary key) + read only.
+     Offline classroom: the device activates provisionally (act.pending) and
+     reconciles on the next boot / online event; a slip that another phone
+     claimed first revokes the provisional activation.
+     Diagnostic/test hook: localStorage "nssc_ledger_cfg" = {url,key}.
+     ===================================================================== */
+  function ledgerCfg() {
+    try {
+      var o = st.get("nssc_ledger_cfg", null);
+      if (o && o.url) return o;
+    } catch (e) {}
+    return (CODES && CODES.ledger && CODES.ledger.url) ? CODES.ledger : null;
+  }
+  function deviceId() {
+    var d = st.get("nssc_devid", null);
+    if (!d) { d = (window.uid ? uid() : String(Math.random()).slice(2)) + "-" + String(Date.now().toString(36)); st.set("nssc_devid", d); }
+    return d;
+  }
+  function ledgerHeaders(cfg) {
+    return { "apikey": cfg.key, "Authorization": "Bearer " + cfg.key, "Content-Type": "application/json", "Prefer": "return=representation" };
+  }
+  function ledgerClaim(cfg, h) {
+    return fetch(cfg.url + "/rest/v1/code_redemptions", {
+      method: "POST", headers: ledgerHeaders(cfg),
+      body: JSON.stringify([{ code_hash: h, device_id: deviceId(), device_label: (function () { try { return (st.get("nssc_user", null) || {}).name || ""; } catch (e) { return ""; } })(), batch: (CODES && CODES.batches && CODES.batches[CODES.batches.length - 1]) || "" }])
+    }).then(function (r) {
+      if (r.ok) return { r: "ok" };
+      if (r.status === 409 || r.status === 400) return ledgerWho(cfg, h);
+      throw new Error("ledger " + r.status);
+    });
+  }
+  function ledgerWho(cfg, h) {
+    return fetch(cfg.url + "/rest/v1/code_redemptions?code_hash=eq." + encodeURIComponent(h) + "&select=device_id,redeemed_at", {
+      headers: { "apikey": cfg.key, "Authorization": "Bearer " + cfg.key }
+    }).then(function (r) { return r.ok ? r.json() : []; }).then(function (rows) {
+      if (rows && rows.length && rows[0].device_id === deviceId()) return { r: "mine", at: rows[0].redeemed_at };
+      return { r: "elsewhere", at: (rows && rows[0] && rows[0].redeemed_at) || null };
+    });
+  }
+
+  function redeemWithLedger(code) {
+    var cfg = ledgerCfg();
+    return hashCode(code).then(function (h) {
+      if (!CODES || !CODES.list || CODES.list.indexOf(h) === -1) return { r: "unknown", h: h };
+      var used = st.get("nssc_act_used", []) || [], act = st.get("nssc_act", null);
+      if (act && act.h === h.slice(0, 16)) return { r: "same", h: h };
+      if (used.indexOf(h) > -1) return { r: "used", h: h };
+      if (!cfg) {                                   /* no ledger: per-device rule */
+        used.push(h); st.set("nssc_act_used", used);
+        st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: (CODES.batches || []).slice(-1)[0] || "" });
+        return { r: "ok", h: h };
+      }
+      return ledgerClaim(cfg, h).then(function (res) {
+        if (res.r === "ok" || res.r === "mine") {
+          used.push(h); st.set("nssc_act_used", used);
+          st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: (CODES.batches || []).slice(-1)[0] || "", ledger: true });
+          return { r: "ok", h: h };
+        }
+        if (res.r === "elsewhere") return { r: "elsewhere", h: h, at: res.at };
+        return { r: "used", h: h };
+      }).catch(function () {                       /* offline classroom */
+        used.push(h); st.set("nssc_act_used", used);
+        st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: (CODES.batches || []).slice(-1)[0] || "", pending: true, fh: h });
+        return { r: "provisional", h: h };
+      });
+    });
+  }
+
+  function syncPendingLedger() {
+    var cfg = ledgerCfg(); var act = st.get("nssc_act", null);
+    if (!cfg || !act || !act.pending) return Promise.resolve(null);
+    if (typeof navigator !== "undefined" && navigator.onLine === false) return Promise.resolve(null);
+    var h = act.fh;
+    if (!h) { var a2 = Object.assign({}, act); delete a2.pending; st.set("nssc_act", a2); return Promise.resolve(null); }
+    return ledgerClaim(cfg, h).then(function (res) {
+      if (res.r === "ok" || res.r === "mine") {
+        var a = Object.assign({}, st.get("nssc_act", null) || {}); delete a.pending; delete a.fh; a.ledger = true;
+        st.set("nssc_act", a);
+        return "confirmed";
+      }
+      if (res.r === "elsewhere") {
+        /* another phone owns this slip: revoke the provisional activation */
+        var used = (st.get("nssc_act_used", []) || []).filter(function (x) { return x !== h; });
+        st.set("nssc_act_used", used);
+        st.del("nssc_act");
+        showLock();
+        lockFeedback("✘ This slip was activated on another device" + (res.at ? " on " + new Date(res.at).toLocaleDateString() : "") + ". This device has been signed out — ask your teacher for your own slip.", "bad");
+        try { if (typeof toast === "function") toast("Activation revoked — slip belongs to another device", "⚠️"); } catch (e) {}
+        return "revoked";
+      }
+      return null;
+    }).catch(function () { return null; });
+  }
+
   function hubFab() {
+
     if ($("mpHubFab")) return;
     var b = document.createElement("button");
     b.id = "mpHubFab"; b.type = "button"; b.textContent = "🎛️";
@@ -1029,20 +1129,7 @@
     }
   }
 
-  function redeem(code) {
-    return hashCode(code).then(function (h) {
-      if (!CODES || !CODES.list || CODES.list.indexOf(h) === -1) return { r: "unknown", h: h };
-      var used = st.get("nssc_act_used", []) || [], act = st.get("nssc_act", null);
-      if (act && act.h === h.slice(0, 16)) return { r: "same", h: h };
-      if (used.indexOf(h) > -1) return { r: "used", h: h };
-      used.push(h); st.set("nssc_act_used", used);
-      st.set("nssc_act", {
-        h: h.slice(0, 16), mask: maskCode(code), at: Date.now(),
-        batch: (CODES && CODES.batches && CODES.batches[CODES.batches.length - 1]) || ""
-      });
-      return { r: "ok", h: h };
-    });
-  }
+  function redeem(code) { return redeemWithLedger(code); }
 
   function gateFeedback(msg, kind) {
     var fb = $("gateCodeFb"); if (!fb) return;
@@ -1098,6 +1185,8 @@
       activated: isActivated,
       info: actInfo,
       redeem: redeem,
+      ledger: ledgerCfg,
+      sync: syncPendingLedger,
       norm: normCode,
       count: function () { return (CODES && CODES.list && CODES.list.length) || 0; }
     };
@@ -1121,10 +1210,12 @@
     var a = actInfo();
     html += '<div class="mp-sec"><h4>School activation</h4>';
     if (a) {
+      var led = ledgerCfg();
       html += row("act", "🔑", "Activated: <b>" + esc_(a.mask) + "</b>",
-        "Single-use on this device · " + (a.at ? new Date(a.at).toLocaleDateString() : "") +
+        (a.pending ? "⏳ Waiting to confirm with the school ledger · " : led && a.ledger ? "School ledger: live — one slip, one device, enforced across phones · " : led ? "School ledger configured · " : "Single-use on this device · ") +
+        (a.at ? new Date(a.at).toLocaleDateString() : "") +
         (a.batch ? " · batch " + esc_(a.batch) : "") +
-        ". Codes are checked on this device only — a code cannot be re-used here, but this app has no server, so it cannot police other devices.", "");
+        (led ? ". The school ledger refuses a slip that any other phone has claimed." : ". Codes are checked on this device only — a code cannot be re-used here, but without the school ledger this app cannot police other devices."), "");
     } else if (CODES_STATE === "ok") {
       html += row("act", "🔑", "Not activated on this device",
         "Enter the code from your paper slip to unlock papers, tools and progress.",
@@ -1168,7 +1259,9 @@
   /* ------------------------------------------------------------- boot */
   function boot() {
     try {
-      wireGate(); wireLock(); hubFab(); loadCodes(null);
+      wireGate(); wireLock(); hubFab();
+      loadCodes(function () { syncPendingLedger(); });
+      try { window.addEventListener("online", function () { syncPendingLedger(); }); } catch (e) {}
       initErrors(); initPerf(); initNet(); initSW(); initWake(); initBankWatch();
       paintNav(); paintTile();
       idle(function () {

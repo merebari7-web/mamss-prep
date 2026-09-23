@@ -413,6 +413,13 @@ def main():
                         ('id="mpLockBtn"', "lock exposes an activate button"),
                         ('html.mp-codes-pending:not(.mp-code-ok)', "critical CSS hides guest/Google paths until a code lands")):
         (ok if needle in isrc else fail)("index.html: %s" % why)
+    for needle, why in (("ledgerCfg", "Supabase ledger config reader"),
+                        ("ledgerClaim", "insert-once claim against the ledger"),
+                        ("syncPendingLedger", "offline provisional reconciliation"),
+                        ('r: "elsewhere"', "cross-device refusal path")):
+        (ok if needle in usrc else fail)("upgrade.js: %s" % why)
+    (ok if os.path.exists(os.path.join(ROOT, "tools", "supabase_schema.sql")) else fail)(
+        "tools/supabase_schema.sql ships the RLS schema")
     swsrc = open(os.path.join(DOCS, "sw.js"), encoding="utf-8").read()
     (ok if '"./codes.js"' in swsrc else fail)("service worker precaches codes.js (works offline)")
     mk = re.search(r'"-v(\d+)"', swsrc)
