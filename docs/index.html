@@ -31,7 +31,7 @@
 <!-- v19 all-device responsiveness (source: quiz/_v19_ui.css) -->
 <!-- v20 AI Coach desktop-responsive (source: quiz/_v20_ui.css) -->
 <link href="https://merebari7-web.github.io/mamss-prep/" rel="canonical"/><script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"MAMSS Prep","alternateName":"Mater Misericordiae Secondary School","url":"https://merebari7-web.github.io/mamss-prep/","description":"Free offline revision for Nigerian senior secondary students (SS1-SS3): 4,167 explained practice questions across 27 subjects, WAEC/NECO/JAMB countdowns, lesson notes, formula vault, scientific calculator and an AI study tutor.","applicationCategory":"EducationalApplication","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":"en","offers":{"@type":"Offer","price":"0","priceCurrency":"NGN"},"publisher":{"@type":"Organization","name":"Merebari Web","url":"https://github.com/merebari7-web"}}</script><link id="legacyStyles" rel="stylesheet"/><script id="mpCodesPending">(function(){try{
-var ok=0;try{ok=localStorage.getItem("nssc_user")||localStorage.getItem("nssc_act")?1:0}catch(e){}
+var ok=0;try{ok=localStorage.getItem("nssc_act")?1:0}catch(e){}
 if(!ok){document.documentElement.classList.add("mp-codes-pending");
 var l=document.getElementById("mpLock");if(l)l.hidden=false;}
 }catch(e){}})();</script>
@@ -602,9 +602,9 @@ onkeydown="if(event.key==='Enter'){event.preventDefault();var b=document.getElem
 </div>
 </div>
 <script id="mpLockReveal">(function(){try{
-var u=localStorage.getItem("nssc_user"),a=localStorage.getItem("nssc_act");
+var a=0;try{a=localStorage.getItem("nssc_act")?1:0}catch(e){}
 var l=document.getElementById("mpLock");
-if(l&&(!u&&!a)){l.hidden=false;document.documentElement.classList.add("mp-codes-pending");}
+if(l&&!a){l.hidden=false;document.documentElement.classList.add("mp-codes-pending");}
 }catch(e){}})();</script>
 <link id="mpUpgradeCss" rel="stylesheet" href="upgrade.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="upgrade.css"></noscript>

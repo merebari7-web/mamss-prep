@@ -130,32 +130,48 @@ const storeGet = (page, k) => page.evaluate(k => { try { return JSON.parse(local
   await p2.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem('nssc_act')); } catch (e) { return false; } }, null, { timeout: 10000 }).catch(() => {});
   ok('second device activates with its own slip', !!(await storeGet(p2, 'nssc_act')), short(codes[1]));
 
-  /* ---------- 9. codes.js unreachable → fail open, never strand a student ---------- */
+  /* ---------- 9. codes.js unreachable: the door stays shut and retries ---------- */
   let ctx3 = await browser.newContext({ serviceWorkers: 'block' });
   let p3 = await ctx3.newPage();
   const errs3 = []; p3.on('pageerror', e => errs3.push(String(e)));
-  await p3.route('**/codes.js', r => r.abort());
+  let blockList = true;
+  await p3.route('**/codes.js', r => blockList ? r.abort() : r.continue());
   await p3.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await booted(p3);
-  await p3.waitForSelector('#mpLock', { timeout: 20000 }).catch(() => {});
-  await p3.waitForFunction(() => !document.documentElement.classList.contains('mp-codes-pending'), null, { timeout: 10000 }).catch(() => {});
-  ok('missing code list releases the lock (fail-open)',
-    !(await p3.evaluate(() => document.documentElement.classList.contains('mp-codes-pending'))));
-  ok('guest sign-up works with no code list', (await display(p3, '#acctSignedOut button[onclick^="signUpGuest"]')) !== 'none');
-  ok('lock overlay is gone when there is nothing to check', await p3.$eval('#mpLock', el => el.hidden).catch(() => true));
-  await p3.evaluate(() => { const o = document.getElementById('accountOverlay'); o && o.classList.remove('hidden'); });
-  await p3.waitForSelector('#guestName', { state: 'visible', timeout: 8000 });
-  await p3.fill('#guestName', 'Free Access Student');
-  await p3.evaluate(() => window.signUpGuest());
-  await p3.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem('nssc_user')); } catch (e) { return false; } }, null, { timeout: 8000 }).catch(() => {});
-  ok('account created without a code when the list is gone', !!(await storeGet(p3, 'nssc_user')));
-  await p3.evaluate(() => window.openMpHub && window.openMpHub());
-  await p3.waitForTimeout(1000);
-  hub = await p3.evaluate(() => (document.getElementById('mpHubBody') || document.body).innerText);
-  ok('App Centre says "Open access" in that case', /Open access/i.test(hub));
+  await p3.waitForTimeout(1500);
+  ok('unreachable code list keeps the lock shut (no fail-open)', await p3.$eval('#mpLock', el => !el.hidden));
+  let fb3 = await p3.$eval('#mpLockFb', e => e.textContent);
+  ok('the lock explains the unreachable list', /code list/i.test(fb3), fb3);
+  ok('guest sign-up stays hidden while the list is unreachable',
+    (await display(p3, '#acctSignedOut button[onclick^="signUpGuest"]')) === 'none');
+  blockList = false;                                     /* connection recovers */
+  await p3.waitForFunction(() => (window.MAMSS_CODES || {}).count > 0, null, { timeout: 20000 });
+  ok('the lock retries and recovers when the list returns',
+    (await p3.evaluate(() => MAMSS_ACT.state())) === 'ok');
+  await p3.fill('#mpLockName', 'Recovered Student');
+  await p3.fill('#mpLockCode', codes[6]);
+  await p3.click('#mpLockBtn');
+  await p3.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem('nssc_act')); } catch (e) { return false; } }, null, { timeout: 10000 }).catch(() => {});
+  ok('a slip works once the list is reachable again', !!(await storeGet(p3, 'nssc_act')));
+
+  /* ---------- 9b. an old signed-in profile with no slip is locked too ---------- */
+  let ctx4 = await browser.newContext();
+  let p4 = await ctx4.newPage();
+  const errs4 = []; p4.on('pageerror', e => errs4.push(String(e)));
+  await p4.addInitScript(() => { try { localStorage.setItem('nssc_user', JSON.stringify({ id: 'guest_old', name: 'Legacy Local', email: '' })); } catch (e) {} });
+  await p4.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
+  await booted(p4);
+  await p4.waitForTimeout(900);
+  ok('signed-in but never activated: still locked', await p4.$eval('#mpLock', el => !el.hidden));
+  await p4.fill('#mpLockName', 'Legacy Local');
+  await p4.fill('#mpLockCode', codes[7]);
+  await p4.click('#mpLockBtn');
+  await p4.waitForFunction(() => { try { return !!JSON.parse(localStorage.getItem('nssc_act')); } catch (e) { return false; } }, null, { timeout: 10000 }).catch(() => {});
+  const kept = await storeGet(p4, 'nssc_user');
+  ok('activating keeps the old profile and its work', kept && kept.name === 'Legacy Local', kept && kept.name);
 
   /* ---------- 10. console hygiene ---------- */
-  const allErrs = errs1.concat(errs2, errs3).filter(e => !/gsi|accounts\.google|ssl\.gstatic/i.test(e));
+  const allErrs = errs1.concat(errs2, errs3, errs4).filter(e => !/gsi|accounts\.google|ssl\.gstatic/i.test(e));
   ok('no page errors across all four devices', allErrs.length === 0, allErrs.slice(0, 2).join(' | '));
 
   await browser.close();

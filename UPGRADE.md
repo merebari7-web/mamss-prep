@@ -293,6 +293,25 @@ To switch it on: create the free Supabase project, run the SQL file once, then
 `python3 tools/issue_codes.py --count 0 --ledger-url https://<proj>.supabase.co --ledger-key <anon>`
 republishes `codes.js` with the ledger wired in (count 0 = config only, no new slips).
 
+
+### 6.3 "No code, no access" (current policy)
+
+The school's instruction is absolute, so the last escape hatches were removed:
+
+* **No fail-open.** If `codes.js` cannot be fetched (blocked, 404, flaky network) the lock
+  stays shut, explains itself, and retries on a 5 s / 15 s / 45 s / 2 min ladder plus every
+  `online` event. A network accident is not a key.
+* **No signed-in bypass.** A device with an old study profile but no slip now sees the lock
+  too; entering a slip keeps the profile and all its work and binds the activation.
+* **No legacy-browser pass.** Without WebCrypto the lock explains that a modern browser is
+  required instead of opening.
+* The only open doors are (a) a valid slip, (b) an activation already bound to the device,
+  and (c) the school's deliberate `tools/issue_codes.py --policy open` switch.
+* Honest limit, unchanged and unavoidable on static hosting: everything is verified in the
+  visitor's browser, so someone with developer tools can still bypass the overlay on their
+  own device. The Supabase ledger (§6.2) is what makes a *shared* slip useless on a second
+  phone; client code can never be un-crackable by its owner.
+
 ### Operating the roll call
 
 ```bash

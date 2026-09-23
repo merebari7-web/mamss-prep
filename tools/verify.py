@@ -420,6 +420,12 @@ def main():
         (ok if needle in usrc else fail)("upgrade.js: %s" % why)
     (ok if os.path.exists(os.path.join(ROOT, "tools", "supabase_schema.sql")) else fail)(
         "tools/supabase_schema.sql ships the RLS schema")
+    (ok if "scheduleRetry" in usrc and "listUnreachable" in usrc else fail)(
+        "upgrade.js: unreachable code list retries instead of opening the door")
+    (ok if 'CODES_STATE = "missing"; releaseLock()' not in usrc else fail)(
+        "upgrade.js: the old fail-open path is gone")
+    (ok if "(!u&&!a)" not in isrc and 'id="mpLockReveal"' in isrc else fail)(
+        "index.html: pre-paint lock keyed on activation only (no signed-in bypass)")
     swsrc = open(os.path.join(DOCS, "sw.js"), encoding="utf-8").read()
     (ok if '"./codes.js"' in swsrc else fail)("service worker precaches codes.js (works offline)")
     mk = re.search(r'"-v(\d+)"', swsrc)

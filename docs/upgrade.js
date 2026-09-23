@@ -922,21 +922,45 @@
     sc.src = "codes.js"; sc.async = true;
     sc.onload = function () {
       CODES = window.MAMSS_CODES || null;
-      if (!CODES || !CODES.list || !CODES.list.length) { CODES_STATE = "missing"; releaseLock(); }
-      else if (CODES.policy === "open") { CODES_STATE = "open"; releaseLock(); }
-      else if (!(window.crypto && crypto.subtle)) { CODES_STATE = "nocrypto"; releaseLock(); }
+      if (!CODES || !CODES.list || !CODES.list.length) { CODES_STATE = "missing"; listUnreachable(); }
+      else if (CODES.policy === "open") { CODES_STATE = "open"; openAccess(); }
+      else if (!(window.crypto && crypto.subtle)) {
+        CODES_STATE = "nocrypto";
+        lockFeedback("This browser cannot verify school codes. Please open MAMSS PREP in an up-to-date browser (Chrome, Edge, Firefox or Safari).", "bad");
+      }
       else CODES_STATE = "ok";
       paintCodeUi();
       done && done();
       flushQueue();
     };
-    sc.onerror = function () { CODES = null; CODES_STATE = "missing"; releaseLock(); paintCodeUi(); done && done(); flushQueue(); };
+    sc.onerror = function () { CODES = null; CODES_STATE = "missing"; listUnreachable(); done && done(); flushQueue(); };
     document.head.appendChild(sc);
-    /* Safety net: if the list neither loads nor errors (flaky network, blocked
-       request, aggressive proxy) we must not leave the gate welded shut. */
+    /* No fail-open: if the list neither loads nor errors (flaky network, blocked
+       request, aggressive proxy) the lock stays shut and keeps retrying. The
+       school's own escape hatch is policy "open", not a network accident. */
     setTimeout(function () {
-      if (CODES_STATE === "loading") { CODES_STATE = "missing"; releaseLock(); paintCodeUi(); done && done(); flushQueue(); }
+      if (CODES_STATE === "loading") { CODES_STATE = "missing"; listUnreachable(); done && done(); flushQueue(); }
     }, 4000);
+  }
+  var RETRY_MS = [5000, 15000, 45000, 120000];
+  var retryN = 0;
+  function listUnreachable() {
+    lockFeedback("Can't reach the school code list. Check your connection — trying again automatically…", "bad");
+    scheduleRetry();
+  }
+  function scheduleRetry() {
+    if (CODES_STATE === "ok" || CODES_STATE === "open") return;
+    var wait = RETRY_MS[Math.min(retryN, RETRY_MS.length - 1)]; retryN++;
+    setTimeout(function () {
+      if (CODES_STATE === "ok" || CODES_STATE === "open") return;
+      CODES_STATE = "loading";
+      loadCodes(function () { retryN = 0; });
+    }, wait);
+  }
+  function openAccess() {
+    try { document.documentElement.classList.remove("mp-codes-pending"); } catch (e) {}
+    try { document.documentElement.classList.add("mp-code-ok"); } catch (e) {}
+    var l = $("mpLock"); if (l) l.hidden = true;
   }
   function flushQueue() {
     var q = CODE_QUEUE.slice(); CODE_QUEUE = [];
@@ -944,7 +968,6 @@
   }
   function releaseLock() {
     try { document.documentElement.classList.remove("mp-codes-pending"); } catch (e) {}
-    if (CODES_STATE !== "ok") { var l = $("mpLock"); if (l) l.hidden = true; }
   }
   function hideLock() {
     var l = $("mpLock"); if (l) l.hidden = true;
@@ -965,7 +988,10 @@
     if (!normCode(code)) { lockFeedback("Type the code from your slip, then activate it.", "bad"); c && c.focus(); return; }
     if (!name) { lockFeedback("Add your full name first — the code is tied to your study account.", "bad"); n && n.focus(); return; }
     if (CODES_STATE === "loading") { CODE_QUEUE.push(runLockFlow); lockFeedback("Checking your school's code list…", ""); return; }
-    if (CODES_STATE !== "ok") { hideLock(); return; }
+    if (CODES_STATE !== "ok") {
+      lockFeedback(CODES_STATE === "loading" ? "Checking your school's code list…" : "The school code list is not reachable from this device yet — check the connection and try again.", "bad");
+      return;
+    }
     redeem(code).then(function (res) {
       if (res.r === "unknown") { lockFeedback("✘ That code is not on this school's list. Check the slip — O and 0, I and 1 look alike.", "bad"); return; }
       if (res.r === "used") { lockFeedback("✘ That code was already used on this device. Ask your teacher for another slip.", "bad"); return; }
@@ -997,13 +1023,13 @@
         window["__mpWrapped" + fn] = true;
         var orig = window[fn];
         window[fn] = function () {
-          if (CODES_STATE === "ok" && !isActivated() && !st.get("nssc_user", null)) { showLock(); return; }
+          if (CODES_STATE === "ok" && !isActivated()) { showLock(); return; }
           return orig.apply(null, arguments);
         };
       }
     });
-    if (CODES_STATE !== "ok" && CODES_STATE !== "loading") hideLock();
-    else if (CODES_STATE === "ok" && !isActivated() && !st.get("nssc_user", null)) showLock();
+    if (CODES_STATE === "open") openAccess();
+    else if (!isActivated()) showLock();
   }
 
   /* =====================================================================
@@ -1181,6 +1207,7 @@
     window.MAMSS_ACT = {
       gate: runLockFlow,
       lock: showLock,
+      unlock: hideLock,
       state: function () { return CODES_STATE; },
       activated: isActivated,
       info: actInfo,
@@ -1261,7 +1288,7 @@
     try {
       wireGate(); wireLock(); hubFab();
       loadCodes(function () { syncPendingLedger(); });
-      try { window.addEventListener("online", function () { syncPendingLedger(); }); } catch (e) {}
+      try { window.addEventListener("online", function () { syncPendingLedger(); retryN = 0; scheduleRetry(); }); } catch (e) {}
       initErrors(); initPerf(); initNet(); initSW(); initWake(); initBankWatch();
       paintNav(); paintTile();
       idle(function () {
