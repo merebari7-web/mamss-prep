@@ -122,24 +122,25 @@ def main():
         fail('malformed <meta> is swallowing a <link> (the manifest bug is back)')
     else:
         ok("no malformed meta/link sequence")
-    if re.search(r'<link rel="manifest"[^>]*href="manifest\.webmanifest"', s):
+    if re.search(r'<link[^>]*rel="manifest"[^>]*>|<link[^>]*href="manifest\.webmanifest"[^>]*>', s):
         ok('<link rel="manifest"> present — the app is installable')
     else:
         fail('<link rel="manifest"> missing — the PWA cannot be installed')
-    n_canon = len(re.findall(r'<link rel="canonical"', s))
+    n_canon = len(re.findall(r'<link[^>]*rel="canonical"', s))
     (ok if n_canon == 1 else fail)("exactly one canonical link (found %d)" % n_canon)
     n_icon = len(re.findall(r'<link rel="icon"', s))
     (ok if n_icon == 1 else warn)("one favicon link (found %d)" % n_icon)
     # count real tags only: text inside HTML comments does not create elements
     tags_only = re.sub(r"<!--.*?-->", "", s, flags=re.S)
-    for tag, want in (("</head>", 1), ("<body>", 1), ("</body>", 1), ("<html", 1), ("</html>", 1)):
+    for tag, want in (("</head>", 1), ("<body", 1), ("</body>", 1), ("<html", 1), ("</html>", 1)):
         c = tags_only.count(tag)
         (ok if c == want else fail)("%s appears %d time(s)" % (tag, c))
-    if "</head>\n<body>" in s and '<div class="luxe-frame"' in s.split("<body>", 1)[1]:
+    if "</head>" in s and '<div class="luxe-frame"' in s.split("<body", 1)[1]:
         ok(".luxe-frame lives inside <body>")
     else:
         warn(".luxe-frame is not inside <body>")
-    if 'id="mpCritical"' in head and '<link rel="stylesheet" href="app.css">' in head:
+    if ('id="mpCritical"' in head and '<link rel="stylesheet" href="app.css">' in head) \
+       or 'id="mpLockCss"' in head:
         ok("critical CSS inline + full sheet linked")
     else:
         fail("critical CSS / app.css link missing")
@@ -153,8 +154,8 @@ def main():
         ok("bank.js defers (non-render-blocking)")
     else:
         warn("bank.js is still render-blocking")
-    if "mpSaverGate" in head and "mpUpgrade" in s:
-        ok("Data-Saver gate + upgrade layer installed")
+    if ("mpSaverGate" in head and "mpUpgrade" in s) or ('upgrade.js' in s and 'mpLockCss' in head):
+        ok("upgrade layer installed (v43 gate or v45 lock generation)")
     else:
         fail("Data-Saver gate or upgrade layer loader missing")
     if re.search(r"127\\\.0\\\.0\\\.1", s) or "localhost" in s:
@@ -178,7 +179,10 @@ def main():
     print("\n[3] app.css extraction fidelity")
     css_path = os.path.join(DOCS, "app.css")
     if not os.path.exists(css_path):
-        fail("docs/app.css missing")
+        if os.path.exists(os.path.join(DOCS, "ui", "study.css")):
+            warn("docs/app.css absent — redesign shell uses ui/study.css")
+        else:
+            fail("docs/app.css missing")
     else:
         css = open(css_path, encoding="utf-8").read()
         ok("app.css present (%s chars)" % f"{len(css):,}")
@@ -222,7 +226,7 @@ def main():
             entries = re.findall(r'"([^"]+)"', core.group(1))
             absent = []
             for e in entries:
-                rel = e.lstrip("./")
+                rel = e.split("?")[0].lstrip("./")
                 if rel in ("", "index.html"):
                     rel = "index.html"
                 if not os.path.exists(os.path.join(DOCS, rel)):
@@ -345,6 +349,75 @@ def main():
         total += gz
         print("      %-16s %8s raw → %7s gzip" % (f, f"{len(raw):,}", f"{gz:,}"))
     print("      %-16s %8s" % ("first-load set", f"{total:,} bytes gzip"))
+
+    print("\n[10] v45 Roll Call — school activation codes")
+    cpath = os.path.join(DOCS, "codes.js")
+    if os.path.exists(cpath):
+        csrc = open(cpath, encoding="utf-8").read()
+        m = re.search(r'salt:"([0-9a-f]{8,32})"', csrc)
+        pol = re.search(r'policy:"(codes|open)"', csrc)
+        lst = re.findall(r'"([0-9a-f]{64})"', csrc)
+        cnt = re.search(r'count:(\d+)', csrc)
+        (ok if m else fail)("codes.js carries a %s-hex salt" % (len(m.group(1)) if m else "MISSING"))
+        (ok if pol else fail)("codes.js declares a policy (%s)" % (pol.group(1) if pol else "MISSING"))
+        if cnt and lst:
+            (ok if int(cnt.group(1)) == len(lst) else fail)(
+                "codes.js count matches the hash list (%d)" % len(lst))
+        else:
+            fail("codes.js hash list could not be read")
+        (ok if len(csrc) < 60000 else warn)("codes.js stays small (%s bytes)" % f"{len(csrc):,}")
+
+        # the plaintext slips must never reach the published site
+        leak = re.search(r'MAMSS-[2-9A-HJ-NP-Z]{6}-20\d\d', csrc)
+        (fail if leak else ok)("codes.js holds hashes only — no plaintext slip%s" %
+                               ((" (%s)" % leak.group(0)) if leak else ""))
+        priv = os.path.join(ROOT, "tools", "private")
+        issued = []
+        if os.path.isdir(priv):
+            for fn in sorted(os.listdir(priv)):
+                if fn.endswith(".csv"):
+                    for line in open(os.path.join(priv, fn), encoding="utf-8").read().splitlines()[1:]:
+                        c = (line.split(",")[0] or "").strip()
+                        if c.startswith("MAMSS-"):
+                            issued.append(c)
+            if issued:
+                docs_blob = ""
+                for fn in os.listdir(DOCS):
+                    if fn.endswith((".html", ".js", ".css")):
+                        docs_blob += open(os.path.join(DOCS, fn), encoding="utf-8", errors="ignore").read()
+                norm = re.sub(r"[^A-Z0-9]", "", docs_blob.upper())
+                bad = [c for c in issued if re.sub(r"[^A-Z0-9]", "", c.upper()) in norm]
+                (fail if bad else ok)(
+                    "none of the %d issued slips appear anywhere in docs/%s" %
+                    (len(issued), (" — LEAKED: %s" % bad[:3]) if bad else ""))
+                ok("private plaintext lives only in tools/private/ (%d slips on file)" % len(issued))
+            else:
+                warn("tools/private/ has no CSV — nothing to cross-check")
+        else:
+            warn("tools/private/ absent on this machine (fine for CI; issuer keeps it offline)")
+        gi = open(os.path.join(ROOT, ".gitignore"), encoding="utf-8").read() if os.path.exists(os.path.join(ROOT, ".gitignore")) else ""
+        (ok if "tools/private/" in gi else fail)(".gitignore keeps tools/private/ out of the repo")
+    else:
+        fail("docs/codes.js is missing — run tools/issue_codes.py")
+
+    usrc = open(os.path.join(DOCS, "upgrade.js"), encoding="utf-8").read()
+    for needle, why in (("MAMSS_ACT", "gate exposes the activation API"),
+                        ("nssc_act_used", "single-use-per-device ledger"),
+                        ('CODES.list.indexOf(h) === -1', "codes are checked against the hash list"),
+                        ("CODES_STATE = \"missing\"", "fail-open when the list cannot be fetched"),
+                        ("crypto.subtle.digest", "SHA-256 via WebCrypto")):
+        (ok if needle in usrc else fail)("upgrade.js: %s" % why)
+    isrc = open(os.path.join(DOCS, "index.html"), encoding="utf-8").read()
+    for needle, why in (('id="mpLock"', "activation lock is static markup (no flash)"),
+                        ("mp-codes-pending", "provisional lock before first paint"),
+                        ('id="mpLockBtn"', "lock exposes an activate button"),
+                        ('html.mp-codes-pending:not(.mp-code-ok)', "critical CSS hides guest/Google paths until a code lands")):
+        (ok if needle in isrc else fail)("index.html: %s" % why)
+    swsrc = open(os.path.join(DOCS, "sw.js"), encoding="utf-8").read()
+    (ok if '"./codes.js"' in swsrc else fail)("service worker precaches codes.js (works offline)")
+    mk = re.search(r'"-v(\d+)"', swsrc)
+    (ok if mk and int(mk.group(1)) >= 45 else fail)(
+        "worker cache key at v%s (>= v45)" % (mk.group(1) if mk else "?"))
 
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))

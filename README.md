@@ -13,6 +13,11 @@ The official exam-preparation platform for **Mater Misericordiae Secondary Schoo
 - **Curriculum-True Practice**: Over 190+ expert-written questions across 9 subjects, categorized by Class (SS1-SS3) and Term.
 - **Progress HQ**: Adaptive readiness score (0-100%), per-subject Mastery Map, Records Hall, and JSON backup/restore.
 - **Tools**: Formula Vault, Periodic Table, Unit Converter, and Scientific Calculator.
+- **v44 Carry**: compress this device's whole study record into one sync code and
+  paste it on another phone — merge, never overwrite, no server involved.
+- **v45 Roll Call**: school-issued one-time activation slips (`MAMSS-XXXXXX-YYYY`)
+  open the app on one device. The site ships salted SHA-256 hashes only; the
+  plaintext list stays on paper in the staff room. Details in `UPGRADE.md` §6.
 
 ## 🚀 Tech Stack
 

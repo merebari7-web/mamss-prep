@@ -1,4 +1,4 @@
-# MAMSS PREP — v43 "Ascension" + v44 "Carry" upgrades
+# MAMSS PREP — v43 "Ascension" · v44 "Carry" · v45 "Roll Call"
 
 **Date:** 21 September 2026 · **Scope:** the published static site in `docs/` · **Zero breaking changes**
 
@@ -187,3 +187,96 @@ new `upgrade.js` exactly once.
 ---
 
 *v43 "Ascension" · v44 "Carry" — built for Morals and Excellence.*
+
+---
+
+## 6. v45 "Roll Call" — school-issued activation codes
+
+**The idea.** The school hands each student a paper slip — `MAMSS-7K4Q2R-2026` — and that
+slip opens the app on **one device**. Codes are issued by `tools/issue_codes.py`, printed
+from a git-ignored printable sheet, and handed out in class. Nothing about the existing
+app changed; the code step sits *in front of* the sign-up gate that already existed.
+
+### How a slip becomes access
+
+1. `tools/issue_codes.py --count 120 --batch SS1-3-main` mints 120 codes
+   (`MAMSS-` + 6 characters from `23456789ABCDEFGHJKMNPQRSTUVWXYZ` + `-` + year — no `0/O/1/I`,
+   so a handwritten slip is never ambiguous).
+2. The public half, `docs/codes.js`, stores **only** `sha256(salt + "|" + normalised code)`
+   hex digests plus a random per-install salt. Plaintext never enters the repo, the site,
+   a commit, or a browser profile beyond the student's own device memory.
+   `verify.py` §10 cross-checks every issued slip against every file in `docs/` on every run.
+3. The private half lands in `tools/private/` (git-ignored, never uploaded):
+   `codes-<batch>-<date>.csv` for the register and `codes-<batch>-<date>.html` — a
+   print-and-cut sheet of slips with the school crest.
+4. On a fresh device the sign-up gate shows **name + school code only** (Google sign-in,
+   the "or" divider and the create-account button are hidden by critical CSS before first
+   paint, so there is no flash of the unlocked gate). A valid code reveals them and signs
+   the student in; an invalid one explains why. Entry is case- and separator-insensitive,
+   so `mamss 7k4q2r 2026` works.
+5. Redemption binds `nssc_act` (first 16 hex of the digest + a masked display like
+   `MAMSS-HSQ···2026`) and appends the full digest to a per-device `nssc_act_used` ledger:
+   the same slip **cannot** be redeemed twice on one device, including after sign-out.
+6. App Centre → *School activation* shows the device's slip, the batch, the date, and says
+   plainly that with no server the app cannot police other devices.
+
+### Guarantees (and honest limits)
+
+* **Never strand a student.** If `codes.js` is missing, blocked, or the device has no
+  WebCrypto, the lock lifts and the normal free sign-up appears ("Open access" in the
+  App Centre). A 4-second watchdog covers a request that neither loads nor errors.
+* **Existing users untouched.** Any device with a study profile (`nssc_user`) skips the
+  gate entirely — the lock applies only to devices with no account at all.
+* **Policy switch.** `tools/issue_codes.py --policy open` republishes the list as
+  advisory (codes optional); `--policy codes` locks again. No code is ever invalidated.
+* **Honest limit:** this is a client-side gate on static hosting — a light fence, not a
+  wall. Single-use is enforced per device; a slip shared between two phones works on both,
+  because GitHub Pages has no backend to coordinate. Against the public list, exhaustive
+  search is ~29⁶ (≈ 5.9 × 10⁸) SHA-256 trials — trivially doable by a determined adult,
+  pointless for the audience. If real enforcement is ever required, that is a backend
+  feature, and the redemption points (`MAMSS_ACT.redeem`) are the seam to attach it to.
+
+### Tests
+
+`tools/browser/codetest.js` (also `/home/user/testrig/codetest.js`) drives four browser
+devices against real issued slips: locked gate, wrong code, missing name, lowercase/space
+normalisation, activation binding, sign-out + replay rejection, "own slip signs you back
+in", second device, App Centre rows, fail-open with the list blocked, and console hygiene —
+**30 assertions, all passing**. `verify.py` grew 19 checks (§10), including the plaintext-leak
+cross-check; 87 checks green in total.
+
+
+### 6.1 Integration with the 22-Sept "My Study" redesign
+
+The redesign (`a4bd143`, `ec3122d`) replaced the shell and removed the v43/v44 layer and the
+sign-in requirement (anonymous guest access). Per the school's decision, v45 restores the
+hard gate **on top of** the new design without rolling any of it back:
+
+* `#mpLock` — a self-contained full-screen lock layer (static markup + critical CSS in
+  `<head>`, revealed pre-paint by `#mpLockReveal`). While it is up, the guest path,
+  Google slot and both profile CTAs are hidden by `html.mp-codes-pending:not(.mp-code-ok)`
+  rules, so nothing underneath can be reached.
+* `signUpGuest()` / `gateSignUp()` are wrapped: with policy `codes` and no activation they
+  re-show the lock instead of creating a profile.
+* Success binds the slip, hides the lock and calls the shell's own `createStudyAccount()`.
+* A `🎛️` fab restores App Centre access (the redesign removed the old hub entry point).
+* `sw.js`: precache gains `codes.js`, `upgrade.js`, `upgrade.css`; key `-v47` → `-v48`.
+* `tools/integrate_v45.py` replays the shell edits idempotently; `verify.py` now accepts
+  both shell generations (attribute order, optional `app.css`, `?v=` precache queries) and
+  caught a duplicate `<link rel="canonical">` the redesign had reintroduced (fixed).
+* `tools/browser/codetest.js` retargeted at the lock: **31 assertions, all passing**,
+  including "activated device without a profile is not locked out".
+
+### Operating the roll call
+
+```bash
+python3 tools/issue_codes.py --count 60 --batch SS2-midterm   # mint & append a batch
+python3 tools/issue_codes.py --policy open                    # lift the requirement
+python3 tools/issue_codes.py --policy codes                   # restore it
+# slips to print:  tools/private/codes-<batch>-<date>.html   (keep this folder OFFLINE)
+```
+
+Codes live in the published `docs/codes.js`, so publishing a new batch is just committing
+that one file plus, optionally, the updated policy flag. Revoking a leaked slip means
+minting a replacement list (there is no server to blacklist against) — which is why the
+plaintext stays on paper in the staff room.
