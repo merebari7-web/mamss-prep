@@ -388,3 +388,29 @@ The combination — *offline-first oral examiner + auto-built syllabus memory pa
 - Tests: `testrig/exclusivetest.js` (15 assertions: hub entry, palace walk→recall→100%→saved, oral 3 rounds typed fallback→logged 100/100/100, wpm, no page errors) + `codetest.js` regression (33/33, hard gate untouched). `verify.py` §[12].
 
 **Roadmap if you want more exclusives:** Recall Arena (blurting → auto-coverage diff), Forgetting-Curve Autopilot (Ebbinghaus scheduler over every topic studied).
+\n
+
+## 10. v48 "Recall Arena & Autopilot" — the third and fourth exclusives
+
+Two more world-first-tier features, both riding the same lazy-loaded `docs/exclusive.js`
+(precached, offline, zero accounts), both fed by the existing `RNOTES` mark points:
+
+3. **🏟️ Recall Arena** — blurting, automated. A 30-second study phase shows the
+   topic's mark points; then everything is hidden and the student writes down all
+   they remember. The app diffs the blurt against **every** mark point: overall
+   recall %, the "landed" list, and the pen-colour step — the misses with their
+   missing keywords. Best/last/rounds per topic (`nssc_arena`).
+4. **📈 Forgetting-Curve Autopilot** — every oral answer, palace walk and blurt is
+   a review event (`nssc_auto_events`, capped 200). A per-topic Ebbinghaus schedule
+   (`nssc_autopilot`) advances 1→3→7→14→30 days on scores ≥65%, holds on 40–64%,
+   resets on <40%. The panel shows topics tracked, **Due today** with the
+   stage-right tool (palace for New/Learning, blurt for Solid, oral for
+   Strong/Mastered) as deep links that open the tool preselected, the next 7 days,
+   and the forgetting curve itself as inline SVG. Pre-v48 oral/palace history on
+   the device is imported once (`__seeded`).
+
+Nothing here phones home: the schedule is computed and stored on the device.
+
+*Tests:* `testrig/arenatest.js` 16/16 (study→blurt→100%, weak blurt → misses +
+stage reset, due-today list, curve SVG, deep-link preselection), studio suite
+15/15, roll-call suite 33/33 (hard gate untouched). `verify.py` §[13].

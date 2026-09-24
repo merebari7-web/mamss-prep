@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 47, NAME = "World-First Studio";
+  var V = 48, NAME = "Recall Arena & Autopilot";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -179,6 +179,12 @@
       row("palace", "🏛️", "Memory Palace",
         "Any topic becomes a guided walk through your own school — one vivid image per room, then a scored recall test. The method of loci, automated.",
         '<button class="mp-btn pri" id="mpPalOpen" type="button">Open</button>') +
+      row("arena", "🏟️", "Recall Arena",
+        "Blurting, automated: study the mark points for 30 seconds, the app hides everything, you write down all you remember — then it diffs your blurt against every mark point and hands you the misses.",
+        '<button class="mp-btn pri" id="mpArenaOpen" type="button">Open</button>') +
+      row("auto", "📈", "Forgetting-Curve Autopilot",
+        "Every oral, palace walk and blurt feeds an Ebbinghaus schedule (1·3·7·14·30 days) that tells you exactly which topic to review today — computed on your device, offline.",
+        '<button class="mp-btn pri" id="mpAutoOpen" type="button">Open</button>') +
       '</div>';
 
     b.innerHTML = html;
@@ -620,7 +626,9 @@
       ["🔁", "Carry your progress", "New in the App Centre and Study Hall: compress everything on this device into one sync code, then paste it on another phone. Papers already there are kept and de-duplicated. No server, no account, no upload."],
       ["🔑", "School activation codes", "Your teacher hands out paper slips like MAMSS-000000-2026. One code activates one device; it cannot be reused here. Only salted hashes live on the site — the plaintext list never leaves the school."],
       ["🎤", "Oral Examiner — world-first", "The app speaks oral questions aloud, listens through your microphone and marks your spoken answer against the mark points: coverage, pace, filler words. Typed answers accepted where there is no mic."],
-      ["🏛️", "Memory Palace — world-first", "Any topic becomes a guided walk through your own school: one vivid image per room, then a scored recall test. The method of loci, automated, offline, on your device."]
+      ["🏛️", "Memory Palace — world-first", "Any topic becomes a guided walk through your own school: one vivid image per room, then a scored recall test. The method of loci, automated, offline, on your device."],
+      ["🏟️", "Recall Arena — world-first", "Blurting, automated: study the mark points for 30 seconds, the app hides everything, you write all you remember — it diffs your blurt against every mark point and hands you the misses, pen-colour style."],
+      ["📈", "Forgetting-Curve Autopilot — world-first", "Every oral, palace walk and blurt now feeds an Ebbinghaus schedule (1·3·7·14·30 days). The App Centre tells you exactly which topic to review today, with the right tool for its stage. On-device, offline, no account."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -1165,12 +1173,16 @@
   }
   function openStudio(which) {
     loadExclusive(function () {
-      try { (which === "oral" ? window.openMpOral : window.openMpPalace)(); } catch (e) {}
+      var fn = which === "oral" ? window.openMpOral : which === "palace" ? window.openMpPalace
+        : which === "arena" ? window.openMpArena : window.openMpAutopilot;
+      try { fn && fn(); } catch (e) {}
     });
   }
   function wireStudio() {
     on($("mpOralOpen"), "click", function () { openStudio("oral"); });
     on($("mpPalOpen"), "click", function () { openStudio("palace"); });
+    on($("mpArenaOpen"), "click", function () { openStudio("arena"); });
+    on($("mpAutoOpen"), "click", function () { openStudio("auto"); });
   }
 
   function hubFab() {

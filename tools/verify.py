@@ -480,6 +480,25 @@ def main():
     cssrc = open(os.path.join(DOCS, "upgrade.css"), encoding="utf-8").read()
     (ok if ".mp-exclusive" in cssrc else fail)("upgrade.css carries self-contained studio overlay styles")
 
+    print("\n[13] v48 Recall Arena + Forgetting-Curve Autopilot")
+    if os.path.exists(expath):
+        for needle, why in (
+            ("window.openMpArena", "recall arena entry point"),
+            ("window.openMpAutopilot", "autopilot entry point"),
+            ("recordStudyEvent", "every studio result feeds the scheduler"),
+            ("nssc_arena", "blurt results stored on-device"),
+            ("nssc_autopilot", "Ebbinghaus schedule stored on-device"),
+            ("nssc_auto_events", "study-event log (capped)"),
+            ("[1, 3, 7, 14, 30]", "review intervals 1/3/7/14/30 days"),
+            ("seedAutopilot", "existing oral+palace history is imported once"),
+            ("svg", "forgetting curve drawn as inline SVG (no assets)"),
+        ):
+            (ok if needle in exsrc else fail)("exclusive.js: %s" % why)
+    (ok if "mpArenaOpen" in usrc and "mpAutoOpen" in usrc else fail)("hub rows wire arena + autopilot")
+    (ok if re.search(r"var V = (4[8-9]|[5-9]\d)", usrc) else fail)("upgrade.js version bumped to 48+")
+    (ok if re.search(r'"-v5[3-9]"', swsrc) else fail)("sw cache key bumped to v53+")
+    (ok if ".mp-ex-due" in cssrc and ".mp-ex-curve" in cssrc else fail)("studio styles extended for due list + curve")
+
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))
     if FAIL:

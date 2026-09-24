@@ -108,7 +108,7 @@
     document.body.appendChild(o);
     return o;
   }
-  function pickers(bodyId, onpick, label) {
+  function pickers(bodyId, onpick, label, preset) {
     var list = topicsList();
     var b = $(bodyId);
     if (!b || !list.length) { if (b) b.innerHTML = '<p>No notes library on this device.</p>'; return; }
@@ -125,12 +125,16 @@
         .map(function (p) { return '<option>' + p[1] + '</option>'; }).join("");
     };
     $(bodyId + "Sub").addEventListener("change", fill); fill();
+    if (preset && preset[0]) {
+      $(bodyId + "Sub").value = preset[0]; fill();
+      if (preset[1]) $(bodyId + "Top").value = preset[1];
+    }
     onpick(b);
   }
 
   /* ============================================= 1. ORAL EXAMINER == */
   var oral = { s: null, t: null, rounds: [], i: 0, scores: [], rec: null, t0: 0, words: 0 };
-  function openMpOral() {
+  function openMpOral(preset) {
     var o = overlay("mpOralOverlay", "🎤 Oral Examiner",
       "World-first: the app asks your oral questions aloud, listens, and marks your spoken answer against the mark points. Headphones recommended.");
     o.classList.remove("hidden");
@@ -138,7 +142,7 @@
       $("mpOralOverlayBodyGo").innerHTML = '<button class="btn btn-primary" id="mpOralStart" type="button">Begin the oral round</button>' +
         '<p class="mp-ex-note">3 questions per round · microphone optional (typed answers accepted) · everything stays on this device.</p>';
       $("mpOralStart").onclick = startOral;
-    }, "Choose a subject and topic for the oral");
+    }, "Choose a subject and topic for the oral", preset);
   }
   function oralQuestion(point) {
     /* blank the longest content word: "state what ____ is/does" */
@@ -216,6 +220,7 @@
     var log = st.get("nssc_oral", []);
     log.unshift({ d: new Date().toLocaleDateString(), s: oral.s, t: oral.t, pct: cov.pct, wpm: wpm || 0, fillers: fillers });
     st.set("nssc_oral", log.slice(0, 60));
+    recordStudyEvent("oral", oral.s, oral.t, cov.pct);
     oral.i++;
     setTimeout(nextOral, 1600);
   }
@@ -242,7 +247,7 @@
       return { room: ROOMS[i % ROOMS.length], twist: TWIST[i % TWIST.length], key: key, point: p };
     });
   }
-  function openMpPalace() {
+  function openMpPalace(preset) {
     var o = overlay("mpPalaceOverlay", "🏛️ Memory Palace",
       "World-first: any topic becomes a walk through your own school — one vivid image per room, then a recall test. The method of loci, automated.");
     o.classList.remove("hidden");
@@ -261,7 +266,7 @@
           return "<b>" + k + "</b> → " + s[k].pct + "% on " + s[k].at;
         }).join("<br>") : "No palaces built on this device yet.";
       };
-    }, "Choose the topic to turn into a palace");
+    }, "Choose the topic to turn into a palace", preset);
   }
   function startPalace() {
     pal.s = $("mpPalaceOverlayBodySub").value; pal.t = $("mpPalaceOverlayBodyTop").value;
@@ -309,6 +314,7 @@
     var s = st.get("nssc_palaces", {});
     s[key] = { pct: avg, at: new Date().toLocaleDateString(), rooms: pal.rooms.length };
     st.set("nssc_palaces", s);
+    recordStudyEvent("palace", pal.s, pal.t, avg);
     $("mpPalaceOverlayBody").innerHTML =
       '<p class="mp-ex-q"><b>Palace complete — ' + key + '</b></p>' +
       '<p class="mp-ex-fb ' + (avg >= 65 ? "good" : avg >= 40 ? "mid" : "bad") + '">Recall score <b>' + avg + '%</b> across ' + pal.rooms.length + " rooms.</p>" +
@@ -318,8 +324,188 @@
     T("Palace saved — recall " + avg + "%", "🏛️");
   }
 
+  /* ===================================== 3. FORGETTING-CURVE AUTOPILOT == */
+  var AKEY = "nssc_autopilot", EKEY = "nssc_auto_events";
+  var STAGES = [1, 3, 7, 14, 30];                        /* Ebbinghaus review intervals, days */
+  var STAGE_NAME = ["New", "Learning", "Solid", "Strong", "Mastered"];
+  function esc(x) {
+    return String(x == null ? "" : x).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  function autoState() { return st.get(AKEY, {}) || {}; }
+  function recordStudyEvent(kind, s, t, pct, when) {
+    try {
+      var at = when || Date.now();
+      var ev = st.get(EKEY, []); ev.unshift({ k: kind, s: s, t: t, pct: Math.round(pct), at: at });
+      st.set(EKEY, ev.slice(0, 200));
+      var a = autoState(), key = s + " · " + t, e = a[key] || { stage: 0, rev: 0 };
+      if (pct >= 65) e.stage = Math.min(STAGES.length - 1, e.stage + 1);
+      else if (pct < 40) e.stage = 0;                    /* 40–64 holds the stage */
+      e.rev++; e.pct = Math.round(pct); e.at = at; e.k = kind;
+      e.due = at + STAGES[e.stage] * 86400000;
+      a[key] = e; st.set(AKEY, a);
+    } catch (e2) {}
+  }
+  function seedAutopilot() {
+    /* one-time import: oral logs and palace results already on this device count */
+    var a = autoState();
+    if (a.__seeded) return;
+    (st.get("nssc_oral", []) || []).forEach(function (r) {
+      recordStudyEvent("oral", r.s, r.t, r.pct || 0, Date.parse(r.d) || Date.now());
+    });
+    var pals = st.get("nssc_palaces", {}) || {};
+    Object.keys(pals).forEach(function (k) {
+      var v = pals[k] || {}, parts = k.split(" · ");
+      if (parts.length === 2) recordStudyEvent("palace", parts[0], parts[1], v.pct || 0, Date.parse(v.at) || Date.now());
+    });
+    a = autoState(); a.__seeded = true; st.set(AKEY, a);
+  }
+  function toolFor(stage) {
+    return stage <= 1 ? ["palace", "🏛️", "Walk the palace"]
+      : stage === 2 ? ["arena", "🏟️", "Blurt it"]
+      : ["oral", "🎤", "Face the examiner"];
+  }
+  function daysLabel(due) {
+    var d = Math.ceil((due - Date.now()) / 86400000);
+    return d <= 0 ? "today" : d === 1 ? "tomorrow" : "in " + d + " days";
+  }
+  function openMpAutopilot() {
+    seedAutopilot();
+    var o = overlay("mpAutoOverlay", "📈 Forgetting-Curve Autopilot",
+      "World-first combination: every oral answer, palace walk and blurt you finish feeds an Ebbinghaus schedule (1·3·7·14·30 days) that tells you exactly what to review today. Computed on your device — no account, no server.");
+    o.classList.remove("hidden");
+    var a = autoState(), now = Date.now();
+    var endToday = new Date(); endToday.setHours(23, 59, 59, 999);
+    var keys = Object.keys(a).filter(function (k) { return k !== "__seeded" && a[k] && a[k].due; });
+    var due = [], soon = [];
+    keys.forEach(function (k) {
+      if (a[k].due <= endToday.getTime()) due.push(k);
+      else if (a[k].due <= now + 7 * 86400000) soon.push(k);
+    });
+    due.sort(function (x, y) { return a[x].due - a[y].due; });
+    soon.sort(function (x, y) { return a[x].due - a[y].due; });
+    var revs = (st.get(EKEY, []) || []).length;
+    /* the curve itself: retention decays, each review bumps it, decay slows */
+    var stops = [0, 1, 3, 7, 14, 30], r = 100, prevD = 0, pl = [], bumps = [];
+    stops.forEach(function (d, i) {
+      if (i === 0) { pl.push([0, 100]); return; }
+      var decay = Math.max(15, r * Math.exp(-(d - prevD) / (1.2 + i * 1.1)));
+      pl.push([d, decay]);
+      r = Math.min(100, decay + 28 + i * 5);
+      pl.push([d, r]); bumps.push([d, r]);
+      prevD = d;
+    });
+    var X = function (d) { return 8 + d * 8.6; }, Y = function (v) { return 96 - v * 0.82; };
+    var curve = '<svg class="mp-ex-curve" viewBox="0 0 276 112" role="img" aria-label="The forgetting curve: retention falls after each review, and every review makes the fall slower">' +
+      '<polyline fill="none" stroke="#c9a25f" stroke-width="2.5" stroke-linejoin="round" points="' +
+      pl.map(function (q) { return X(q[0]).toFixed(1) + "," + Y(q[1]).toFixed(1); }).join(" ") + '"/>' +
+      bumps.map(function (q) { return '<circle cx="' + X(q[0]).toFixed(1) + '" cy="' + Y(q[1]).toFixed(1) + '" r="3" fill="#0f6b4f"/>'; }).join("") +
+      stops.slice(1).map(function (d) { return '<text x="' + X(d).toFixed(1) + '" y="110" font-size="9" text-anchor="middle" fill="#6b6b6b">' + d + "d</text>"; }).join("") +
+      '</svg>';
+    var dueHtml = due.length ? due.map(function (k) {
+      var e = a[k], tool = toolFor(e.stage);
+      return '<div class="mp-ex-due"><span><b>' + esc(k) + '</b><br><span class="mp-ex-chip">' + STAGE_NAME[e.stage] +
+        '</span> <span class="mp-ex-note">last ' + e.pct + '% · review #' + e.rev + '</span></span>' +
+        '<button class="btn btn-gold" type="button" data-tool="' + tool[0] + '" data-key="' + esc(k) + '">' + tool[1] + " " + tool[2] + "</button></div>";
+    }).join("") : '<p class="mp-ex-note" id="mpAutoEmpty">Nothing is due today. The schedule updates itself every time you finish an oral, a palace walk or a blurt.</p>';
+    var soonHtml = soon.length ? '<p class="mp-ex-lab">📅 Next 7 days</p>' + soon.map(function (k) {
+      return '<span class="mp-ex-note">' + esc(k) + " — " + daysLabel(a[k].due) + " (" + STAGE_NAME[a[k].stage] + ")</span><br>";
+    }).join("") : "";
+    $("mpAutoOverlayBody").innerHTML =
+      '<p class="mp-ex-q" id="mpAutoStats"><b>' + keys.length + " topics tracked · " + due.length + " due today · " + revs + " reviews logged</b></p>" +
+      curve +
+      '<p class="mp-ex-lab">⏰ Due today</p><div id="mpAutoDue">' + dueHtml + "</div>" + soonHtml +
+      (keys.length ? "" : '<button class="btn btn-primary" id="mpAutoStart" type="button" style="margin-top:10px">🏟️ Do your first blurt</button>');
+    [].forEach.call($("mpAutoOverlayBody").querySelectorAll("[data-tool]"), function (btn) {
+      btn.onclick = function () {
+        var parts = String(btn.getAttribute("data-key") || "").split(" · "), tool = btn.getAttribute("data-tool");
+        o.classList.add("hidden");
+        (tool === "palace" ? openMpPalace : tool === "arena" ? openMpArena : openMpOral)(parts);
+      };
+    });
+    if ($("mpAutoStart")) $("mpAutoStart").onclick = function () { o.classList.add("hidden"); openMpArena(); };
+  }
+
+  /* ============================================= 4. RECALL ARENA ====== */
+  var ar = { s: null, t: null, pts: [], timer: null };
+  function openMpArena(preset) {
+    var o = overlay("mpArenaOverlay", "🏟️ Recall Arena",
+      "World-first blurting: study the mark points for 30 seconds, the app hides everything, you write down all you remember — then it diffs your blurt against every mark point and hands you the misses, different-colour-pen style.");
+    o.classList.remove("hidden");
+    pickers("mpArenaOverlayBody", function () {
+      $("mpArenaOverlayBodyGo").innerHTML = '<button class="btn btn-primary" id="mpArenaStart" type="button">Enter the arena</button>' +
+        '<p class="mp-ex-note">30-second study phase · one blind blurt · instant mark-point diff · feeds your Forgetting-Curve Autopilot. All on this device.</p>';
+      $("mpArenaStart").onclick = startArena;
+    }, "Pick the topic to blurt", preset);
+  }
+  function stopCount() { if (ar.timer) { clearInterval(ar.timer); ar.timer = null; } }
+  function startArena() {
+    if ($("mpArenaOverlayBodySub")) {                    /* fresh entry: read the pickers */
+      ar.s = $("mpArenaOverlayBodySub").value; ar.t = $("mpArenaOverlayBodyTop").value;
+      ar.pts = pointsOf(ar.s, ar.t);
+      if (ar.pts.length < 2) { T("Not enough mark points for that topic yet", "⚠️"); return; }
+    }
+    if (!ar.pts.length) return;                          /* "blurt again": reuse ar.s/ar.t/ar.pts */
+    $("mpArenaOverlayBody").innerHTML =
+      '<p class="mp-ex-q"><b>Step 1 — study the mark points</b> <span id="mpArenaCount" class="mp-ex-chip">30s</span></p>' +
+      '<ol class="mp-ex-ul">' + ar.pts.map(function (q) { return "<li>" + esc(q) + "</li>"; }).join("") + "</ol>" +
+      '<button class="btn btn-primary" id="mpArenaBlurt" type="button">I\'ve memorised it — hide & blurt →</button>';
+    $("mpArenaBlurt").onclick = function () { stopCount(); blurtPhase(); };
+    var left = 30;
+    stopCount();
+    ar.timer = setInterval(function () {
+      left--;
+      var c = $("mpArenaCount");
+      if (!c) { stopCount(); return; }
+      c.textContent = left + "s";
+      if (left <= 0) { stopCount(); blurtPhase(); }
+    }, 1000);
+  }
+  function blurtPhase() {
+    $("mpArenaOverlayBody").innerHTML =
+      "<p class=\"mp-ex-q\"><b>Step 2 — blurt!</b> Everything you remember from " + esc(ar.t) +
+      '. Definitions, steps, examples, formulas. Do not peek.</p>' +
+      '<textarea id="mpArenaIn" class="input" rows="8" placeholder="Write it all here…"></textarea>' +
+      '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn btn-primary" id="mpArenaSubmit" type="button">Mark my blurt ✓</button></div>';
+    $("mpArenaIn").focus();
+    $("mpArenaSubmit").onclick = scoreArena;
+  }
+  function scoreArena() {
+    var ans = $("mpArenaIn").value || "";
+    var hits = [], misses = [], total = 0;
+    ar.pts.forEach(function (q) {
+      var c = coverage(ans, q);
+      total += c.pct;
+      (c.pct >= 65 ? hits : misses).push({ p: q, c: c });
+    });
+    var overall = Math.round(total / ar.pts.length);
+    var key = ar.s + " · " + ar.t;
+    var sav = st.get("nssc_arena", {}), prev = sav[key] || { best: 0, rounds: 0 };
+    sav[key] = { best: Math.max(prev.best || 0, overall), last: overall, at: new Date().toLocaleDateString(), rounds: (prev.rounds || 0) + 1 };
+    st.set("nssc_arena", sav);
+    recordStudyEvent("arena", ar.s, ar.t, overall);
+    $("mpArenaOverlayBody").innerHTML =
+      "<p class=\"mp-ex-q\"><b>Blurt marked — " + esc(key) + "</b></p>" +
+      '<p class="mp-ex-fb ' + (overall >= 65 ? "good" : overall >= 40 ? "mid" : "bad") + '" id="mpArenaScore">Recall <b>' + overall +
+      "%</b> · " + hits.length + " of " + ar.pts.length + " mark points landed" +
+      (overall > (prev.best || 0) ? " · <b>new personal best!</b>" : (prev.best ? " · best " + prev.best + "%" : "")) + "</p>" +
+      (hits.length ? '<p class="mp-ex-lab">✔ Landed</p><ul class="mp-ex-ul">' + hits.map(function (h) { return "<li>" + esc(h.p) + "</li>"; }).join("") + "</ul>" : "") +
+      (misses.length ? '<p class="mp-ex-lab">✘ The pen-colour step — relearn these</p><ul class="mp-ex-ul mp-ex-miss" id="mpArenaMisses">' +
+        misses.map(function (m) {
+          return "<li>" + esc(m.p) + (m.c.missed.length ? ' <span class="mp-ex-note">(missing: ' + esc(m.c.missed.join(", ")) + ")</span>" : "") + "</li>";
+        }).join("") + "</ul>" : "") +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-primary" id="mpArenaAgain" type="button">Blurt again — same topic</button>' +
+      '<button class="btn btn-ghost" id="mpArenaNew" type="button">Pick another topic</button></div>';
+    $("mpArenaAgain").onclick = startArena;
+    $("mpArenaNew").onclick = function () { openMpArena(); };
+    T("Blurt saved — recall " + overall + "%", "🏟️");
+  }
+
   window.openMpOral = openMpOral;
   window.openMpPalace = openMpPalace;
-  window.MP_EXCLUSIVE = { coverage: coverage, pointsOf: pointsOf, palaceOf: palaceOf, topics: topicsList, ready: true };
+  window.openMpArena = openMpArena;
+  window.openMpAutopilot = openMpAutopilot;
+  window.MP_EXCLUSIVE = { coverage: coverage, pointsOf: pointsOf, palaceOf: palaceOf, topics: topicsList, recordStudyEvent: recordStudyEvent, autoState: autoState, STAGES: STAGES, ready: true };
   try { document.dispatchEvent(new CustomEvent("mpExclusiveReady")); } catch (e) {}
 })();
