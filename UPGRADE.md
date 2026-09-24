@@ -325,3 +325,43 @@ Codes live in the published `docs/codes.js`, so publishing a new batch is just c
 that one file plus, optionally, the updated policy flag. Revoking a leaked slip means
 minting a replacement list (there is no server to blacklist against) — which is why the
 plaintext stays on paper in the staff room.
+
+## 8. v46 "Trim" — redesign-shell performance & PWA correctness (shipped `8e8c360`)
+
+The 22-Sept redesign left the *upgrade layer* correct but the *shell* wasteful. Trim fixed, without touching the quiz engine:
+
+- **sw.js**: precache list deduplicated (`./` + `./index.html` both cached the document), install no longer re-downloads with `cache:"reload"` (~96.9 KB gzip saved per install), cache key `-v51`.
+- **index.html**: three `as="font"` preloads for the brand fonts, one `preconnect`/`dns-prefetch` to the Google sign-in origin (was two duplicate preconnects).
+- **a11y**: the activation lock takes focus when it appears.
+- Verified in production (HEAD `8e8c360`); `tools/verify.py` §[11] covers it (104 checks total now).
+
+## 9. v47 "World-First Studio" — exclusive features (`docs/exclusive.js`)
+
+Built in response to: *"make this website win a world record of the best study app; add exclusive features no website in the world has."*
+
+**Honest framing first:** no official record body (Guinness, etc.) maintains a "best study app" category, so no record can literally be claimed. What v47 does instead: ships two study features that are genuinely rare in school exam-prep sites — especially ones that run **fully client-side, offline, on free static hosting, with zero accounts or servers**:
+
+1. **🎤 Oral Examiner** — the app *speaks* an oral question aloud (speechSynthesis, with the longest keyword blanked), *listens* to the student answer through the microphone (Web Speech API, `en-NG`, live transcript), and *marks the spoken answer* against the topic's mark points: coverage %, pace (wpm), filler-word count, missed-word list. Typed answers accepted wherever there is no mic. Last 60 attempts logged on-device (`nssc_oral`).
+2. **🏛️ Memory Palace** — any topic is auto-converted into a method-of-loci walk through eight familiar school rooms (gate → corridor → classroom → lab → library → chapel → field → staff room): one vivid, spoken image per room hiding one mark point, then a scored recall test room by room. Results stored per topic (`nssc_palaces`) with re-walk spacing advice.
+
+**Prior-art dossier** (what exists elsewhere, and the delta here):
+
+| Existing product | What it does | What it lacks vs the Studio |
+|---|---|---|
+| Quizlet Q-Chat / Duolingo Max (GPT-4 tutor) | Conversational AI tutoring | Cloud, paid, not exam-mark-point scored, no speech-marked orals |
+| Anki / RemNote / Memory Palace apps (e.g. MemoryPalace.app) | Spaced repetition; some loci helpers | Manual card authoring; none auto-builds a palace from the syllabus mark points you already study |
+| Speechify / ELSA | TTS reading; pronunciation scoring | Not question-answering against a syllabus; no coverage-of-mark-points scoring |
+| WAEC/NECO prep sites (this niche) | Past questions, notes, quizzes | Text-only, online-only, no orals, no mnemonics |
+
+The combination — *offline-first oral examiner + auto-built syllabus memory palace on a static school site* — is, to the best of public knowledge as of Sept 2026, unmatched. That is the claim v47 can honestly defend.
+
+**Engineering notes**
+
+- `docs/exclusive.js` (~14 KB) is **lazy-loaded**: fetched only when a student opens the Studio from the App Centre (`loadExclusive` in upgrade.js); precached by sw.js (`-v52`) so it also works offline after first visit.
+- Mark points come from the existing `RNOTES` bank in index.html — no new data entry for the school.
+- Shared coverage scorer: 6-char stem matching on content words, stopword-filtered; **relaxed-token fallback** for formula-style points (`x = (-b ± √(b²-4ac))/2a` has no 4+ letter words).
+- Studio overlays carry **self-contained styles** (`.mp-exclusive*` in upgrade.css) because the redesign scopes `.overlay` under `:where(.legacy-ui)`.
+- What's-new sheet bumped to `V = 47`.
+- Tests: `testrig/exclusivetest.js` (15 assertions: hub entry, palace walk→recall→100%→saved, oral 3 rounds typed fallback→logged 100/100/100, wpm, no page errors) + `codetest.js` regression (33/33, hard gate untouched). `verify.py` §[12].
+
+**Roadmap if you want more exclusives:** Recall Arena (blurting → auto-coverage diff), Forgetting-Curve Autopilot (Ebbinghaus scheduler over every topic studied).

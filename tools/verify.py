@@ -445,6 +445,33 @@ def main():
     (ok if n_pre >= 2 else warn)("index.html preloads above-the-fold assets (%d)" % n_pre)
     (ok if 'rel="preconnect"' in isrc else warn)("index.html preconnects to the Google sign-in origin")
     (ok if 'as="font"' in isrc else warn)("brand fonts are preloaded")
+    print("\n[12] v47 World-First Studio — Oral Examiner + Memory Palace")
+    expath = os.path.join(DOCS, "exclusive.js")
+    if not os.path.exists(expath):
+        fail("docs/exclusive.js is missing")
+    else:
+        exsrc = open(expath, encoding="utf-8").read()
+        for needle, why in (
+            ("window.openMpOral", "oral examiner entry point"),
+            ("window.openMpPalace", "memory palace entry point"),
+            ("MP_EXCLUSIVE", "studio API surface"),
+            ("function coverage", "shared mark-point coverage scorer"),
+            ("speechSynthesis", "questions are spoken aloud (TTS)"),
+            ("SpeechRecognition", "spoken answers via Web Speech API"),
+            ("nssc_oral", "oral attempts logged on-device"),
+            ("nssc_palaces", "palace results stored on-device"),
+            ("ROOMS", "method-of-loci room list"),
+            ("relaxed", "formula points get the relaxed-token fallback"),
+        ):
+            (ok if needle in exsrc else fail)("exclusive.js: %s" % why)
+    (ok if '"./exclusive.js"' in swsrc else fail)("service worker precaches exclusive.js (offline studio)")
+    (ok if re.search(r'"-v5[2-9]"', swsrc) else fail)("sw cache key bumped to v52+")
+    (ok if "loadExclusive" in usrc else fail)("upgrade.js lazy-loads the studio (no cost until opened)")
+    (ok if "mpOralOpen" in usrc and "mpPalOpen" in usrc else fail)("hub rows wire both studio doors")
+    (ok if re.search(r"var V = 4[7-9]", usrc) else fail)("upgrade.js version bumped to 47+ (what's-new fires)")
+    cssrc = open(os.path.join(DOCS, "upgrade.css"), encoding="utf-8").read()
+    (ok if ".mp-exclusive" in cssrc else fail)("upgrade.css carries self-contained studio overlay styles")
+
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))
     if FAIL:

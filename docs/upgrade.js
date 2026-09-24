@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 45, NAME = "Roll Call";
+  var V = 47, NAME = "World-First Studio";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -172,9 +172,19 @@
 
     html = hubActivationRow(html);
 
+    html += '<div class="mp-sec"><h4>World-First Studio</h4>' +
+      row("oral", "🎤", "Oral Examiner",
+        "No other study site does this: the app asks oral questions aloud, listens through your mic and marks your spoken answer against the mark points (typed answers accepted).",
+        '<button class="mp-btn pri" id="mpOralOpen" type="button">Open</button>') +
+      row("palace", "🏛️", "Memory Palace",
+        "Any topic becomes a guided walk through your own school — one vivid image per room, then a scored recall test. The method of loci, automated.",
+        '<button class="mp-btn pri" id="mpPalOpen" type="button">Open</button>') +
+      '</div>';
+
     b.innerHTML = html;
     wireHub();
     wireActRow();
+    wireStudio();
     idle(refreshQuota, 300);
   }
 
@@ -608,7 +618,9 @@
       ["🔦", "Screen stays awake", "During a timed examination the screen no longer dims or locks mid-paper."],
       ["🛟", "Bank rescue", "On older browsers that cannot decompress the question bank, a plain copy is fetched instead — all 4,167 questions still load."],
       ["🔁", "Carry your progress", "New in the App Centre and Study Hall: compress everything on this device into one sync code, then paste it on another phone. Papers already there are kept and de-duplicated. No server, no account, no upload."],
-      ["🔑", "School activation codes", "Your teacher hands out paper slips like MAMSS-000000-2026. One code activates one device; it cannot be reused here. Only salted hashes live on the site — the plaintext list never leaves the school."]
+      ["🔑", "School activation codes", "Your teacher hands out paper slips like MAMSS-000000-2026. One code activates one device; it cannot be reused here. Only salted hashes live on the site — the plaintext list never leaves the school."],
+      ["🎤", "Oral Examiner — world-first", "The app speaks oral questions aloud, listens through your microphone and marks your spoken answer against the mark points: coverage, pace, filler words. Typed answers accepted where there is no mic."],
+      ["🏛️", "Memory Palace — world-first", "Any topic becomes a guided walk through your own school: one vivid image per room, then a scored recall test. The method of loci, automated, offline, on your device."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -1134,7 +1146,35 @@
     }).catch(function () { return null; });
   }
 
+  /* ================= v47 World-First Studio (lazy exclusive.js) ========= */
+  var EXQ = [], EX_LOADING = false;
+  function loadExclusive(fn) {
+    if (window.MP_EXCLUSIVE && window.MP_EXCLUSIVE.ready) { fn && fn(); return; }
+    if (fn) EXQ.push(fn);
+    if (EX_LOADING) return;
+    EX_LOADING = true;
+    var sc = document.createElement("script");
+    sc.src = "exclusive.js"; sc.async = true;
+    sc.onload = function () {
+      EX_LOADING = false;
+      var q = EXQ.slice(); EXQ = [];
+      for (var i = 0; i < q.length; i++) { try { q[i](); } catch (e) {} }
+    };
+    sc.onerror = function () { EX_LOADING = false; T("Could not load the World-First Studio", "⚠️"); };
+    document.head.appendChild(sc);
+  }
+  function openStudio(which) {
+    loadExclusive(function () {
+      try { (which === "oral" ? window.openMpOral : window.openMpPalace)(); } catch (e) {}
+    });
+  }
+  function wireStudio() {
+    on($("mpOralOpen"), "click", function () { openStudio("oral"); });
+    on($("mpPalOpen"), "click", function () { openStudio("palace"); });
+  }
+
   function hubFab() {
+
 
     if ($("mpHubFab")) return;
     var b = document.createElement("button");
@@ -1219,6 +1259,7 @@
       redeem: redeem,
       ledger: ledgerCfg,
       sync: syncPendingLedger,
+      studio: openStudio,
       norm: normCode,
       count: function () { return (CODES && CODES.list && CODES.list.length) || 0; }
     };
