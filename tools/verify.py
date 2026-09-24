@@ -367,6 +367,14 @@ def main():
             fail("codes.js hash list could not be read")
         (ok if len(csrc) < 60000 else warn)("codes.js stays small (%s bytes)" % f"{len(csrc):,}")
 
+        # v47.1 — the school ledger (Supabase) live in codes.js
+        led = re.search(r'ledger:\{url:"(https://[^"]+\.supabase\.co)",key:"([^"]+)"\}', csrc)
+        (ok if led else warn)("codes.js: school ledger %s" % ("LIVE → " + led.group(1) if led else "not configured (per-device mode)"))
+        (ok if led and led.group(2).startswith("sb_publishable_") else fail)(
+            "codes.js: ledger key is a publishable (public-by-design) key")
+        (fail if ("sb_secret" in csrc or "service_role" in csrc or csrc.count("eyJhbGciOiJI")) else ok)(
+            "codes.js: no secret key material anywhere")
+
         # the plaintext slips must never reach the published site
         leak = re.search(r'MAMSS-[2-9A-HJ-NP-Z]{6}-20\d\d', csrc)
         (fail if leak else ok)("codes.js holds hashes only — no plaintext slip%s" %

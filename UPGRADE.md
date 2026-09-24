@@ -293,6 +293,29 @@ To switch it on: create the free Supabase project, run the SQL file once, then
 `python3 tools/issue_codes.py --count 0 --ledger-url https://<proj>.supabase.co --ledger-key <anon>`
 republishes `codes.js` with the ledger wired in (count 0 = config only, no new slips).
 
+**STATUS — ACTIVATED 2026-09-24.** The school ledger is live on the project
+`https://mrhbuxsfhtqguxkxfczv.supabase.co` using Supabase's new **publishable**
+key (`sb_publishable_…`, the modern replacement for the anon key; public by
+design, RLS-restricted to insert-once + read hashes/dates — verified remotely:
+update/delete match 0 rows). Real end-to-end suite (`testrig/realtest.js`,
+no mocks): **19/19** — cross-device refusal with dated message, single ledger
+row under replay, offline provisional → confirmed on reconnect, foreign
+prior claim → provisional revoked + lock explains why.
+
+*Testing note:* the e2e run consumed slips #11–13 of the main batch and left
+four rows in `code_redemptions` (three test hashes + one `__smoketest_…` row).
+To free those slips for real students, run in the SQL editor:
+
+```sql
+delete from public.code_redemptions where code_hash in (
+  'c6e35be5bc33beecb30f4f2bcef6962e4bc0b32eec516a2bfb856ec229e41b43',
+  'a59cadc0ed4d834aa1f3a3c8a507c4a6a21a921642e693ac2ab7633626d14568',
+  '43efb42cd6420b2770936d5a29f54b1485c7f9b87004fdbfcbcf2a52e10bdaa1'
+) or code_hash = '__smoketest_not_a_real_hash__';
+```
+
+Otherwise treat slips MAMSS main-batch #11–13 as burned and don't hand them out.
+
 
 ### 6.3 "No code, no access" (current policy)
 
