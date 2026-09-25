@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 50, NAME = "Exam Command Center";
+  var V = 51, NAME = "Why MAMSS PREP";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -634,7 +634,8 @@
       ["📈", "Forgetting-Curve Autopilot — world-first", "Every oral, palace walk and blurt now feeds an Ebbinghaus schedule (1·3·7·14·30 days). The App Centre tells you exactly which topic to review today, with the right tool for its stage. On-device, offline, no account."],
       ["✦", "Prestige Edition membership card", "Your activation is now a gold membership card in the App Centre: your slip, batch, issue date and ledger-verified single-device license. Access to MAMSS PREP is issued by the school, not sold — 500 numbered slips, one device each."],
       ["📱", "WhatsApp activation help", "Stuck at the lock screen? One tap opens a WhatsApp chat with the school office (08056787685) to request an activation key."],
-      ["🧭", "Exam Command Center", "Set your exam date: a mastery heatmap shows every subject at a glance, and one tap builds a printable day-by-day study plan — weak and untouched topics first, every studied topic re-reviewed at +1, +3 and +7 days. Computed on your device from your own results."]
+      ["🧭", "Exam Command Center", "Set your exam date: a mastery heatmap shows every subject at a glance, and one tap builds a printable day-by-day study plan — weak and untouched topics first, every studied topic re-reviewed at +1, +3 and +7 days. Computed on your device from your own results."],
+      ["✦", "Why MAMSS PREP — shareable page", "A prestige prospectus you can share in any parents' group or WhatsApp status: the five world-first tools, the honest global audit, and one tap to request an activation key from the school office. Find it on the lock screen and in the App Centre."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -1339,7 +1340,8 @@
       html += row("act", "🔓", "Open access", "This installation does not require school codes.", "");
     }
     html += '<p class="mp-pres-contact">📱 Need an activation key? WhatsApp the school office: ' +
-      '<a href="' + WA_HREF + '" target="_blank" rel="noopener">08056787685</a></p>';
+      '<a href="' + WA_HREF + '" target="_blank" rel="noopener">08056787685</a></p>' +
+      '<p class="mp-pres-contact"><a id="mpWhyLink" href="why.html" target="_blank" rel="noopener">✦ Why MAMSS PREP — share the story with parents &amp; friends</a></p>';
     html += "</div>";
     return html;
   }

@@ -504,3 +504,32 @@ whose five studio tools all feed one on-device forgetting-curve brain.
 history, weak-first day 1, +1-day reviews, ≤4 new/day, reset clears state);
 regression: roll-call 33/33 (ledger-free copy), studio 15/15, arena 16/16,
 prestige 11/11. `verify.py` §[15] (141 checks).
+
+## 13. v51 "Why MAMSS PREP" — the shareable prospectus (`docs/why.html`)
+
+The §12 audit, turned into a page the school can drop into any parents' group
+or WhatsApp status. Public by design — it is the shop window, not the door;
+the app behind "Open the app" stays absolutely gated.
+
+- Dark-gold Prestige look, self-contained (inline CSS, no external requests,
+  system fonts), mobile-first, ~11 KB.
+- Hero: "issued, not sold" positioning + the scarcity numbers (500 slips ·
+  1 device · 0 accounts/trackers · 100% on-device scoring).
+- Green WhatsApp CTA (top and footer) to 08056787685 with the prefilled
+  activation-key message; secondary "I already have a key — open the app".
+- The five studio tools as cards ("world-first" chips on the four unmatched),
+  the full honest audit table vs Khan/Duolingo/Quizlet/Anki/Coursera with the
+  "not an official title" caveat printed on the page itself, the gate in
+  3 steps, and the offline/privacy engineering note.
+- OG + Twitter share tags with `social-preview.png` (absolute URL) — links
+  unfurl with a proper card in WhatsApp/Facebook/X.
+- Entry points: lock screen ("✦ Why is MAMSS PREP invitation-only?" — exactly
+  where a locked-out visitor is), App Centre activation section ("share the
+  story with parents & friends"). Added to the sitemap and to the service
+  worker's optional precache (offline share); cache key `-v56`; what's-new
+  V51 announces it.
+
+*Tests:* `testrig/whytest.js` 13/13 (200, self-contained, OG image resolves,
+five tools, honest table, two CTAs, 3-step gate, both entry points);
+full regression: roll-call 33/33 (ledger-free copy), studio 15/15, arena
+16/16, prestige 11/11, command 14/14. `verify.py` §[16].

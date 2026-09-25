@@ -529,6 +529,26 @@ def main():
     (ok if re.search(r'"-v5[5-9]"', swsrc) else fail)("sw cache key bumped to v55+")
     (ok if ".mp-hm-grid" in cssrc and "@media print" in cssrc else fail)("heatmap + print styles in upgrade.css")
 
+    print("\n[16] v51 'Why MAMSS PREP' prospectus page")
+    wpath = os.path.join(DOCS, "why.html")
+    if not os.path.exists(wpath):
+        fail("docs/why.html is missing")
+    else:
+        wsrc = open(wpath, encoding="utf-8").read()
+        (ok if "wa.me/2348056787685" in wsrc else fail)("why.html: WhatsApp activation CTA")
+        (ok if 'property="og:image"' in wsrc and "social-preview.png" in wsrc else fail)("why.html: shareable OG image tag")
+        (ok if "issued, not sold" in wsrc.lower() else fail)("why.html: the positioning line")
+        (ok if wsrc.count("world-first") + wsrc.count("rare") >= 4 else fail)("why.html: the five tools are presented")
+        (ok if "Khan Academy" in wsrc and "Anki" in wsrc else fail)("why.html: honest global audit table")
+        (ok if "stylesheet" not in wsrc.split("<style")[0].split("</head>")[0].replace('<link rel="icon"','') or 'href="http' not in wsrc else fail)("why.html: self-contained (no external css/js)")
+    (ok if "mpLockWhy" in isrc and 'href="why.html"' in isrc else fail)("lock screen links to the prospectus")
+    (ok if "mpWhyLink" in usrc else fail)("App Centre links to the prospectus")
+    (ok if '"./why.html"' in swsrc else fail)("sw.js precaches why.html (offline share)")
+    sm = os.path.join(DOCS, "sitemap.xml")
+    (ok if os.path.exists(sm) and "why.html" in open(sm, encoding="utf-8").read() else fail)("sitemap lists why.html")
+    (ok if re.search(r"var V = (5[1-9]|[6-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 51+")
+    (ok if re.search(r'"-v5[6-9]"', swsrc) else fail)("sw cache key bumped to v56+")
+
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))
     if FAIL:
