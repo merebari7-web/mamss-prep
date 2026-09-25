@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 52, NAME = "WAEC-Standard Bank";
+  var V = 53, NAME = "Adaptive Engine";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -636,7 +636,8 @@
       ["📱", "WhatsApp activation help", "Stuck at the lock screen? One tap opens a WhatsApp chat with the school office (08056787685) to request an activation key."],
       ["🧭", "Exam Command Center", "Set your exam date: a mastery heatmap shows every subject at a glance, and one tap builds a printable day-by-day study plan — weak and untouched topics first, every studied topic re-reviewed at +1, +3 and +7 days. Computed on your device from your own results."],
       ["✦", "Why MAMSS PREP — shareable page", "A prestige prospectus you can share in any parents' group or WhatsApp status: the five world-first tools, the honest global audit, and one tap to request an activation key from the school office. Find it on the lock screen and in the App Centre."],
-      ["📝", "WAEC-standard question bank", "Every question in the bank has been audited to WAEC standard: command-word phrasing, sentence punctuation, ordinal and article grammar — and every machine-worded stem and explanation rewritten into clean examination English. Same questions, same answers; now phrased the way WAEC phrases them."]
+      ["📝", "WAEC-standard question bank", "Every question in the bank has been audited to WAEC standard: command-word phrasing, sentence punctuation, ordinal and article grammar — and every machine-worded stem and explanation rewritten into clean examination English. Same questions, same answers; now phrased the way WAEC phrases them."],
+      ["🧠", "Adaptive Engine", "The app now remembers how you answer every topic — accuracy, speed and a Leitner-style memory box with spaced due dates. The Daily Challenge weights six of its ten questions toward your three weakest topics, and the AI Coach shows each weak topic's memory box and offers speed drills when you are correct but slow. On-device, offline, no account — as always."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");

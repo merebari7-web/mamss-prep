@@ -86,7 +86,7 @@ const ok = (name, cond, extra = '') => {
   const raw = await page.evaluate(async (h) => {
     await new Promise((res, rej) => {
       const s = document.createElement('script');
-      s.src = '/bank-raw.js'; s.onload = res; s.onerror = rej;
+      s.src = 'bank-raw.js'  /* relative: works under a path prefix like /mamss-prep/ */; s.onload = res; s.onerror = rej;
       document.head.appendChild(s);
     });
     const t = window.__BANK_RAW_TXT;

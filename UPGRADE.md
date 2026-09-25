@@ -617,3 +617,68 @@ cache key `-v57`. The gate, ledger and every v45–v51 behaviour are untouched.
 :8101 — re-synced with the new bank before running), studio 15/15, arena 16/16,
 prestige 11/11, command 14/14, prospectus 13/13, real-ledger e2e **19/19**
 (fresh slips #14–16; cleanup SQL in §6.2 covers them). verify.py 160/0.
+
+## 15. v53 "Adaptive Engine" — roadmap item 1 of 8
+
+On 2026-09-25 the school handed over an eight-item roadmap and approved it in
+full, item order, with **Firebase** chosen for the cloud items. Ledger:
+
+| # | Item | Status |
+|---|------|--------|
+| 1 | Adaptive learning engine (Leitner/SM-2 + weak-topic weighting) | **shipped — v53 (this section)** |
+| 2 | Real backend / sync (Google sign-in, cross-device progress) | approved (Firebase); queued — the redesign ALREADY ships Google sign-in (`GOOGLE_CLIENT_ID`, GIS, `migrateAnonymousAttempts`), so v54 adds the sync layer under it |
+| 3 | Teacher/admin dashboard (aggregate class performance) | approved (Firebase); queued behind #2 |
+| 4 | Teacher content pipeline (CSV/JSON → bank, validated) | queued |
+| 5 | Accessibility & performance audit | queued (a11y scaffolding — `a11yApply`/`a11yOpen` — already exists and gets audited, not rebuilt) |
+| 6 | Exam-mode integrity | queued (partly live already: `state.intg` integrity counter + `armExamLock`/`disarmExamLock`; v-item adds blur/copy-paste detection, warning counter, forgiving auto-submit) |
+| 7 | Offline-first PWA polish | queued (≈90 % live since v46: installable, offline SW, safe-update Reload prompt; remaining: explicit "new questions" update copy + zero-connectivity cold-start proof) |
+| 8 | Gamification depth | queued (`readinessScore`/`readinessTier` already exist — the SS3-readiness bar builds on them; adds subject mastery badges + canvas-rendered WhatsApp share cards) |
+
+### 15.1 What v53 adds
+
+**Adaptive store** `nssc_adaptive_<uid>` (per profile, on-device like everything
+else): one record per `Subject||Topic` — `{n, c, box 0-5, due, sec, secN}`.
+Leitner intervals `ADAPT_GAP = [0,1,2,4,7,14,30]` days. Updated on every
+submit (`adaptUpdate`, hooked into the existing submit chain right after
+`recordTopicStats`): session accuracy < 50 % demotes a box; ≥ 80 % **and**
+average response ≤ 60 s promotes it; otherwise the box holds. Response times
+come from the existing `state.qTimes` telemetry (tenths of a second).
+
+**Latent bug fixed on the way**: bank questions never carried a `.t` topic
+field, so `recordTopicStats` filed every normal paper under "General".
+`adaptTagQuiz()` now classifies each answered question through the existing
+`topicOf()` keyword map before stats are recorded — topic accuracy is real
+from v53 onward (legacy "General" keys remain readable; nothing is deleted).
+
+**Lossless migration**: on first touch, `adaptStore()` seeds itself from the
+existing `nssc_topics_<uid>` accuracy (≥75 % → box 2, ≥60 % → box 1, else 0)
+and from `paceAvgRows()` (attempt-history pace). No existing data is lost or
+rewritten.
+
+**Weakness ranker** `adaptRank()`: score = (100 − accuracy) + (5 − box)·4 +
+10·min(3, days overdue) + pace penalty min(15, (avgSec − 60)/4).
+
+**Daily Challenge — weighted, still deterministic**: six of the ten questions
+now come round-robin from the ranked weak topics (seeded per-day shuffle
+within each topic), four remain the original seeded-random mix. Same-day
+"Redo today's paper" yields the identical paper (the date-seeded
+`mulberry32` RNG is untouched). With no adaptive data yet, behaviour is
+byte-for-byte the old random paper. Toast tells the student the paper is
+"weighted to your weakest topics".
+
+**AI Coach — adaptive entries**: the weakest-topic card now comes from
+`adaptRank` and shows `memory box N/5` plus "due for review" when overdue; a
+new **Speed drill** card appears when a topic is ≥ 70 % accurate but ≥ 75 s
+average ("because exam-ready recall is fast recall"). Existing suggestions
+(reviews due, mock exam, goal, worksheet, parent report, league) unchanged.
+
+### 15.2 Delivery & tests
+
+`V = 53`, `NAME = "Adaptive Engine"`, whats-new entry, sw cache key `-v58`
+(suites seed `nssc_mp_seen='53'`). New suite `tools/adaptivetest.js` —
+**18/18**: migration boxes/pace, ranker order, daily paper = 10 unique
+questions with ≥ 4 from the two weakest topics, same-day determinism, box
+demote/hold/promote across two submits, pace averaging, both coach entries,
+zero page errors. Full regression: roll-call 33/33 (:8101 ledger-free),
+studio 15/15, arena 16/16, prestige 11/11, command 14/14, prospectus 13/13,
+bank 20/20. `verify.py` §[18] → **172 checks · 0 failures**.

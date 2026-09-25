@@ -546,8 +546,8 @@ def main():
     (ok if '"./why.html"' in swsrc else fail)("sw.js precaches why.html (offline share)")
     sm = os.path.join(DOCS, "sitemap.xml")
     (ok if os.path.exists(sm) and "why.html" in open(sm, encoding="utf-8").read() else fail)("sitemap lists why.html")
-    (ok if re.search(r"var V = (5[2-9]|[6-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 52+")
-    (ok if re.search(r'"-v(5[7-9]|[6-9]\d)"', swsrc) else fail)("sw cache key bumped to v57+")
+    (ok if re.search(r"var V = (5[3-9]|[6-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 53+")
+    (ok if re.search(r'"-v(5[8-9]|[6-9]\d)"', swsrc) else fail)("sw cache key bumped to v58+")
 
     print("\n[17] v52 WAEC-standard question bank")
     fixer = os.path.join(ROOT, "tools", "waec_fix.py")
@@ -564,6 +564,23 @@ def main():
     esrc = open(os.path.join(DOCS, "quiz", "edits.json"), encoding="utf-8").read()
     (ok if "NOT associated with" in esrc and "best describes" in esrc else fail)(
         "edits.json holds the WAEC rewrite record")
+
+    print("\n[18] v53 Adaptive Engine (item 1 of the school's roadmap)")
+    for needle, label in [
+        ("var ADAPT_GAP=[0,1,2,4,7,14,30]", "Leitner interval schedule"),
+        ("function adaptStore()", "adaptive store with lossless migration"),
+        ("function adaptUpdate()", "per-submit topic box/pace update"),
+        ("function adaptRank(", "weakness ranker (accuracy + box + overdue + pace)"),
+        ("adaptTagQuiz(),recordTopicStats(),adaptUpdate()", "submit-chain hook (tags real topics)"),
+        ("weighted to your weakest topics", "Daily Challenge weighted toast"),
+        ("memory box ", "AI Coach shows the memory box"),
+        ("Speed drill", "AI Coach pace suggestion"),
+    ]:
+        (ok if needle in isrc else fail)("index.html: " + label)
+    (ok if isrc.count("adaptRank(") >= 4 else fail)("adaptRank is wired into daily + coach (>=4 call sites)")
+    (ok if "nssc_adaptive_" in isrc else fail)("adaptive data keyed per profile (nssc_adaptive_<uid>)")
+    (ok if re.search(r"var V = 5[3-9]", usrc) else fail)("upgrade.js V=53+ (Adaptive Engine)")
+    (ok if "Adaptive Engine" in usrc else fail)("whats-new announces the Adaptive Engine")
 
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))
