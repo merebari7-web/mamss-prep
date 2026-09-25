@@ -546,8 +546,24 @@ def main():
     (ok if '"./why.html"' in swsrc else fail)("sw.js precaches why.html (offline share)")
     sm = os.path.join(DOCS, "sitemap.xml")
     (ok if os.path.exists(sm) and "why.html" in open(sm, encoding="utf-8").read() else fail)("sitemap lists why.html")
-    (ok if re.search(r"var V = (5[1-9]|[6-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 51+")
-    (ok if re.search(r'"-v5[6-9]"', swsrc) else fail)("sw cache key bumped to v56+")
+    (ok if re.search(r"var V = (5[2-9]|[6-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 52+")
+    (ok if re.search(r'"-v(5[7-9]|[6-9]\d)"', swsrc) else fail)("sw cache key bumped to v57+")
+
+    print("\n[17] v52 WAEC-standard question bank")
+    fixer = os.path.join(ROOT, "tools", "waec_fix.py")
+    auditor = os.path.join(ROOT, "tools", "waec_audit.py")
+    (ok if os.path.exists(fixer) else fail)("tools/waec_fix.py present (the surgical fixer)")
+    (ok if os.path.exists(auditor) else fail)("tools/waec_audit.py present (the regression linter)")
+    r = subprocess.run([sys.executable, auditor, "--quiet"], capture_output=True, text=True)
+    (ok if r.returncode == 0 else fail)(
+        "waec_audit CLEAN (hash, format contract, all defect families, bank-raw mirror, edits record)"
+        if r.returncode == 0 else
+        "waec_audit FAILED: " + (r.stdout + r.stderr).strip().splitlines()[-1][:120])
+    bsrc = open(os.path.join(DOCS, "bank.js"), encoding="utf-8").read()
+    (ok if re.search(r'QUIZ_HASH="[0-9a-f]{64}"', bsrc) else fail)("bank.js carries a 64-hex QUIZ_HASH")
+    esrc = open(os.path.join(DOCS, "quiz", "edits.json"), encoding="utf-8").read()
+    (ok if "NOT associated with" in esrc and "best describes" in esrc else fail)(
+        "edits.json holds the WAEC rewrite record")
 
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))

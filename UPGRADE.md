@@ -314,13 +314,19 @@ delete from public.code_redemptions where code_hash in (
   '894df065d22b89032aab0c7d6a3b01ce95a0fb40c680f10dbfe03d1590bc0f3b',  -- slip #8
   'c6e35be5bc33beecb30f4f2bcef6962e4bc0b32eec516a2bfb856ec229e41b43',  -- slip #11
   'a59cadc0ed4d834aa1f3a3c8a507c4a6a21a921642e693ac2ab7633626d14568',  -- slip #12
-  '43efb42cd6420b2770936d5a29f54b1485c7f9b87004fdbfcbcf2a52e10bdaa1'   -- slip #13
+  '43efb42cd6420b2770936d5a29f54b1485c7f9b87004fdbfcbcf2a52e10bdaa1',  -- slip #13
+  '5bd9aa40d4add346c63a10380561bec115bcbe5908900bc7448a9b4dda977fbc',  -- slip #14
+  'a0cff627a321f948c6b4408aff83d33b7fe5eb61bc87433f5056f8c9e5ce9d33',  -- slip #15
+  '329fef1f9ec89d6af783cde1dfbb6272bebb1c74e9ce0d81c553da0c6cee5d8c'   -- slip #16
 ) or code_hash = '__smoketest_not_a_real_hash__';
 ```
 
 (Slips #1, #2, #7, #8 were consumed by the roll-call suite after the ledger went
-live; #11–13 by the real-ledger e2e.) Otherwise treat main-batch slips
-#1, #2, #7, #8, #11, #12, #13 as burned and don't hand them out.
+live; #11–13 by the real-ledger e2e on 2026-09-24 and again on 2026-09-25 after
+the first cleanup freed them; #14–16 by the v52 verification run on 2026-09-25 —
+`realtest.js` now rotates to `codes.slice(13, 16)`.) Otherwise treat main-batch
+slips **#1, #2, #7, #8, #11–16 as burned** and don't hand them out. As of the
+v52 run the ledger holds 11 rows; the DELETE above frees every test row.
 
 **Test topology rule:** with the ledger live, `codetest.js` must run against a
 ledger-free copy of the site (`testrig/docsnoled/` on :8101, `codes.js` with the
@@ -533,3 +539,81 @@ the app behind "Open the app" stays absolutely gated.
 five tools, honest table, two CTAs, 3-step gate, both entry points);
 full regression: roll-call 33/33 (ledger-free copy), studio 15/15, arena
 16/16, prestige 11/11, command 14/14. `verify.py` §[16].
+
+## 14. v52 "WAEC-Standard Bank" — every question audited to examination standard
+
+*The brief:* "make all the questions in this website to be waec standard."
+Shipped as v52: the 3,900-question bank (`docs/bank.js`, the single live
+question source — the arcade, studio tools and autopilot all ride on it) was
+audited end to end, every genuine defect family fixed in place, and the fixes
+frozen behind a regression linter. **No question content, options or answers
+changed — wording and mechanics only.**
+
+### 14.1 What the audit found
+
+First, the non-issues (deliberately left untouched — they are valid WAEC forms):
+the 1,048 `What does the description below refer to? "…"` definition stems, the
+44 completion/imperative stems without command words, the 98 cross-class spiral
+repeats (0 duplicates within a class), and the answer-index distribution.
+
+The real defects were all machine-generation artifacts:
+
+| # | Family | Count | Fix |
+|---|--------|-------|-----|
+| F1 | Ordinal typos ("the 3th term") | 2 | → "3rd" |
+| F2 | Stems missing end punctuation | 42 | interrogative → "?", statement → "." (allow-set `.?!:;…”"'`) |
+| F3 | Template stems `Which of the following is NOT a/an <lowercased topic>?` ("NOT a waves?", "NOT an electricity?") | 149 | → `Which of the following is NOT associated with <Proper Topic>?` (capitalisation recovered from the RNOTES topic map) |
+| F3e | Matching template explanations ("X is not a waves; it is a heat.") | 147 | → "X is not associated with <Topic>; it belongs to <Topic>." |
+| F6 | Article agreement ("a oxygen atom", "an utility") | 10 | a/an fixed by first sound; silent-h words take "an"; yoo-sound words (uni-/eu-/use-) keep "a"; ALL-CAPS acronyms (USB, HIV) never touched |
+| F7 | Ungrammatical definition stems ("is a metals?", "is a photosynthesis?", "is a money?") | 51 | → `Which of the following best describes <X>?` — curated from a full enumeration of the 1,065 definition stems; correct ones ("a board of directors", "a homologous series", "a concave lens") untouched |
+
+**247 questions changed** (some carry more than one fix). New `QUIZ_HASH`
+`2f6336c6…`; text delta +5,497 chars.
+
+*Copy note for the school:* the marketing copy says "4,167 questions / 27
+subjects" while the quiz bank verifiably holds 3,900 questions across 13 quiz
+subjects (the 27 counts the notes/syllabus subjects). The school's copy was
+left as-is — flagging it here so the numbers can be reconciled deliberately.
+
+### 14.2 How it was fixed (and what must never be run)
+
+`tools/waec_fix.py` — the surgical fixer. It decodes `bank.js`, proves a
+byte-identical round-trip **before** editing, applies the six families,
+re-serialises, recomputes sha256, recompresses at zlib level 9 (matching the
+original `78da` header), and rewrites **only the two constants** (`QUIZ_B64`,
+`QUIZ_HASH`) — the decode IIFE and every other byte of `bank.js` are untouched.
+It regenerates `docs/bank-raw.js` (the rescue copy) with the identical payload
+and merges all 247 changes into `docs/quiz/edits.json` (keyed by original stem,
+39 class|subject keys) as the durable edit record. Dry-run by default.
+
+**Never run `docs/quiz/build.py` or `bank_edit.py --apply`**: build.py also
+emits `index.html` and `sw.js` from the old template app relative to its cwd —
+it would overwrite the live September redesign and the live service worker.
+The fixer + edits.json merge is the canonical path.
+
+### 14.3 The regression guard
+
+- `tools/waec_audit.py` — standalone linter: hash contract, format contract
+  (4 blocks · 13 subjects · 3×1300 · 7 fields · 4 non-empty options · idx 0–3),
+  all six defect families, fix-presence counts, bank-raw mirror equality,
+  edits.json record, live wiring (index.html loads bank.js; workshop artifacts
+  never wired in — `quiz/notes_data.js`, `notes_app.js`, `syllabus_data.js` are
+  legitimate live lazy-loads). Exit 1 on any failure. **Negative-tested**: run
+  against the pre-fix v51 docs it reports 10 failures; against v52, CLEAN.
+- `tools/banktest.js` — real-browser verification (Playwright): loads the live
+  page, waits for the async decode IIFE, asserts QUIZ_RAW shape (13 subj ·
+  3×1300 · 0 structural violations), exact fix counts (149/147/51), absence of
+  every old defect pattern, and `sha256(__BANK_RAW_TXT) === QUIZ_HASH`. 20/20.
+- `tools/verify.py` §[17] runs the auditor inline. **verify.py: 160 passed · 0 failures.**
+
+### 14.4 Delivery
+
+Existing devices cache `bank.js` through the service worker, so v52 ships with
+the usual cache-bust pair: `upgrade.js` `V = 52`, `NAME = "WAEC-Standard Bank"`
+(whats-new announces the audit; suites seed `nssc_mp_seen='52'`), and `sw.js`
+cache key `-v57`. The gate, ledger and every v45–v51 behaviour are untouched.
+
+*Tests:* banktest 20/20; full regression: roll-call 33/33 (ledger-free copy on
+:8101 — re-synced with the new bank before running), studio 15/15, arena 16/16,
+prestige 11/11, command 14/14, prospectus 13/13, real-ledger e2e **19/19**
+(fresh slips #14–16; cleanup SQL in §6.2 covers them). verify.py 160/0.

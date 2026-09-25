@@ -2,14 +2,1046 @@
  "SS2|Mathematics": {
   "fix": {
    "Which of the following is NOT an algebra?": {
-    "e": "Density is a physical quantity, not an algebraic expression. Coefficients, indices and equations all belong to algebra."
+    "e": "Density is a physical quantity, not an algebraic expression. Coefficients, indices and equations all belong to algebra.",
+    "q": "Which of the following is NOT associated with Algebra?"
+   },
+   "Which of the following is a similar figures?": {
+    "q": "Which of the following best describes similar figures?"
+   },
+   "Which of the following is NOT a trigonometry?": {
+    "q": "Which of the following is NOT associated with Trigonometry?",
+    "e": "Compound interest is not associated with Trigonometry; it belongs to Business math."
+   },
+   "Which of the following is a simultaneous equations?": {
+    "q": "Which of the following best describes simultaneous equations?"
+   },
+   "Which of the following is NOT a geometry?": {
+    "q": "Which of the following is NOT associated with Geometry?",
+    "e": "Simple interest is not associated with Geometry; it belongs to Business math."
    }
   }
  },
  "SS3|Mathematics": {
   "fix": {
    "Which of the following is NOT an algebra?": {
-    "e": "Acceleration is a rate of change, so it is a physical quantity rather than an algebraic expression. Surds, moduli and determinants are all algebra."
+    "e": "Acceleration is a rate of change, so it is a physical quantity rather than an algebraic expression. Surds, moduli and determinants are all algebra.",
+    "q": "Which of the following is NOT associated with Algebra?"
+   },
+   "Which of the following is NOT a sequences?": {
+    "q": "Which of the following is NOT associated with Sequences?",
+    "e": "Inverse function is not associated with Sequences; it belongs to Algebra."
+   },
+   "Which of the following is NOT a calculus?": {
+    "q": "Which of the following is NOT associated with Calculus?",
+    "e": "Polar coordinates is not associated with Calculus; it belongs to Geometry."
+   },
+   "Which of the following is NOT a geometry?": {
+    "q": "Which of the following is NOT associated with Geometry?",
+    "e": "Derivative is not associated with Geometry; it belongs to Calculus."
+   }
+  }
+ },
+ "SS1|Mathematics": {
+  "fix": {
+   "Find the 3th term of the sequence 1, 3, ...": {
+    "q": "Find the 3rd term of the sequence 1, 3, ..."
+   },
+   "Which of the following is NOT a fraction?": {
+    "q": "Which of the following is NOT associated with Fraction?",
+    "e": "Supplementary angles is not associated with Fraction; it belongs to Geometry."
+   },
+   "Find the 3th term of the sequence 10, 16, ...": {
+    "q": "Find the 3rd term of the sequence 10, 16, ..."
+   },
+   "Which of the following is NOT a statistics?": {
+    "q": "Which of the following is NOT associated with Statistics?",
+    "e": "Fraction is not associated with Statistics; it belongs to Number."
+   },
+   "Which of the following is NOT a number?": {
+    "q": "Which of the following is NOT associated with Number?",
+    "e": "Equilateral triangle is not associated with Number; it belongs to Geometry."
+   },
+   "Which of the following is NOT a geometry?": {
+    "q": "Which of the following is NOT associated with Geometry?",
+    "e": "Multiple is not associated with Geometry; it belongs to Number."
+   }
+  }
+ },
+ "SS1|English Language": {
+  "fix": {
+   "Which of the following is NOT a number and sentence?": {
+    "q": "Which of the following is NOT associated with Number and sentence?",
+    "e": "Verb is not associated with Number and sentence; it belongs to Parts of speech."
+   },
+   "Which of the following is NOT a punctuation?": {
+    "q": "Which of the following is NOT associated with Punctuation?",
+    "e": "Syllable is not associated with Punctuation; it belongs to Sound system."
+   },
+   "Which of the following is NOT a vocabulary?": {
+    "q": "Which of the following is NOT associated with Vocabulary?",
+    "e": "Adverb is not associated with Vocabulary; it belongs to Parts of speech."
+   },
+   "Which of the following is NOT a parts of speech?": {
+    "q": "Which of the following is NOT associated with Parts of speech?",
+    "e": "Figure of speech is not associated with Parts of speech; it belongs to Reading and writing."
+   },
+   "Which of the following is NOT a types of nouns?": {
+    "q": "Which of the following is NOT associated with Types of nouns?",
+    "e": "Consonant is not associated with Types of nouns; it belongs to Sound system."
+   },
+   "Which of the following is NOT a reading and writing?": {
+    "q": "Which of the following is NOT associated with Reading and writing?",
+    "e": "Conjunction is not associated with Reading and writing; it belongs to Parts of speech."
+   }
+  }
+ },
+ "SS1|Biology": {
+  "fix": {
+   "Which of the following is NOT a classification?": {
+    "q": "Which of the following is NOT associated with Classification?",
+    "e": "Population is not associated with Classification; it belongs to Ecology."
+   },
+   "Which of the following is a respiration?": {
+    "q": "Which of the following best describes respiration?"
+   },
+   "Which of the following is a photosynthesis?": {
+    "q": "Which of the following best describes photosynthesis?"
+   },
+   "Which of the following is NOT a cell biology?": {
+    "q": "Which of the following is NOT associated with Cell biology?",
+    "e": "Transpiration is not associated with Cell biology; it belongs to Plant biology."
+   },
+   "Which of the following is NOT a plant biology?": {
+    "q": "Which of the following is NOT associated with Plant biology?",
+    "e": "Amphibian is not associated with Plant biology; it belongs to Classification."
+   },
+   "Which of the following is a transpiration?": {
+    "q": "Which of the following best describes transpiration?"
+   },
+   "Which of the following is NOT an ecology?": {
+    "q": "Which of the following is NOT associated with Ecology?",
+    "e": "Photosynthesis is not associated with Ecology; it belongs to Plant biology."
+   }
+  }
+ },
+ "SS1|Chemistry": {
+  "fix": {
+   "How many protons are there in the nucleus of a sodium atom? (atomic number = 11)": {
+    "q": "How many protons are there in the nucleus of a sodium atom? (atomic number = 11)?"
+   },
+   "Which of the following is a non-metals?": {
+    "q": "Which of the following best describes non-metals?"
+   },
+   "How many protons are there in the nucleus of a oxygen atom? (atomic number = 8)": {
+    "q": "How many protons are there in the nucleus of an oxygen atom? (atomic number = 8)?"
+   },
+   "Which of the following is NOT an acids and bases?": {
+    "q": "Which of the following is NOT associated with Acids and bases?",
+    "e": "Mass number is not associated with Acids and bases; it belongs to Atomic structure."
+   },
+   "How many protons are there in the nucleus of a lead atom? (atomic number = 82)": {
+    "q": "How many protons are there in the nucleus of a lead atom? (atomic number = 82)?"
+   },
+   "How many protons are there in the nucleus of a silver atom? (atomic number = 47)": {
+    "q": "How many protons are there in the nucleus of a silver atom? (atomic number = 47)?"
+   },
+   "How many protons are there in the nucleus of a calcium atom? (atomic number = 20)": {
+    "q": "How many protons are there in the nucleus of a calcium atom? (atomic number = 20)?"
+   },
+   "Which of the following is NOT a states of matter?": {
+    "q": "Which of the following is NOT associated with States of matter?",
+    "e": "Molecule is not associated with States of matter; it belongs to Atomic structure."
+   },
+   "How many protons are there in the nucleus of a neon atom? (atomic number = 10)": {
+    "q": "How many protons are there in the nucleus of a neon atom? (atomic number = 10)?"
+   },
+   "How many protons are there in the nucleus of a tin atom? (atomic number = 50)": {
+    "q": "How many protons are there in the nucleus of a tin atom? (atomic number = 50)?"
+   },
+   "Which of the following is a metals?": {
+    "q": "Which of the following best describes metals?"
+   },
+   "Which of the following is NOT a mixtures and separation?": {
+    "q": "Which of the following is NOT associated with Mixtures and separation?",
+    "e": "Atomic number is not associated with Mixtures and separation; it belongs to Atomic structure."
+   },
+   "How many protons are there in the nucleus of a magnesium atom? (atomic number = 12)": {
+    "q": "How many protons are there in the nucleus of a magnesium atom? (atomic number = 12)?"
+   },
+   "Which of the following is a noble gases?": {
+    "q": "Which of the following best describes noble gases?"
+   },
+   "How many protons are there in the nucleus of a aluminium atom? (atomic number = 13)": {
+    "q": "How many protons are there in the nucleus of an aluminium atom? (atomic number = 13)?"
+   },
+   "Which of the following is NOT an atomic structure?": {
+    "q": "Which of the following is NOT associated with Atomic structure?",
+    "e": "Condensation is not associated with Atomic structure; it belongs to States of matter."
+   }
+  }
+ },
+ "SS1|Physics": {
+  "fix": {
+   "Find the weight of a body of mass 12 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 12 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is NOT a measurement?": {
+    "q": "Which of the following is NOT associated with Measurement?",
+    "e": "Work is not associated with Measurement; it belongs to Energy."
+   },
+   "Find the weight of a body of mass 5 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 5 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is NOT a heat?": {
+    "q": "Which of the following is NOT associated with Heat?",
+    "e": "Wavelength is not associated with Heat; it belongs to Waves."
+   },
+   "Find the weight of a body of mass 15 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 15 kg. (Take g = 10 m/s²)."
+   },
+   "Find the weight of a body of mass 6 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 6 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is a gravity?": {
+    "q": "Which of the following best describes gravity?"
+   },
+   "Find the weight of a body of mass 2 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 2 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is NOT a mechanics?": {
+    "q": "Which of the following is NOT associated with Mechanics?",
+    "e": "Convection is not associated with Mechanics; it belongs to Heat."
+   },
+   "Which of the following is NOT an energy?": {
+    "q": "Which of the following is NOT associated with Energy?",
+    "e": "Conduction is not associated with Energy; it belongs to Heat."
+   }
+  }
+ },
+ "SS1|Agricultural Science": {
+  "fix": {
+   "Which of the following is a humus?": {
+    "q": "Which of the following best describes humus?"
+   },
+   "Which of the following is NOT a crop production?": {
+    "q": "Which of the following is NOT associated with Crop production?",
+    "e": "Humus is not associated with Crop production; it belongs to Soil science."
+   },
+   "Which of the following is NOT a farm tools?": {
+    "q": "Which of the following is NOT associated with Farm tools?",
+    "e": "Goat is not associated with Farm tools; it belongs to Livestock."
+   },
+   "Which of the following is NOT a crops?": {
+    "q": "Which of the following is NOT associated with Crops?",
+    "e": "Harvesting is not associated with Crops; it belongs to Crop production."
+   },
+   "Which of the following is NOT a livestock?": {
+    "q": "Which of the following is NOT associated with Livestock?",
+    "e": "Weed is not associated with Livestock; it belongs to Crop production."
+   },
+   "Which of the following is a germination?": {
+    "q": "Which of the following best describes germination?"
+   },
+   "Which of the following is NOT a soil science?": {
+    "q": "Which of the following is NOT associated with Soil science?",
+    "e": "Crop is not associated with Soil science; it belongs to Crops."
+   }
+  }
+ },
+ "SS1|Economics": {
+  "fix": {
+   "Which of the following is NOT a production?": {
+    "q": "Which of the following is NOT associated with Production?",
+    "e": "Goods is not associated with Production; it belongs to Basic concepts."
+   },
+   "Which of the following is a money?": {
+    "q": "Which of the following best describes money?"
+   },
+   "Which of the following is NOT a basic concepts?": {
+    "q": "Which of the following is NOT associated with Basic concepts?",
+    "e": "Price is not associated with Basic concepts; it belongs to Demand and supply."
+   },
+   "Which of the following is a services?": {
+    "q": "Which of the following best describes services?"
+   },
+   "Which of the following is a goods?": {
+    "q": "Which of the following best describes goods?"
+   },
+   "Which of the following is a wages?": {
+    "q": "Which of the following best describes wages?"
+   },
+   "Which of the following is NOT a demand and supply?": {
+    "q": "Which of the following is NOT associated with Demand and supply?",
+    "e": "Capital is not associated with Demand and supply; it belongs to Factors of production."
+   },
+   "Which of the following is an utility?": {
+    "q": "Which of the following is a utility?"
+   },
+   "Which of the following is NOT a factors of production?": {
+    "q": "Which of the following is NOT associated with Factors of production?",
+    "e": "Choice is not associated with Factors of production; it belongs to Basic concepts."
+   },
+   "Which of the following is a wants?": {
+    "q": "Which of the following best describes wants?"
+   }
+  }
+ },
+ "SS1|Government": {
+  "fix": {
+   "Which of the following is a public opinion?": {
+    "q": "Which of the following best describes public opinion?"
+   },
+   "Which of the following is a checks and balances?": {
+    "q": "Which of the following best describes checks and balances?"
+   },
+   "Which of the following is NOT a systems of government?": {
+    "q": "Which of the following is NOT associated with Systems of government?",
+    "e": "Suffrage is not associated with Systems of government; it belongs to Citizenship."
+   },
+   "Which of the following is an unitary system?": {
+    "q": "Which of the following is a unitary system?"
+   },
+   "Which of the following is a sovereignty?": {
+    "q": "Which of the following best describes sovereignty?"
+   },
+   "Which of the following is a democracy?": {
+    "q": "Which of the following best describes democracy?"
+   }
+  }
+ },
+ "SS1|Literature in English": {
+  "fix": {
+   "Which of the following is NOT a prose?": {
+    "q": "Which of the following is NOT associated with Prose?",
+    "e": "Comedy is not associated with Prose; it belongs to Genres."
+   },
+   "Which of the following is NOT a figures of speech?": {
+    "q": "Which of the following is NOT associated with Figures of speech?",
+    "e": "Short story is not associated with Figures of speech; it belongs to Prose."
+   },
+   "Which of the following is NOT a genres?": {
+    "q": "Which of the following is NOT associated with Genres?",
+    "e": "Short story is not associated with Genres; it belongs to Prose."
+   },
+   "Which of the following is NOT a poetry?": {
+    "q": "Which of the following is NOT associated with Poetry?",
+    "e": "Dialogue is not associated with Poetry; it belongs to Drama."
+   }
+  }
+ },
+ "SS1|Geography": {
+  "fix": {
+   "Which of the following is a weather?": {
+    "q": "Which of the following best describes weather?"
+   },
+   "Which of the following is NOT an environmental geography?": {
+    "q": "Which of the following is NOT associated with Environmental geography?",
+    "e": "Continent is not associated with Environmental geography; it belongs to Physical geography."
+   },
+   "Which of the following is NOT a maps and coordinates?": {
+    "q": "Which of the following is NOT associated with Maps and coordinates?",
+    "e": "River is not associated with Maps and coordinates; it belongs to Physical geography."
+   },
+   "Which of the following is NOT a physical geography?": {
+    "q": "Which of the following is NOT associated with Physical geography?",
+    "e": "Environment is not associated with Physical geography; it belongs to Environmental geography."
+   },
+   "Which of the following is NOT a climate?": {
+    "q": "Which of the following is NOT associated with Climate?",
+    "e": "Ocean is not associated with Climate; it belongs to Physical geography."
+   }
+  }
+ },
+ "SS1|Commerce": {
+  "fix": {
+   "Which of the following is NOT a business finance?": {
+    "q": "Which of the following is NOT associated with Business finance?",
+    "e": "Limited liability company is not associated with Business finance; it belongs to Business organisation."
+   },
+   "Which of the following is a commerce?": {
+    "q": "Which of the following best describes commerce?"
+   },
+   "Which of the following is a trade?": {
+    "q": "Which of the following best describes trade?"
+   },
+   "Which of the following is NOT a business organisation?": {
+    "q": "Which of the following is NOT associated with Business organisation?",
+    "e": "Trade by barter is not associated with Business organisation; it belongs to Trade basics."
+   },
+   "Which of the following is NOT a trade basics?": {
+    "q": "Which of the following is NOT associated with Trade basics?",
+    "e": "Banking is not associated with Trade basics; it belongs to Aids to trade."
+   },
+   "Which of the following is NOT an aids to trade?": {
+    "q": "Which of the following is NOT associated with Aids to trade?",
+    "e": "Sale is not associated with Aids to trade; it belongs to Trade basics."
+   },
+   "Which of the following is a foreign trade?": {
+    "q": "Which of the following best describes foreign trade?"
+   }
+  }
+ },
+ "SS1|Computer Studies": {
+  "fix": {
+   "Which of the following is NOT an internet?": {
+    "q": "Which of the following is NOT associated with Internet?",
+    "e": "Information is not associated with Internet; it belongs to General."
+   },
+   "Which of the following is NOT a software?": {
+    "q": "Which of the following is NOT associated with Software?",
+    "e": "Computer is not associated with Software; it belongs to Hardware."
+   },
+   "Which of the following is NOT a hardware?": {
+    "q": "Which of the following is NOT associated with Hardware?",
+    "e": "Presentation software is not associated with Hardware; it belongs to Software."
+   }
+  }
+ },
+ "SS1|Civic Education": {
+  "fix": {
+   "Which of the following is a fundamental human rights?": {
+    "q": "Which of the following best describes fundamental human rights?"
+   },
+   "Which of the following is NOT a citizenship?": {
+    "q": "Which of the following is NOT associated with Citizenship?",
+    "e": "Discipline is not associated with Citizenship; it belongs to Values."
+   },
+   "Which of the following is NOT a values?": {
+    "q": "Which of the following is NOT associated with Values?",
+    "e": "Duties is not associated with Values; it belongs to Rights and duties."
+   },
+   "Which of the following is a honesty?": {
+    "q": "Which of the following best describes honesty?"
+   },
+   "Which of the following is a duties?": {
+    "q": "Which of the following best describes duties?"
+   },
+   "Which of the following is a civic duties?": {
+    "q": "Which of the following best describes civic duties?"
+   },
+   "Which of the following is a rights?": {
+    "q": "Which of the following best describes rights?"
+   },
+   "Which of the following is NOT a rights and duties?": {
+    "q": "Which of the following is NOT associated with Rights and duties?",
+    "e": "Good citizenship is not associated with Rights and duties; it belongs to Citizenship."
+   },
+   "Which of the following is NOT a national symbols?": {
+    "q": "Which of the following is NOT associated with National symbols?",
+    "e": "Citizenship by birth is not associated with National symbols; it belongs to Citizenship."
+   }
+  }
+ },
+ "SS2|English Language": {
+  "fix": {
+   "Which of the following is NOT a speech?": {
+    "q": "Which of the following is NOT associated with Speech?",
+    "e": "Scanning is not associated with Speech; it belongs to Reading skills."
+   },
+   "Which of the following is NOT a verbs?": {
+    "q": "Which of the following is NOT associated with Verbs?",
+    "e": "Subordinate clause is not associated with Verbs; it belongs to Clauses."
+   },
+   "Which of the following is NOT a clauses?": {
+    "q": "Which of the following is NOT associated with Clauses?",
+    "e": "Abbreviation is not associated with Clauses; it belongs to Word building."
+   },
+   "Which of the following is NOT a grammar?": {
+    "q": "Which of the following is NOT associated with Grammar?",
+    "e": "Subordinate clause is not associated with Grammar; it belongs to Clauses."
+   },
+   "Which of the following is NOT a style?": {
+    "q": "Which of the following is NOT associated with Style?",
+    "e": "Acronym is not associated with Style; it belongs to Word building."
+   }
+  }
+ },
+ "SS2|Biology": {
+  "fix": {
+   "Which of the following is a platelets?": {
+    "q": "Which of the following best describes platelets?"
+   },
+   "Which of the following is a germination?": {
+    "q": "Which of the following best describes germination?"
+   },
+   "Which of the following is NOT a physiology?": {
+    "q": "Which of the following is NOT associated with Physiology?",
+    "e": "Pollination is not associated with Physiology; it belongs to Reproduction."
+   },
+   "Which of the following is NOT a disease?": {
+    "q": "Which of the following is NOT associated with Disease?",
+    "e": "Germination is not associated with Disease; it belongs to Reproduction."
+   },
+   "Which of the following is NOT a reproduction?": {
+    "q": "Which of the following is NOT associated with Reproduction?",
+    "e": "Enzymes is not associated with Reproduction; it belongs to Biochemistry."
+   },
+   "Which of the following is a digestion?": {
+    "q": "Which of the following best describes digestion?"
+   },
+   "Which of the following is a hormones?": {
+    "q": "Which of the following best describes hormones?"
+   }
+  }
+ },
+ "SS2|Chemistry": {
+  "fix": {
+   "In a neutral bromine atom, how many electrons surround the nucleus? (atomic number = 35)": {
+    "q": "In a neutral bromine atom, how many electrons surround the nucleus? (atomic number = 35)."
+   },
+   "Which of the following is NOT a metals?": {
+    "q": "Which of the following is NOT associated with Metals?",
+    "e": "Period is not associated with Metals; it belongs to Periodic table."
+   },
+   "In a neutral nickel atom, how many electrons surround the nucleus? (atomic number = 28)": {
+    "q": "In a neutral nickel atom, how many electrons surround the nucleus? (atomic number = 28)."
+   },
+   "How many protons are there in the nucleus of a barium atom? (atomic number = 56)": {
+    "q": "How many protons are there in the nucleus of a barium atom? (atomic number = 56)?"
+   },
+   "In a neutral silicon atom, how many electrons surround the nucleus? (atomic number = 14)": {
+    "q": "In a neutral silicon atom, how many electrons surround the nucleus? (atomic number = 14)."
+   },
+   "In a neutral fluorine atom, how many electrons surround the nucleus? (atomic number = 9)": {
+    "q": "In a neutral fluorine atom, how many electrons surround the nucleus? (atomic number = 9)."
+   },
+   "How many protons are there in the nucleus of a platinum atom? (atomic number = 78)": {
+    "q": "How many protons are there in the nucleus of a platinum atom? (atomic number = 78)?"
+   },
+   "Which of the following is NOT an electrolysis?": {
+    "q": "Which of the following is NOT associated with Electrolysis?",
+    "e": "Exothermic reaction is not associated with Electrolysis; it belongs to Energy changes."
+   },
+   "In a neutral manganese atom, how many electrons surround the nucleus? (atomic number = 25)": {
+    "q": "In a neutral manganese atom, how many electrons surround the nucleus? (atomic number = 25)."
+   },
+   "How many protons are there in the nucleus of a cobalt atom? (atomic number = 27)": {
+    "q": "How many protons are there in the nucleus of a cobalt atom? (atomic number = 27)?"
+   },
+   "Which of the following is a metalloids?": {
+    "q": "Which of the following best describes metalloids?"
+   },
+   "How many protons are there in the nucleus of a lithium atom? (atomic number = 3)": {
+    "q": "How many protons are there in the nucleus of a lithium atom? (atomic number = 3)?"
+   },
+   "Which of the following is NOT a mole concept?": {
+    "q": "Which of the following is NOT associated with Mole concept?",
+    "e": "Endothermic reaction is not associated with Mole concept; it belongs to Energy changes."
+   },
+   "How many protons are there in the nucleus of a argon atom? (atomic number = 18)": {
+    "q": "How many protons are there in the nucleus of an argon atom? (atomic number = 18)?"
+   },
+   "Which of the following is NOT a chemical bonding?": {
+    "q": "Which of the following is NOT associated with Chemical bonding?",
+    "e": "Salt is not associated with Chemical bonding; it belongs to Acids and bases."
+   },
+   "How many protons are there in the nucleus of a molybdenum atom? (atomic number = 42)": {
+    "q": "How many protons are there in the nucleus of a molybdenum atom? (atomic number = 42)?"
+   }
+  }
+ },
+ "SS2|Physics": {
+  "fix": {
+   "Find the weight of a body of mass 10 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 10 kg. (Take g = 10 m/s²)."
+   },
+   "Find the weight of a body of mass 15 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 15 kg. (Take g = 10 m/s²)."
+   },
+   "Find the weight of a body of mass 12 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 12 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is NOT a waves?": {
+    "q": "Which of the following is NOT associated with Waves?",
+    "e": "Specific heat capacity is not associated with Waves; it belongs to Heat."
+   },
+   "Which of the following is NOT an electricity?": {
+    "q": "Which of the following is NOT associated with Electricity?",
+    "e": "Spectrum is not associated with Electricity; it belongs to Optics."
+   },
+   "Which of the following is NOT an optics?": {
+    "q": "Which of the following is NOT associated with Optics?",
+    "e": "Electromagnet is not associated with Optics; it belongs to Magnetism."
+   },
+   "Which of the following is NOT a heat?": {
+    "q": "Which of the following is NOT associated with Heat?",
+    "e": "Equilibrium is not associated with Heat; it belongs to Mechanics."
+   }
+  }
+ },
+ "SS2|Agricultural Science": {
+  "fix": {
+   "Which of the following is NOT an animal production?": {
+    "q": "Which of the following is NOT associated with Animal production?",
+    "e": "Milling is not associated with Animal production; it belongs to Farm produce."
+   },
+   "Which of the following is NOT a crop production?": {
+    "q": "Which of the following is NOT associated with Crop production?",
+    "e": "Irrigation is not associated with Crop production; it belongs to Soil and water management."
+   },
+   "Which of the following is NOT an agricultural economics?": {
+    "q": "Which of the following is NOT associated with Agricultural economics?",
+    "e": "Irrigation is not associated with Agricultural economics; it belongs to Soil and water management."
+   },
+   "Which of the following is NOT a farm produce?": {
+    "q": "Which of the following is NOT associated with Farm produce?",
+    "e": "Leaching is not associated with Farm produce; it belongs to Soil and water management."
+   },
+   "Which of the following is NOT a soil and water management?": {
+    "q": "Which of the following is NOT associated with Soil and water management?",
+    "e": "Gestation period is not associated with Soil and water management; it belongs to Animal production."
+   }
+  }
+ },
+ "SS2|Economics": {
+  "fix": {
+   "Which of the following is a complementary goods?": {
+    "q": "Which of the following best describes complementary goods?"
+   },
+   "Which of the following is a normal goods?": {
+    "q": "Which of the following best describes normal goods?"
+   },
+   "Which of the following is NOT a production and costs?": {
+    "q": "Which of the following is NOT associated with Production and costs?",
+    "e": "Surplus is not associated with Production and costs; it belongs to Demand and supply."
+   },
+   "Which of the following is NOT a market structures?": {
+    "q": "Which of the following is NOT associated with Market structures?",
+    "e": "Unemployment is not associated with Market structures; it belongs to National income."
+   },
+   "Which of the following is NOT a money and banking?": {
+    "q": "Which of the following is NOT associated with Money and banking?",
+    "e": "Perfect competition is not associated with Money and banking; it belongs to Market structures."
+   },
+   "Which of the following is NOT a demand and supply?": {
+    "q": "Which of the following is NOT associated with Demand and supply?",
+    "e": "Oligopoly is not associated with Demand and supply; it belongs to Market structures."
+   },
+   "Which of the following is a substitute goods?": {
+    "q": "Which of the following best describes substitute goods?"
+   }
+  }
+ },
+ "SS2|Government": {
+  "fix": {
+   "Which of the following is NOT a legislature?": {
+    "q": "Which of the following is NOT associated with Legislature?",
+    "e": "Accountability is not associated with Legislature; it belongs to Governance."
+   },
+   "Which of the following is NOT a public administration?": {
+    "q": "Which of the following is NOT associated with Public administration?",
+    "e": "Bill is not associated with Public administration; it belongs to Legislature."
+   },
+   "Which of the following is NOT an elections?": {
+    "q": "Which of the following is NOT associated with Elections?",
+    "e": "Assent is not associated with Elections; it belongs to Legislature."
+   },
+   "Which of the following is NOT a systems of government?": {
+    "q": "Which of the following is NOT associated with Systems of government?",
+    "e": "Opacity is not associated with Systems of government; it belongs to Governance."
+   },
+   "Which of the following is a swing voters?": {
+    "q": "Which of the following best describes swing voters?"
+   }
+  }
+ },
+ "SS2|Literature in English": {
+  "fix": {
+   "Which of the following is NOT a drama?": {
+    "q": "Which of the following is NOT associated with Drama?",
+    "e": "Point of view is not associated with Drama; it belongs to Prose."
+   },
+   "Which of the following is NOT a prose?": {
+    "q": "Which of the following is NOT associated with Prose?",
+    "e": "Ode is not associated with Prose; it belongs to Poetry."
+   },
+   "Which of the following is NOT a figures of speech?": {
+    "q": "Which of the following is NOT associated with Figures of speech?",
+    "e": "Foil is not associated with Figures of speech; it belongs to Prose."
+   },
+   "Which of the following is an euphemism?": {
+    "q": "Which of the following is a euphemism?"
+   },
+   "Which of the following is NOT a poetry?": {
+    "q": "Which of the following is NOT associated with Poetry?",
+    "e": "Point of view is not associated with Poetry; it belongs to Prose."
+   }
+  }
+ },
+ "SS2|Geography": {
+  "fix": {
+   "Which of the following is NOT a physical processes?": {
+    "q": "Which of the following is NOT associated with Physical processes?",
+    "e": "Census is not associated with Physical processes; it belongs to Population."
+   },
+   "Which of the following is NOT a population?": {
+    "q": "Which of the following is NOT associated with Population?",
+    "e": "Weathering is not associated with Population; it belongs to Physical processes."
+   },
+   "Which of the following is a pull factors?": {
+    "q": "Which of the following best describes pull factors?"
+   }
+  }
+ },
+ "SS2|Commerce": {
+  "fix": {
+   "Which of the following is NOT a banking?": {
+    "q": "Which of the following is NOT associated with Banking?",
+    "e": "Bill of lading is not associated with Banking; it belongs to Business documents."
+   },
+   "Which of the following is NOT a business documents?": {
+    "q": "Which of the following is NOT associated with Business documents?",
+    "e": "Merchant bank is not associated with Business documents; it belongs to Banking."
+   },
+   "Which of the following is NOT an insurance?": {
+    "q": "Which of the following is NOT associated with Insurance?",
+    "e": "Expiry date is not associated with Insurance; it belongs to Marketing."
+   }
+  }
+ },
+ "SS2|Computer Studies": {
+  "fix": {
+   "Which of the following is NOT a security?": {
+    "q": "Which of the following is NOT associated with Security?",
+    "e": "Communication is not associated with Security; it belongs to Networking."
+   },
+   "Which of the following is NOT a networking?": {
+    "q": "Which of the following is NOT associated with Networking?",
+    "e": "System software is not associated with Networking; it belongs to Software."
+   },
+   "Which of the following is NOT a data representation?": {
+    "q": "Which of the following is NOT associated with Data representation?",
+    "e": "Communication is not associated with Data representation; it belongs to Networking."
+   }
+  }
+ },
+ "SS2|Civic Education": {
+  "fix": {
+   "Which of the following is NOT a national development?": {
+    "q": "Which of the following is NOT associated with National development?",
+    "e": "Human rights abuse is not associated with National development; it belongs to Rights and duties."
+   },
+   "Which of the following is a trafficking in persons?": {
+    "q": "Which of the following best describes trafficking in persons?"
+   },
+   "Which of the following is NOT a government agencies?": {
+    "q": "Which of the following is NOT associated with Government agencies?",
+    "e": "Tribalism is not associated with Government agencies; it belongs to Social vices."
+   },
+   "Which of the following is a free and fair elections?": {
+    "q": "Which of the following best describes free and fair elections?"
+   },
+   "Which of the following is NOT a social vices?": {
+    "q": "Which of the following is NOT associated with Social vices?",
+    "e": "FRSC is not associated with Social vices; it belongs to Government agencies."
+   }
+  }
+ },
+ "SS3|English Language": {
+  "fix": {
+   "Which of the following is NOT a syntax?": {
+    "q": "Which of the following is NOT associated with Syntax?",
+    "e": "Root is not associated with Syntax; it belongs to Word formation."
+   },
+   "Which of the following is a phonetics?": {
+    "q": "Which of the following best describes phonetics?"
+   },
+   "Which of the following is a context clues?": {
+    "q": "Which of the following best describes context clues?"
+   },
+   "Which of the following is NOT a semantics?": {
+    "q": "Which of the following is NOT associated with Semantics?",
+    "e": "Prefix is not associated with Semantics; it belongs to Word formation."
+   },
+   "Which of the following is NOT a word formation?": {
+    "q": "Which of the following is NOT associated with Word formation?",
+    "e": "Style is not associated with Word formation; it belongs to Style."
+   }
+  }
+ },
+ "SS3|Biology": {
+  "fix": {
+   "Which of the following is NOT an ecology?": {
+    "q": "Which of the following is NOT associated with Ecology?",
+    "e": "Osmoregulation is not associated with Ecology; it belongs to Physiology."
+   },
+   "Which of the following is NOT a genetics?": {
+    "q": "Which of the following is NOT associated with Genetics?",
+    "e": "Coordination is not associated with Genetics; it belongs to Physiology."
+   },
+   "Which of the following is NOT a physiology?": {
+    "q": "Which of the following is NOT associated with Physiology?",
+    "e": "Evolution is not associated with Physiology; it belongs to Evolution."
+   }
+  }
+ },
+ "SS3|Chemistry": {
+  "fix": {
+   "Which of the following is NOT an analytical chemistry?": {
+    "q": "Which of the following is NOT associated with Analytical chemistry?",
+    "e": "Nuclear energy is not associated with Analytical chemistry; it belongs to Nuclear chemistry."
+   },
+   "How many protons are there in the nucleus of a astatine atom? (atomic number = 85)": {
+    "q": "How many protons are there in the nucleus of an astatine atom? (atomic number = 85)?"
+   },
+   "How many moles are there in 168 g of iron? (relative atomic mass of iron = 56)": {
+    "q": "How many moles are there in 168 g of iron? (relative atomic mass of iron = 56)?"
+   },
+   "How many moles are there in 14 g of nitrogen? (relative atomic mass of nitrogen = 14)": {
+    "q": "How many moles are there in 14 g of nitrogen? (relative atomic mass of nitrogen = 14)?"
+   },
+   "Which of the following is NOT an organic chemistry?": {
+    "q": "Which of the following is NOT associated with Organic chemistry?",
+    "e": "Endothermic reaction is not associated with Organic chemistry; it belongs to Energy changes."
+   },
+   "How many protons are there in the nucleus of a gallium atom? (atomic number = 31)": {
+    "q": "How many protons are there in the nucleus of a gallium atom? (atomic number = 31)?"
+   },
+   "Which of the following is NOT a reaction kinetics?": {
+    "q": "Which of the following is NOT associated with Reaction kinetics?",
+    "e": "Alkenes is not associated with Reaction kinetics; it belongs to Organic chemistry."
+   },
+   "How many moles are there in 96 g of sulphur? (relative atomic mass of sulphur = 32)": {
+    "q": "How many moles are there in 96 g of sulphur? (relative atomic mass of sulphur = 32)?"
+   },
+   "How many moles are there in 24 g of magnesium? (relative atomic mass of magnesium = 24)": {
+    "q": "How many moles are there in 24 g of magnesium? (relative atomic mass of magnesium = 24)?"
+   },
+   "How many protons are there in the nucleus of a arsenic atom? (atomic number = 33)": {
+    "q": "How many protons are there in the nucleus of an arsenic atom? (atomic number = 33)?"
+   },
+   "How many moles are there in 71 g of chlorine? (relative atomic mass of chlorine = 35.5)": {
+    "q": "How many moles are there in 71 g of chlorine? (relative atomic mass of chlorine = 35.5)?"
+   }
+  }
+ },
+ "SS3|Physics": {
+  "fix": {
+   "Find the weight of a body of mass 2 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 2 kg. (Take g = 10 m/s²)."
+   },
+   "Find the weight of a body of mass 20 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 20 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is NOT a waves?": {
+    "q": "Which of the following is NOT associated with Waves?",
+    "e": "Radioactivity is not associated with Waves; it belongs to Nuclear physics."
+   },
+   "Which of the following is NOT an electricity?": {
+    "q": "Which of the following is NOT associated with Electricity?",
+    "e": "Diffraction is not associated with Electricity; it belongs to Waves."
+   },
+   "Find the weight of a body of mass 3 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 3 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is NOT a nuclear physics?": {
+    "q": "Which of the following is NOT associated with Nuclear physics?",
+    "e": "Mechanical advantage is not associated with Nuclear physics; it belongs to Mechanics."
+   },
+   "Find the weight of a body of mass 5 kg. (Take g = 10 m/s²)": {
+    "q": "Find the weight of a body of mass 5 kg. (Take g = 10 m/s²)."
+   },
+   "Which of the following is NOT a mechanics?": {
+    "q": "Which of the following is NOT associated with Mechanics?",
+    "e": "Radioactivity is not associated with Mechanics; it belongs to Nuclear physics."
+   }
+  }
+ },
+ "SS3|Agricultural Science": {
+  "fix": {
+   "Which of the following is NOT an animal production?": {
+    "q": "Which of the following is NOT associated with Animal production?",
+    "e": "Commercial farm is not associated with Animal production; it belongs to Agriculture concepts."
+   },
+   "Which of the following is NOT an agriculture concepts?": {
+    "q": "Which of the following is NOT associated with Agriculture concepts?",
+    "e": "Disease is not associated with Agriculture concepts; it belongs to Plant protection."
+   },
+   "Which of the following is NOT a plant protection?": {
+    "q": "Which of the following is NOT associated with Plant protection?",
+    "e": "Commercial farm is not associated with Plant protection; it belongs to Agriculture concepts."
+   },
+   "Which of the following is NOT an agricultural economics?": {
+    "q": "Which of the following is NOT associated with Agricultural economics?",
+    "e": "Inbreeding is not associated with Agricultural economics; it belongs to Animal breeding."
+   },
+   "Which of the following is NOT an animal breeding?": {
+    "q": "Which of the following is NOT associated with Animal breeding?",
+    "e": "Intensive farming is not associated with Animal breeding; it belongs to Agriculture concepts."
+   },
+   "Which of the following is NOT a soil and water management?": {
+    "q": "Which of the following is NOT associated with Soil and water management?",
+    "e": "Intensive farming is not associated with Soil and water management; it belongs to Agriculture concepts."
+   }
+  }
+ },
+ "SS3|Economics": {
+  "fix": {
+   "Which of the following is NOT a public finance?": {
+    "q": "Which of the following is NOT associated with Public finance?",
+    "e": "Free trade is not associated with Public finance; it belongs to International trade."
+   },
+   "Which of the following is NOT an international trade?": {
+    "q": "Which of the following is NOT associated with International trade?",
+    "e": "Gross national product is not associated with International trade; it belongs to National income."
+   },
+   "Which of the following is NOT an international organisations?": {
+    "q": "Which of the following is NOT associated with International organisations?",
+    "e": "Direct tax is not associated with International organisations; it belongs to Public finance."
+   },
+   "Which of the following is NOT a national income?": {
+    "q": "Which of the following is NOT associated with National income?",
+    "e": "Direct tax is not associated with National income; it belongs to Public finance."
+   },
+   "Which of the following is NOT a money and banking?": {
+    "q": "Which of the following is NOT associated with Money and banking?",
+    "e": "Progressive tax is not associated with Money and banking; it belongs to Public finance."
+   }
+  }
+ },
+ "SS3|Government": {
+  "fix": {
+   "Which of the following is NOT a political behaviour?": {
+    "q": "Which of the following is NOT associated with Political behaviour?",
+    "e": "Federalism is not associated with Political behaviour; it belongs to Nigerian government."
+   },
+   "Which of the following is an United Nations?": {
+    "q": "Which of the following best describes the United Nations?"
+   },
+   "Which of the following is NOT a Nigerian government?": {
+    "q": "Which of the following is NOT associated with Nigerian government?",
+    "e": "Multilateralism is not associated with Nigerian government; it belongs to International relations."
+   },
+   "Which of the following is NOT an international relations?": {
+    "q": "Which of the following is NOT associated with International relations?",
+    "e": "Political culture is not associated with International relations; it belongs to Political behaviour."
+   },
+   "Which of the following is NOT a constitution?": {
+    "q": "Which of the following is NOT associated with Constitution?",
+    "e": "Military regime is not associated with Constitution; it belongs to Nigerian government."
+   }
+  }
+ },
+ "SS3|Literature in English": {
+  "fix": {
+   "Which of the following is NOT a figures of speech?": {
+    "q": "Which of the following is NOT associated with Figures of speech?",
+    "e": "Wole Soyinka is not associated with Figures of speech; it belongs to Authors and works."
+   },
+   "Which of the following is NOT an authors and works?": {
+    "q": "Which of the following is NOT associated with Authors and works?",
+    "e": "Tragicomedy is not associated with Authors and works; it belongs to Drama."
+   },
+   "Which of the following is NOT a characters?": {
+    "q": "Which of the following is NOT associated with Characters?",
+    "e": "Ilujinle is not associated with Characters; it belongs to Settings."
+   },
+   "Which of the following is NOT a literary terms?": {
+    "q": "Which of the following is NOT associated with Literary terms?",
+    "e": "Sidi is not associated with Literary terms; it belongs to Characters."
+   }
+  }
+ },
+ "SS3|Geography": {
+  "fix": {
+   "Which of the following is NOT an economic geography?": {
+    "q": "Which of the following is NOT associated with Economic geography?",
+    "e": "Tropical rainforest is not associated with Economic geography; it belongs to Vegetation."
+   },
+   "Approximately how many kilometres is a point at latitude 30°N from the equator? (1° ≈ 111 km)": {
+    "q": "Approximately how many kilometres is a point at latitude 30°N from the equator? (1° ≈ 111 km)."
+   },
+   "Which of the following is NOT a climate?": {
+    "q": "Which of the following is NOT associated with Climate?",
+    "e": "Relief is not associated with Climate; it belongs to Maps and coordinates."
+   },
+   "Approximately how many kilometres is a point at latitude 45°N from the equator? (1° ≈ 111 km)": {
+    "q": "Approximately how many kilometres is a point at latitude 45°N from the equator? (1° ≈ 111 km)."
+   },
+   "Which of the following is a foreign trade?": {
+    "q": "Which of the following best describes foreign trade?"
+   },
+   "Which of the following is NOT a vegetation?": {
+    "q": "Which of the following is NOT associated with Vegetation?",
+    "e": "Relief rainfall is not associated with Vegetation; it belongs to Climate."
+   },
+   "Which of the following is a trade winds?": {
+    "q": "Which of the following best describes trade winds?"
+   }
+  }
+ },
+ "SS3|Commerce": {
+  "fix": {
+   "Which of the following is NOT a business finance?": {
+    "q": "Which of the following is NOT associated with Business finance?",
+    "e": "Articles of association is not associated with Business finance; it belongs to Business organisation."
+   },
+   "Which of the following is NOT a business organisation?": {
+    "q": "Which of the following is NOT associated with Business organisation?",
+    "e": "Broker is not associated with Business organisation; it belongs to Stock exchange."
+   },
+   "Which of the following is NOT a stock exchange?": {
+    "q": "Which of the following is NOT associated with Stock exchange?",
+    "e": "Break-even point is not associated with Stock exchange; it belongs to Business finance."
+   },
+   "Which of the following is a liabilities?": {
+    "q": "Which of the following best describes liabilities?"
+   },
+   "Which of the following is NOT a trade basics?": {
+    "q": "Which of the following is NOT associated with Trade basics?",
+    "e": "Stock exchange is not associated with Trade basics; it belongs to Stock exchange."
+   }
+  }
+ },
+ "SS3|Computer Studies": {
+  "fix": {
+   "Which of the following is NOT an internet?": {
+    "q": "Which of the following is NOT associated with Internet?",
+    "e": "Compiler is not associated with Internet; it belongs to Programming."
+   },
+   "Which of the following is a robotics?": {
+    "q": "Which of the following best describes robotics?"
+   },
+   "Which of the following is NOT a programming?": {
+    "q": "Which of the following is NOT associated with Programming?",
+    "e": "Robotics is not associated with Programming; it belongs to Emerging technology."
+   },
+   "Which of the following is NOT an emerging technology?": {
+    "q": "Which of the following is NOT associated with Emerging technology?",
+    "e": "Interpreter is not associated with Emerging technology; it belongs to Programming."
+   },
+   "Which of the following is NOT a databases?": {
+    "q": "Which of the following is NOT associated with Databases?",
+    "e": "Blog is not associated with Databases; it belongs to Internet."
+   }
+  }
+ },
+ "SS3|Civic Education": {
+  "fix": {
+   "Which of the following is a constitutional rights?": {
+    "q": "Which of the following best describes constitutional rights?"
+   },
+   "Which of the following is a checks and balances?": {
+    "q": "Which of the following best describes checks and balances?"
+   },
+   "Which of the following is a public opinion?": {
+    "q": "Which of the following best describes public opinion?"
+   },
+   "Which of the following is NOT a justice?": {
+    "q": "Which of the following is NOT associated with Justice?",
+    "e": "HIV/AIDS is not associated with Justice; it belongs to Health issues."
+   },
+   "Which of the following is NOT a civic engagement?": {
+    "q": "Which of the following is NOT associated with Civic engagement?",
+    "e": "Restorative justice is not associated with Civic engagement; it belongs to Justice."
+   },
+   "Which of the following is NOT a nationalism?": {
+    "q": "Which of the following is NOT associated with Nationalism?",
+    "e": "Equity is not associated with Nationalism; it belongs to Justice."
+   },
+   "Which of the following is NOT a governance?": {
+    "q": "Which of the following is NOT associated with Governance?",
+    "e": "Advocacy is not associated with Governance; it belongs to Civic engagement."
    }
   }
  }
