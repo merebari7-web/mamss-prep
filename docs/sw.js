@@ -1,7 +1,7 @@
 /* Cache names are scoped: other GitHub Pages projects share this origin.
    Bump the release on changes to the app shell or its runtime assets. */
 const NSS_SCOPE = new URL(self.registration.scope).pathname;
-const NSS_V = "nssc-v20260923" + "-v54" + ":" + NSS_SCOPE;
+const NSS_V = "nssc-v20260923" + "-v55" + ":" + NSS_SCOPE;
 const NSS_CORE = ["./index.html", "./bank.js", "./ui/study.css", "./ui/study.js?v=46", "./ui/atelier.css?v=46", "./ui/atelier.js?v=46", "./ui/favicon.svg"];
 const NSS_OPTIONAL = [
   "./ui/assets/atelier-560.webp", "./ui/assets/atelier-1000.webp", "./ui/assets/dm-regular.woff2", "./ui/assets/dm-semibold.woff2", "./ui/assets/caslon-display.woff2",

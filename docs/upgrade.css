@@ -200,3 +200,24 @@ border-radius:16px;padding:20px 18px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
 .mp-pres-foot{margin-top:11px;font-size:.62rem;letter-spacing:.14em;color:rgba(201,162,95,.9);text-transform:uppercase;position:relative}
 .mp-pres-contact{font-size:.78rem;font-weight:700;margin:10px 2px 2px}
 .mp-pres-contact a{color:#8a6a10;font-weight:900}
+/* ---- v50 Exam Command Center: countdown, heatmap, plan, print ---- */
+.mp-cmd-count{font-size:.95rem;font-weight:800;text-align:center;border-radius:12px;padding:12px;margin:4px 0 10px;
+  background:linear-gradient(135deg,rgba(201,162,95,.22),rgba(201,162,95,.08));border:1px solid rgba(201,162,95,.5)}
+.mp-cmd-count b{font-size:1.7rem;color:#8a6a10;display:inline-block;margin-right:4px}
+.mp-hm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-top:6px}
+.mp-hm{border-radius:10px;padding:9px 10px;text-align:left;border:1px solid rgba(0,0,0,.08);cursor:pointer;font:inherit}
+.mp-hm b{display:block;font-size:.78rem}
+.mp-hm span{font-size:.68rem;opacity:.85}
+.mp-hm.hm-good{background:rgba(15,107,79,.14);color:#0f6b4f}
+.mp-hm.hm-mid{background:rgba(201,162,95,.2);color:#8a6a10}
+.mp-hm.hm-bad{background:rgba(139,47,47,.13);color:#8b2f2f}
+.mp-hm.hm-none{background:rgba(0,0,0,.05);color:#6b6b6b}
+.mp-plan-day{display:flex;gap:10px;padding:8px 10px;border:1px solid rgba(201,162,95,.35);border-radius:10px;margin-top:8px;font-size:.8rem;background:rgba(201,162,95,.05)}
+.mp-plan-day b{white-space:nowrap;color:#8a6a10}
+.mp-plan-day span{line-height:1.5}
+@media print{
+  body.mp-printing>*:not(#mpCmdOverlay){display:none!important}
+  body.mp-printing #mpCmdOverlay{position:static!important;display:block!important;background:#fff!important}
+  body.mp-printing #mpCmdOverlay .modal{max-height:none!important;overflow:visible!important;box-shadow:none!important;border:0;width:100%!important;max-width:none!important}
+  .mp-no-print{display:none!important}
+}

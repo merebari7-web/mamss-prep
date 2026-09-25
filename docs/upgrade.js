@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 49, NAME = "Prestige Edition";
+  var V = 50, NAME = "Exam Command Center";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -185,6 +185,9 @@
       row("auto", "📈", "Forgetting-Curve Autopilot",
         "Every oral, palace walk and blurt feeds an Ebbinghaus schedule (1·3·7·14·30 days) that tells you exactly which topic to review today — computed on your device, offline.",
         '<button class="mp-btn pri" id="mpAutoOpen" type="button">Open</button>') +
+      row("cmd", "🧭", "Exam Command Center",
+        "Set your WAEC/NECO date and the app turns your own forgetting data into a printable day-by-day plan: mastery heatmap, weak topics first, Ebbinghaus re-reviews at +1, +3 and +7 days built in.",
+        '<button class="mp-btn pri" id="mpCmdOpen" type="button">Open</button>') +
       '</div>';
 
     b.innerHTML = html;
@@ -630,7 +633,8 @@
       ["🏟️", "Recall Arena — world-first", "Blurting, automated: study the mark points for 30 seconds, the app hides everything, you write all you remember — it diffs your blurt against every mark point and hands you the misses, pen-colour style."],
       ["📈", "Forgetting-Curve Autopilot — world-first", "Every oral, palace walk and blurt now feeds an Ebbinghaus schedule (1·3·7·14·30 days). The App Centre tells you exactly which topic to review today, with the right tool for its stage. On-device, offline, no account."],
       ["✦", "Prestige Edition membership card", "Your activation is now a gold membership card in the App Centre: your slip, batch, issue date and ledger-verified single-device license. Access to MAMSS PREP is issued by the school, not sold — 500 numbered slips, one device each."],
-      ["📱", "WhatsApp activation help", "Stuck at the lock screen? One tap opens a WhatsApp chat with the school office (08056787685) to request an activation key."]
+      ["📱", "WhatsApp activation help", "Stuck at the lock screen? One tap opens a WhatsApp chat with the school office (08056787685) to request an activation key."],
+      ["🧭", "Exam Command Center", "Set your exam date: a mastery heatmap shows every subject at a glance, and one tap builds a printable day-by-day study plan — weak and untouched topics first, every studied topic re-reviewed at +1, +3 and +7 days. Computed on your device from your own results."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -1180,7 +1184,7 @@
   function openStudio(which) {
     loadExclusive(function () {
       var fn = which === "oral" ? window.openMpOral : which === "palace" ? window.openMpPalace
-        : which === "arena" ? window.openMpArena : window.openMpAutopilot;
+        : which === "arena" ? window.openMpArena : which === "cmd" ? window.openMpCommand : window.openMpAutopilot;
       try { fn && fn(); } catch (e) {}
     });
   }
@@ -1189,6 +1193,7 @@
     on($("mpPalOpen"), "click", function () { openStudio("palace"); });
     on($("mpArenaOpen"), "click", function () { openStudio("arena"); });
     on($("mpAutoOpen"), "click", function () { openStudio("auto"); });
+    on($("mpCmdOpen"), "click", function () { openStudio("cmd"); });
   }
 
   function hubFab() {

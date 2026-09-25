@@ -461,3 +461,46 @@ roll-call 33/33 **on the ledger-free copy** (see §6.2 topology rule).
 mint a batch (`tools/issue_codes.py --count N --batch e.g. PRESTIGE-2026`),
 sell those slips, and the ledger enforces one device per paying student
 automatically. Nothing in the app needs to change.
+
+## 12. v50 "Exam Command Center" — the most-advanced audit, closed
+
+Response to: *"make this to be the most advanced educational website in the world."*
+
+**Honest framing (as with the world-record ask):** "most advanced" is not an
+official title anyone awards. What can be done — and is done here — is a
+feature-by-feature audit against the biggest education products on earth, and
+closing every gap that is buildable on free static hosting with zero servers.
+
+| Capability | Khan Academy | Duolingo | Quizlet | Anki | Coursera | **MAMSS PREP v50** |
+|---|---|---|---|---|---|---|
+| Spaced-repetition scheduler | – | streaks only | – | ✔ (manual cards) | – | ✔ **automatic, syllabus-derived** (Autopilot) |
+| Speech-marked oral practice | – | limited | – | – | – | ✔ **coverage/wpm/fillers vs mark points** |
+| Auto-built memory palaces | – | – | – | – | – | ✔ **none of them have this** |
+| Blurting with auto-diff | – | – | – | – | – | ✔ **Recall Arena** |
+| Exam-date study planner | ✔ (course-level) | ✔ (path) | – | – | ✔ | ✔ **weakness-weighted, printable, on-device** |
+| Mastery heatmap | ✔ | ✔ | – | – | – | ✔ **from real recall events, not video watches** |
+| Works fully offline (PWA) | partial | partial | partial | ✔ | – | ✔ **everything, including the studio** |
+| Access enforcement | account | account | account | – | account | ✔ **numbered slips + database ledger, one device each** |
+| Runs with zero servers/accounts | – | – | – | ✔ | – | ✔ |
+
+The genuinely unmatched combination: a school-gated, offline-first static site
+whose five studio tools all feed one on-device forgetting-curve brain.
+
+### What v50 adds
+**🧭 Exam Command Center** (fifth studio door):
+- Exam setup (WAEC/NECO/NABTEB/mock/custom + date) → big countdown (`nssc_exam`).
+- **Mastery heatmap**: one tile per subject, coloured from the student's own
+  recall events (red <40%, amber <65%, green ≥65%, grey = untouched); tap for
+  the topic breakdown with autopilot stages.
+- **Plan generator** (`genPlan`): every RNOTES topic queued weakest-known-first
+  (studied-and-weak before untouched before middling before mastered), 4 new
+  topics per day, each re-reviewed at **+1, +3, +7 days**; horizon capped at the
+  exam date (max 90 days); stored in `nssc_plan`; rendered 7 days at a time.
+- **Print** (dedicated @media print stylesheet — hides the app, prints the plan)
+  and **Copy plan** (clipboard text) for the wall/fridge/exercise book.
+- "Change exam / date" resets countdown + plan together.
+
+*Tests:* `testrig/cmdtest.js` 14/14 (countdown, heatmap colours from seeded
+history, weak-first day 1, +1-day reviews, ≤4 new/day, reset clears state);
+regression: roll-call 33/33 (ledger-free copy), studio 15/15, arena 16/16,
+prestige 11/11. `verify.py` §[15] (141 checks).

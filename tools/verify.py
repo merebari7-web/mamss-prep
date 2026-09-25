@@ -476,7 +476,7 @@ def main():
     (ok if re.search(r'"-v5[2-9]"', swsrc) else fail)("sw cache key bumped to v52+")
     (ok if "loadExclusive" in usrc else fail)("upgrade.js lazy-loads the studio (no cost until opened)")
     (ok if "mpOralOpen" in usrc and "mpPalOpen" in usrc else fail)("hub rows wire both studio doors")
-    (ok if re.search(r"var V = 4[7-9]", usrc) else fail)("upgrade.js version bumped to 47+ (what's-new fires)")
+    (ok if re.search(r"var V = (4[7-9]|[5-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 47+ (what's-new fires)")
     cssrc = open(os.path.join(DOCS, "upgrade.css"), encoding="utf-8").read()
     (ok if ".mp-exclusive" in cssrc else fail)("upgrade.css carries self-contained studio overlay styles")
 
@@ -510,6 +510,24 @@ def main():
     (ok if re.search(r"var V = (49|[5-9]\d)", usrc) else fail)("upgrade.js version bumped to 49+")
     (ok if ".mp-prestige" in cssrc and ".mp-pres-contact" in cssrc else fail)("prestige styles are self-contained in upgrade.css")
     (ok if re.search(r'"-v5[4-9]"', swsrc) else fail)("sw cache key bumped to v54+")
+
+    print("\n[15] v50 Exam Command Center — heatmap + generated study plan")
+    if os.path.exists(expath):
+        for needle, why in (
+            ("window.openMpCommand", "command center entry point"),
+            ("nssc_exam", "exam date stored on-device"),
+            ("nssc_plan", "generated plan stored on-device"),
+            ("genPlan", "day-by-day plan generator"),
+            ("[1, 3, 7]", "Ebbinghaus re-reviews at +1/+3/+7 days"),
+            ("hm-bad", "mastery heatmap classes"),
+            ("mp-printing", "print stylesheet hook"),
+            ("weakest known first", "weakest known topics scheduled first"),
+        ):
+            (ok if needle in exsrc else fail)("exclusive.js: %s" % why)
+    (ok if "mpCmdOpen" in usrc else fail)("hub row wires the command center")
+    (ok if re.search(r"var V = ([5-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 50+")
+    (ok if re.search(r'"-v5[5-9]"', swsrc) else fail)("sw cache key bumped to v55+")
+    (ok if ".mp-hm-grid" in cssrc and "@media print" in cssrc else fail)("heatmap + print styles in upgrade.css")
 
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))

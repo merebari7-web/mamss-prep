@@ -502,10 +502,169 @@
     T("Blurt saved — recall " + overall + "%", "🏟️");
   }
 
+  /* ========================================= 5. EXAM COMMAND CENTER == */
+  var XKEY = "nssc_exam", PLKEY = "nssc_plan";
+  function openMpCommand() {
+    var o = overlay("mpCmdOverlay", "🧭 Exam Command Center",
+      "World-class study logistics, on-device: set your exam date and the app turns your own forgetting data into a day-by-day plan — mastery heatmap, weak topics first, Ebbinghaus re-reviews built in. Printable, offline, no account.");
+    o.classList.remove("hidden");
+    renderCmd();
+  }
+  function daysTo(dateStr) { return Math.ceil((new Date(dateStr + "T00:00:00").getTime() - Date.now()) / 86400000); }
+  function subjStats() {
+    var ev = st.get("nssc_auto_events", []) || [], out = {};
+    ev.forEach(function (e) {
+      var o = out[e.s] || (out[e.s] = { sum: 0, n: 0 });
+      o.sum += e.pct; o.n++;
+    });
+    return out;
+  }
+  function heatClass(avg, n) { return !n ? "hm-none" : avg < 40 ? "hm-bad" : avg < 65 ? "hm-mid" : "hm-good"; }
+  function renderCmd() {
+    var b = $("mpCmdOverlayBody"), ex = st.get(XKEY, null);
+    if (!ex || !ex.date) {
+      b.innerHTML =
+        '<label class="mp-ex-lab" for="mpCmdType">Which exam are you preparing for?</label>' +
+        '<select id="mpCmdType" class="input"><option>WAEC</option><option>NECO</option><option>NABTEB</option><option>School mock</option><option>Custom</option></select>' +
+        '<label class="mp-ex-lab" for="mpCmdDate">Exam date</label>' +
+        '<input id="mpCmdDate" class="input" type="date">' +
+        '<button class="btn btn-primary" id="mpCmdSave" type="button" style="margin-top:12px">Set my countdown →</button>' +
+        '<p class="mp-ex-note">Everything is computed and stored on this device — nothing is uploaded anywhere.</p>';
+      $("mpCmdSave").onclick = function () {
+        var d = $("mpCmdDate").value;
+        if (!d) { T("Pick your exam date first", "⚠️"); return; }
+        st.set(XKEY, { type: $("mpCmdType").value, date: d, at: Date.now() });
+        st.del(PLKEY);
+        renderCmd();
+      };
+      return;
+    }
+    var left = daysTo(ex.date);
+    var stats = subjStats(), a = autoState();
+    var bank = (typeof RNOTES !== "undefined") ? RNOTES : {};
+    var subjects = Object.keys(bank);
+    var heat = subjects.map(function (sb) {
+      var o = stats[sb] || { sum: 0, n: 0 }, avg = o.n ? Math.round(o.sum / o.n) : 0;
+      return '<button type="button" class="mp-hm ' + heatClass(avg, o.n) + '" data-subj="' + esc(sb) + '">' +
+        "<b>" + esc(sb) + "</b><span>" + (o.n ? avg + "% · " + o.n + " review" + (o.n > 1 ? "s" : "") : "no data yet") + "</span></button>";
+    }).join("");
+    var plan = st.get(PLKEY, null);
+    var planHtml = plan && plan.for === ex.date ? renderPlan(plan) :
+      '<button class="btn btn-primary" id="mpCmdPlan" type="button">⚡ Generate my day-by-day plan</button>' +
+      '<p class="mp-ex-note">Weights every topic by your heatmap and autopilot stage: weak and untouched first, each studied topic re-reviewed at +1, +3 and +7 days.</p>';
+    b.innerHTML =
+      '<div class="mp-cmd-count" id="mpCmdDays">' +
+      (left > 0 ? "<b>" + left + "</b> day" + (left === 1 ? "" : "s") + " to " + esc(ex.type) + " · " + esc(ex.date)
+        : esc(ex.type) + " was on " + esc(ex.date) + " — set a new date below") + "</div>" +
+      '<p class="mp-ex-lab">🔥 Mastery heatmap (tap a subject for its topics)</p>' +
+      '<div class="mp-hm-grid" id="mpCmdHeat">' + heat + '</div><div id="mpCmdSub"></div>' +
+      '<p class="mp-ex-lab">🗓️ Your plan</p><div id="mpCmdPlanOut">' + planHtml + "</div>" +
+      '<div class="mp-no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">' +
+      '<button class="btn btn-ghost" id="mpCmdPrint" type="button">🖨️ Print plan</button>' +
+      '<button class="btn btn-ghost" id="mpCmdCopy" type="button">📋 Copy plan</button>' +
+      '<button class="btn btn-ghost" id="mpCmdReset" type="button">Change exam / date</button></div>';
+    if ($("mpCmdPlan")) $("mpCmdPlan").onclick = function () { genPlan(ex); renderCmd(); };
+    [].forEach.call(b.querySelectorAll("[data-subj]"), function (btn) {
+      btn.onclick = function () {
+        var sb = btn.getAttribute("data-subj"), tops = Object.keys(bank[sb] || {});
+        $("mpCmdSub").innerHTML = '<div class="mp-ex-due"><span><b>' + esc(sb) + " — " + tops.length + " topics</b><br>" +
+          '<span class="mp-ex-note">' + tops.map(function (t) {
+            var e = a[sb + " · " + t];
+            return esc(t) + (e ? " (" + e.pct + "%, " + STAGE_NAME[e.stage] + ")" : " (unstudied)");
+          }).join(" · ") + "</span></span></div>";
+      };
+    });
+    $("mpCmdReset").onclick = function () { st.del(XKEY); st.del(PLKEY); renderCmd(); };
+    $("mpCmdPrint").onclick = function () {
+      document.body.classList.add("mp-printing");
+      var done = function () { document.body.classList.remove("mp-printing"); window.removeEventListener("afterprint", done); };
+      window.addEventListener("afterprint", done);
+      window.print();
+    };
+    $("mpCmdCopy").onclick = function () {
+      var txt = planText(st.get(PLKEY, null), ex);
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(function () { T("Plan copied", "📋"); }, function () { T("Copy blocked — use Print instead", "⚠️"); });
+        else T("Copy not available here — use Print instead", "⚠️");
+      } catch (e) { T("Copy not available here — use Print instead", "⚠️"); }
+    };
+    if (plan && plan.for === ex.date) {
+      var more = $("mpCmdMore");
+      if (more) more.onclick = function () { more.previousCount = (more.previousCount || 7); renderPlanInto(plan, more.previousCount + 14); more.remove(); };
+    }
+  }
+  function genPlan(ex) {
+    var a = autoState(), bank = (typeof RNOTES !== "undefined") ? RNOTES : {};
+    var left = Math.max(1, daysTo(ex.date));
+    var queue = [];
+    Object.keys(bank).forEach(function (sb) {
+      Object.keys(bank[sb]).forEach(function (t) {
+        var e = a[sb + " · " + t];
+        var pri = !e ? 3 : (e.pct < 40 || e.stage <= 1) ? 3 : e.pct < 65 ? 2 : 1;
+        queue.push({ s: sb, t: t, pri: pri, stage: e ? e.stage : 0, known: !!e });
+      });
+    });
+    /* weakest known first, then untouched, then middling, then mastered */
+    queue.sort(function (x, y) {
+      return y.pri - x.pri || (y.known ? 1 : 0) - (x.known ? 1 : 0) || x.s.localeCompare(y.s) || x.t.localeCompare(y.t);
+    });
+    var horizon = Math.min(left, 90), perDay = 4;
+    var days = [];
+    for (var d = 0; d < horizon; d++) days.push([]);
+    var qi = 0, day = 0;
+    while (qi < queue.length && day < horizon) {
+      var load = 0;
+      while (qi < queue.length && load < perDay) {
+        var item = queue[qi++];
+        days[day].push({ s: item.s, t: item.t, mode: "new", tool: toolFor(item.stage)[0] });
+        [1, 3, 7].forEach(function (gap) {
+          if (day + gap < horizon) days[day + gap].push({ s: item.s, t: item.t, mode: "review", tool: toolFor(Math.min(4, item.stage + 1))[0] });
+        });
+        load++;
+      }
+      day++;
+    }
+    var t0 = new Date(); t0.setHours(0, 0, 0, 0);
+    var plan = { for: ex.date, madeAt: Date.now(), days: days.map(function (items, i) {
+      var dt = new Date(t0.getTime() + i * 86400000);
+      return { date: dt.toISOString().slice(0, 10), items: items };
+    }).filter(function (d2) { return d2.items.length; }) };
+    st.set(PLKEY, plan);
+    T("Plan generated — " + plan.days.length + " study days", "🧭");
+  }
+  function renderPlan(plan) {
+    var head = plan.days.slice(0, 7), rest = plan.days.length - head.length;
+    var html = head.map(planDayHtml).join("");
+    if (rest > 0) html += '<button class="btn btn-ghost" id="mpCmdMore" type="button">Show more days (' + rest + " left)</button>";
+    return html;
+  }
+  function renderPlanInto(plan, n) {
+    var out = $("mpCmdPlanOut");
+    if (out) out.innerHTML = plan.days.slice(0, n).map(planDayHtml).join("") +
+      (plan.days.length > n ? '<button class="btn btn-ghost" id="mpCmdMore" type="button">Show more days (' + (plan.days.length - n) + " left)</button>" : "");
+  }
+  function planDayHtml(d) {
+    var news = d.items.filter(function (i) { return i.mode === "new"; });
+    var revs = d.items.filter(function (i) { return i.mode === "review"; });
+    return '<div class="mp-plan-day"><b>' + d.date + "</b><span>" +
+      (news.length ? "🆕 " + news.map(function (i) { return esc(i.s + ": " + i.t); }).join(" · ") : "") +
+      (news.length && revs.length ? "<br>" : "") +
+      (revs.length ? "🔁 " + revs.map(function (i) { return esc(i.s + ": " + i.t); }).join(" · ") : "") +
+      "</span></div>";
+  }
+  function planText(plan, ex) {
+    if (!plan) return "No plan yet — generate one in the Exam Command Center.";
+    return "MAMSS PREP study plan for " + ex.type + " on " + ex.date + "\n" +
+      plan.days.map(function (d) {
+        return d.date + ": " + d.items.map(function (i) { return (i.mode === "new" ? "[new] " : "[review] ") + i.s + " — " + i.t; }).join("; ");
+      }).join("\n");
+  }
+
   window.openMpOral = openMpOral;
   window.openMpPalace = openMpPalace;
   window.openMpArena = openMpArena;
   window.openMpAutopilot = openMpAutopilot;
+  window.openMpCommand = openMpCommand;
   window.MP_EXCLUSIVE = { coverage: coverage, pointsOf: pointsOf, palaceOf: palaceOf, topics: topicsList, recordStudyEvent: recordStudyEvent, autoState: autoState, STAGES: STAGES, ready: true };
   try { document.dispatchEvent(new CustomEvent("mpExclusiveReady")); } catch (e) {}
 })();
