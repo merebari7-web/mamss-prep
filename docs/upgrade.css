@@ -186,3 +186,17 @@ border-radius:16px;padding:20px 18px;box-shadow:0 18px 50px rgba(0,0,0,.3)}
 .mp-ex-miss li{color:#8b2f2f}
 .mp-ex-due{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 11px;border:1px solid rgba(201,162,95,.4);border-radius:12px;margin-top:8px;background:rgba(201,162,95,.06)}
 .mp-ex-curve{width:100%;height:auto;margin:10px 0 2px;display:block}
+/* ---- v49 Prestige: gold membership card + WhatsApp contact ---- */
+.mp-prestige{margin:10px 0 2px;border-radius:14px;padding:14px 16px;color:#f6ead2;position:relative;overflow:hidden;
+  background:linear-gradient(135deg,#1c1a12 0%,#2b2415 45%,#171408 100%);
+  border:1px solid rgba(201,162,95,.65);box-shadow:0 6px 24px rgba(0,0,0,.28),inset 0 0 0 1px rgba(201,162,95,.16)}
+.mp-prestige:before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 85% 12%,rgba(201,162,95,.25),transparent 60%);pointer-events:none}
+.mp-pres-top{display:flex;gap:8px;align-items:center;font-size:.64rem;letter-spacing:.2em;font-weight:800;color:#c9a25f;text-transform:uppercase}
+.mp-pres-seal{font-size:1rem}
+.mp-pres-name{font-size:1.05rem;font-weight:900;margin:6px 0 9px;color:#f3e3bd}
+.mp-pres-grid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.78rem;position:relative}
+.mp-pres-grid span{color:rgba(246,234,210,.62);font-weight:700}
+.mp-pres-grid b{color:#f6ead2;text-align:right}
+.mp-pres-foot{margin-top:11px;font-size:.62rem;letter-spacing:.14em;color:rgba(201,162,95,.9);text-transform:uppercase;position:relative}
+.mp-pres-contact{font-size:.78rem;font-weight:700;margin:10px 2px 2px}
+.mp-pres-contact a{color:#8a6a10;font-weight:900}

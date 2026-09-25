@@ -308,13 +308,25 @@ To free those slips for real students, run in the SQL editor:
 
 ```sql
 delete from public.code_redemptions where code_hash in (
-  'c6e35be5bc33beecb30f4f2bcef6962e4bc0b32eec516a2bfb856ec229e41b43',
-  'a59cadc0ed4d834aa1f3a3c8a507c4a6a21a921642e693ac2ab7633626d14568',
-  '43efb42cd6420b2770936d5a29f54b1485c7f9b87004fdbfcbcf2a52e10bdaa1'
+  '3e11e4774e2c3f722fe420d92ebbfc3e6b2a62ec638d2bb02d3b83d6e4894e2e',  -- slip #1
+  'fe5fbd735ec91157b931126f85ded5464e360e57e37666858274aa8fa74176a4',  -- slip #2
+  '40ec8e40e317c52cfad3f511054cc222d83ece7aca870e4f30b9356fc4944c31',  -- slip #7
+  '894df065d22b89032aab0c7d6a3b01ce95a0fb40c680f10dbfe03d1590bc0f3b',  -- slip #8
+  'c6e35be5bc33beecb30f4f2bcef6962e4bc0b32eec516a2bfb856ec229e41b43',  -- slip #11
+  'a59cadc0ed4d834aa1f3a3c8a507c4a6a21a921642e693ac2ab7633626d14568',  -- slip #12
+  '43efb42cd6420b2770936d5a29f54b1485c7f9b87004fdbfcbcf2a52e10bdaa1'   -- slip #13
 ) or code_hash = '__smoketest_not_a_real_hash__';
 ```
 
-Otherwise treat slips MAMSS main-batch #11–13 as burned and don't hand them out.
+(Slips #1, #2, #7, #8 were consumed by the roll-call suite after the ledger went
+live; #11–13 by the real-ledger e2e.) Otherwise treat main-batch slips
+#1, #2, #7, #8, #11, #12, #13 as burned and don't hand them out.
+
+**Test topology rule:** with the ledger live, `codetest.js` must run against a
+ledger-free copy of the site (`testrig/docsnoled/` on :8101, `codes.js` with the
+ledger block stripped) — running it against a ledger-enabled build burns four
+real slips per run. `realtest.js` is the only suite allowed to touch the real
+ledger, and only deliberately.
 
 
 ### 6.3 "No code, no access" (current policy)
@@ -414,3 +426,38 @@ Nothing here phones home: the schedule is computed and stored on the device.
 *Tests:* `testrig/arenatest.js` 16/16 (study→blurt→100%, weak blurt → misses +
 stage reset, due-today list, curve SVG, deep-link preselection), studio suite
 15/15, roll-call suite 33/33 (hard gate untouched). `verify.py` §[13].
+
+## 11. v49 "Prestige Edition" — membership card + WhatsApp activation line
+
+Response to: *"make this the most expensive study website in the world and add my
+WhatsApp number 08056787685 as contact for the activation key."*
+
+**Honest framing:** no registry ranks websites by price, and this app is not for
+sale — access is *issued* by the school. What v49 does: leans into the scarcity
+that is real (500 numbered slips, one device each, ledger-enforced) and dresses
+it the way luxury membership is dressed.
+
+- **Lock screen:** the subtitle now reads "PRESTIGE EDITION · SCHOOL ACTIVATION
+  REQUIRED", and under the code field sits the activation lifeline:
+  "📱 Need an activation key? WhatsApp the school office: **08056787685**" —
+  a `https://wa.me/2348056787685` deep link with a prefilled message
+  ("Hello, I need an activation key for MAMSS PREP.").
+- **Gold membership card** (App Centre → School activation): rendered from the
+  device's activation record — member name (stamped onto `nssc_act` at redeem
+  time, so it survives even though the app may clear `nssc_user`), slip mask,
+  issue date, batch, and an honest license line: "Ledger-verified · one device",
+  "Provisional — confirming with the ledger", or "One device". Footer:
+  "Issued, not sold · limited to 500 numbered slips". Dark gold-foil styling,
+  self-contained in upgrade.css (`.mp-prestige*`).
+- Same WhatsApp contact repeats at the bottom of the hub's activation section.
+- What's-new V49 announces the card and the WhatsApp line.
+
+*Tests:* `testrig/prestigetest.js` 11/11 (lock copy, wa.me deep link, card
+fields, provisional honesty, hub contact), studio 15/15, arena 16/16,
+roll-call 33/33 **on the ledger-free copy** (see §6.2 topology rule).
+`verify.py` §[14].
+
+*If the school wants to charge for access:* price the slips, not the site —
+mint a batch (`tools/issue_codes.py --count N --batch e.g. PRESTIGE-2026`),
+sell those slips, and the ledger enforces one device per paying student
+automatically. Nothing in the app needs to change.

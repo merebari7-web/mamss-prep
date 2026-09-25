@@ -499,6 +499,18 @@ def main():
     (ok if re.search(r'"-v5[3-9]"', swsrc) else fail)("sw cache key bumped to v53+")
     (ok if ".mp-ex-due" in cssrc and ".mp-ex-curve" in cssrc else fail)("studio styles extended for due list + curve")
 
+    print("\n[14] v49 Prestige — membership card + WhatsApp activation contact")
+    (ok if "wa.me/2348056787685" in isrc else fail)("lock screen carries the WhatsApp activation contact")
+    (ok if "08056787685" in isrc else fail)("lock screen shows the number in local format")
+    (ok if "PRESTIGE EDITION" in isrc else fail)("lock screen declares the Prestige Edition")
+    (ok if "mpPrestigeCard" in usrc else fail)("hub renders the gold membership card")
+    (ok if "ax.name = name" in usrc else fail)("the member's name is stamped on the activation record")
+    (ok if "wa.me/2348056787685" in usrc else fail)("App Centre carries the WhatsApp contact too")
+    (ok if "Ledger-verified" in usrc and "Provisional" in usrc else fail)("the card states the license honestly (verified/provisional)")
+    (ok if re.search(r"var V = (49|[5-9]\d)", usrc) else fail)("upgrade.js version bumped to 49+")
+    (ok if ".mp-prestige" in cssrc and ".mp-pres-contact" in cssrc else fail)("prestige styles are self-contained in upgrade.css")
+    (ok if re.search(r'"-v5[4-9]"', swsrc) else fail)("sw cache key bumped to v54+")
+
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))
     if FAIL:

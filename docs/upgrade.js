@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 48, NAME = "Recall Arena & Autopilot";
+  var V = 49, NAME = "Prestige Edition";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -628,7 +628,9 @@
       ["🎤", "Oral Examiner — world-first", "The app speaks oral questions aloud, listens through your microphone and marks your spoken answer against the mark points: coverage, pace, filler words. Typed answers accepted where there is no mic."],
       ["🏛️", "Memory Palace — world-first", "Any topic becomes a guided walk through your own school: one vivid image per room, then a scored recall test. The method of loci, automated, offline, on your device."],
       ["🏟️", "Recall Arena — world-first", "Blurting, automated: study the mark points for 30 seconds, the app hides everything, you write all you remember — it diffs your blurt against every mark point and hands you the misses, pen-colour style."],
-      ["📈", "Forgetting-Curve Autopilot — world-first", "Every oral, palace walk and blurt now feeds an Ebbinghaus schedule (1·3·7·14·30 days). The App Centre tells you exactly which topic to review today, with the right tool for its stage. On-device, offline, no account."]
+      ["📈", "Forgetting-Curve Autopilot — world-first", "Every oral, palace walk and blurt now feeds an Ebbinghaus schedule (1·3·7·14·30 days). The App Centre tells you exactly which topic to review today, with the right tool for its stage. On-device, offline, no account."],
+      ["✦", "Prestige Edition membership card", "Your activation is now a gold membership card in the App Centre: your slip, batch, issue date and ledger-verified single-device license. Access to MAMSS PREP is issued by the school, not sold — 500 numbered slips, one device each."],
+      ["📱", "WhatsApp activation help", "Stuck at the lock screen? One tap opens a WhatsApp chat with the school office (08056787685) to request an activation key."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -1024,6 +1026,10 @@
         if (res.r !== "same" && typeof window.createStudyAccount === "function" && !st.get("nssc_user", null))
           window.createStudyAccount(name, "");
       } catch (e) {}
+      try {                                    /* prestige card: keep the member's name on the activation record */
+        var ax = st.get("nssc_act", null);
+        if (ax && !ax.name) { ax.name = name; st.set("nssc_act", ax); }
+      } catch (e) {}
       paintCodeUi(); renderHubSafe();
       try { if (typeof toast === "function") toast("Welcome to MAMSS PREP, " + name.split(" ")[0] + "!", "🎉"); } catch (e) {}
     }).catch(function () { lockFeedback("✘ Could not check the code on this browser.", "bad"); });
@@ -1291,10 +1297,24 @@
   }
   var origSignUp = function () {};
 
+  var WA_HREF = "https://wa.me/2348056787685?text=Hello%2C%20I%20need%20an%20activation%20key%20for%20MAMSS%20PREP.";
   function hubActivationRow(html) {
     var a = actInfo();
     html += '<div class="mp-sec"><h4>School activation</h4>';
     if (a) {
+      var mName = "";
+      try { mName = (a && a.name) || ((st.get("nssc_user", null) || {}).name) || ""; } catch (e) {}
+      html += '<div class="mp-prestige" id="mpPrestigeCard">' +
+        '<div class="mp-pres-top"><span class="mp-pres-seal" aria-hidden="true">✦</span><span>PRESTIGE EDITION · MEMBERSHIP</span></div>' +
+        '<div class="mp-pres-name">' + esc_(mName || "Prestige Member") + '</div>' +
+        '<div class="mp-pres-grid">' +
+        '<span>Slip</span><b>' + esc_(a.mask || "—") + '</b>' +
+        '<span>Issued</span><b>' + (a.at ? esc_(new Date(a.at).toLocaleDateString()) : "—") + '</b>' +
+        '<span>Batch</span><b>' + esc_(a.batch || "—") + '</b>' +
+        '<span>License</span><b>' + (a.pending ? "Provisional — confirming with the ledger" : a.ledger ? "Ledger-verified · one device" : "One device") + '</b>' +
+        '</div>' +
+        '<div class="mp-pres-foot">Issued, not sold · limited to 500 numbered slips</div>' +
+        '</div>';
       var led = ledgerCfg();
       html += row("act", "🔑", "Activated: <b>" + esc_(a.mask) + "</b>",
         (a.pending ? "⏳ Waiting to confirm with the school ledger · " : led && a.ledger ? "School ledger: live — one slip, one device, enforced across phones · " : led ? "School ledger configured · " : "Single-use on this device · ") +
@@ -1313,6 +1333,8 @@
     } else {
       html += row("act", "🔓", "Open access", "This installation does not require school codes.", "");
     }
+    html += '<p class="mp-pres-contact">📱 Need an activation key? WhatsApp the school office: ' +
+      '<a href="' + WA_HREF + '" target="_blank" rel="noopener">08056787685</a></p>';
     html += "</div>";
     return html;
   }

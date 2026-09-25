@@ -49,6 +49,7 @@ box-shadow:0 24px 60px rgba(0,0,0,.35);text-align:center}
 .mp-lock-card .btn{width:100%;margin-top:14px}
 #mpLockFb{min-height:1.2em;margin-top:10px;font-size:.8rem;font-weight:700}
 #mpLockFb.ok{color:#0f6b4f}#mpLockFb.bad{color:#8b2f2f}
+#mpLockWa{color:#c9a25f;font-weight:900;text-decoration:underline}
 .mp-lock-note{margin:12px 0 0;font-size:.72rem;color:var(--mut,#6b6b6b)}
 /* while a fresh device waits for a slip, the redesign's own escape hatches sleep */
 html.mp-codes-pending:not(.mp-code-ok) #acctSignedOut .divider,
@@ -591,7 +592,7 @@ Suite, then cached by the service worker. Both scripts define global vars
 <div class="mp-lock-card">
 <div style="font-size:2.2rem" aria-hidden="true">🔐</div>
 <h1>MAMSS PREP</h1>
-<p class="mp-lock-sub">SCHOOL ACTIVATION REQUIRED</p>
+<p class="mp-lock-sub">PRESTIGE EDITION · SCHOOL ACTIVATION REQUIRED</p>
 <p class="mp-lock-copy">Every student activates this app with the paper code your school
 hands out. Type it below — each code opens <b>one device</b> only.</p>
 <label for="mpLockName">Your full name</label>
@@ -602,6 +603,8 @@ spellcheck="false" placeholder="MAMSS-000000-2026"
 onkeydown="if(event.key==='Enter'){event.preventDefault();var b=document.getElementById('mpLockBtn');b&&b.click()}">
 <button class="btn btn-primary" id="mpLockBtn" type="button">🔑 Activate code</button>
 <div id="mpLockFb" role="status" aria-live="polite"></div>
+<p class="mp-lock-note" id="mpLockContact">📱 Need an activation key? WhatsApp the school office:
+<a id="mpLockWa" href="https://wa.me/2348056787685?text=Hello%2C%20I%20need%20an%20activation%20key%20for%20MAMSS%20PREP." target="_blank" rel="noopener">08056787685</a> — tap to chat.</p>
 <p class="mp-lock-note">Signed in before, or already activated on this device? You sail straight through.</p>
 </div>
 </div>
