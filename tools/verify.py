@@ -821,12 +821,23 @@ def main():
     (ok if "table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;contain:layout style}" in whysrc and "footer a,.note a{display:inline-block;padding:8px 0}" in whysrc else fail)("why.html: ≤700px contained table scroll + link tap padding")
     (ok if os.path.exists(os.path.join(ROOT, "tools", "responsetest.js")) else fail)("tools/responsetest.js: the v60 suite is mirrored")
 
+    # ── §31 · v66 "Examiner's Marginalia" — explanation craft ──────────
+    marg = open(ROOT + '/docs/ui/marginalia.js', encoding='utf-8').read()
+    (ok if 'window.MAMSS_MARGINALIA' in marg and 'MutationObserver' in marg and 'qExplain' in marg else fail)("marginalia.js: render-time frame over #qExplain via observer")
+    (ok if "The Examiner&#39;s Note" in marg and 'What the question wants' in marg and 'Where marks are lost' in marg and 'The full answer' in marg else fail)("marginalia.js: the three movements + strap")
+    (ok if 'qmedal' in marg and 'nssc_mistakes' in marg else fail)("marginalia.js: stem read past the medal; personal line from the mistake bank")
+    (ok if 'if (!stem) return;' in marg and 'el.querySelector(".mx-frame")) return;' in marg else fail)("marginalia.js: fail-quiet + idempotent")
+    (ok if 'ui/marginalia.js' in idxsrc else fail)("index.html: marginalia module wired")
+    (ok if '-v71' in swsrc and '"./ui/marginalia.js"' in swsrc else fail)("sw.js: precache marginalia + cache -v71")
+    (ok if VP >= 66 and "Marginalia" in usrc else fail)("upgrade.js: V=66 \"Examiner's Marginalia\" entry")
+    (ok if '.mx-frame{' in atsrc and '.mx-strap{' in atsrc and 'ao-night .mx-frame' in atsrc else fail)("atelier.css: red-pen frame, strap, dark-theme tint")
+
     # ── §29 · v64 "The Habit Loop" — gamification ───────────────────────
     hab = open(ROOT + '/docs/ui/habits.js', encoding='utf-8').read()
     (ok if 'window.MAMSS_HABITS' in hab and 'leagueRows' in hab and 'streak shield' in hab.lower() or 'Streak shield' in hab else fail)("habits.js: habit-loop module (board, freezes, league, celebrations)")
     (ok if 'role="progressbar"' in hab and 'aria-label' in hab else fail)("habits.js: quest bars are real progressbars")
     (ok if 'ui/habits.js' in idxsrc else fail)("index.html: habits module wired")
-    (ok if '-v70' in swsrc and '"./ui/habits.js"' in swsrc else fail)("sw.js: precache habits + cache -v70")
+    (ok if '-v71' in swsrc and '"./ui/habits.js"' in swsrc else fail)("sw.js: precache habits + cache -v71")
     (ok if VP >= 64 and "The Habit Loop" in usrc else fail)("upgrade.js: V=64 \"The Habit Loop\" entry")
     (ok if '.hab-panel{' in atsrc and '.hab-celebrate{' in atsrc and '@media(prefers-reduced-motion:reduce){.hab-cel-card' in atsrc else fail)("atelier.css: habit board + celebration with reduced-motion guard")
 
@@ -837,13 +848,13 @@ def main():
     (ok if 'This seat is yours alone. Keep the code private.' in slip and 'you are admitted.' in slip and 'slip-serial' in slip else fail)("slip.js: the letter — name, law line, gold serial")
     (ok if 'slip-printing' in slip and 'window.print()' in slip else fail)("slip.js: print path isolates the letter")
     (ok if 'ui/slip.js' in idxsrc else fail)("index.html: slip module wired")
-    (ok if '-v70' in swsrc and '"./ui/slip.js"' in swsrc else fail)("sw.js: precache slip + cache -v70")
+    (ok if '-v71' in swsrc and '"./ui/slip.js"' in swsrc else fail)("sw.js: precache slip + cache -v71")
     (ok if VP >= 65 and "The Admission Slip" in usrc else fail)("upgrade.js: V=65 \"The Admission Slip\" entry")
     (ok if usrc.count('MAMSS_SLIP.fresh(') == 3 else fail)("upgrade.js: every fresh-activation branch presents the slip (3 hooks)")
     (ok if '.slip-paper{' in atsrc and '.slip-serial{' in atsrc and 'html.slip-printing' in atsrc and '.slip-overlay,.slip-paper{animation:none}' in atsrc else fail)("atelier.css: cream paper, gold emboss, print isolation, reduced-motion guard")
 
     # ── §28 · v63 "Anywhere" — offline excellence ────────────────────
-    (ok if '-v70' in swsrc and 'NAV_TIMEOUT_MS' in swsrc and 'stale-while-revalidate' in swsrc else fail)("sw.js: v70 SWR assets + raced navigations with timeout")
+    (ok if '-v71' in swsrc and 'NAV_TIMEOUT_MS' in swsrc and 'stale-while-revalidate' in swsrc else fail)("sw.js: v71 SWR assets + raced navigations with timeout")
     at2 = open(ROOT + '/docs/ui/atelier.js', encoding='utf-8').read()
     (ok if 'mpNetStrip' in at2 and 'updatefound' in at2 and 'navigator.storage.persist' in at2 else fail)("atelier.js: offline strip, SW update notice, storage persistence")
     prg2 = open(ROOT + '/docs/ui/progress-up.js', encoding='utf-8').read()
@@ -864,7 +875,7 @@ def main():
     (ok if 'ui/progress-up.js' in idxsrc and 'prg-school-line' in idxsrc else fail)("index.html: reporter script tag + student transparency line")
     (ok if VP >= 62 and "The Open Book" in usrc and "The Finishing Pass" in usrc else fail)("upgrade.js: V=62 \"The Open Book\" entry (v61 entry retained)")
     (ok if 'MAMSS_PROGRESS_WAKE' in usrc else fail)("upgrade.js: wake hook starts the reporter after unlock")
-    (ok if '"./ui/progress-up.js"' in swsrc and '-v70' in swsrc else fail)("sw.js: precache reporter + cache -v70")
+    (ok if '"./ui/progress-up.js"' in swsrc and '-v71' in swsrc else fail)("sw.js: precache reporter + cache -v71")
     (ok if '.prg-chip{' in atsrc and '.prg-drill{' in atsrc else fail)("atelier.css: v62 panel styles")
 
     # ── §26 · v61 "The Finishing Pass" ───────────────────────────────────────

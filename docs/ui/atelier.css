@@ -2783,3 +2783,14 @@ html.ao-night .hab-bar{background:rgba(255,255,255,.12)}
   html.slip-printing .slip-actions,html.slip-printing .slip-crest{display:none!important}
   html.slip-printing .slip-serial{color:#8a6d3d;-webkit-text-fill-color:#8a6d3d}
 }
+
+/* ═══ v66 · Examiner's Marginalia — the marker's frame ═══ */
+.mx-frame{border-left:3px solid var(--studio-rust,#a44f37);padding:10px 14px 12px;margin-top:8px;background:rgba(164,79,55,.045);border-radius:0 10px 10px 0}
+.mx-strap{font:700 9.5px/1.6 "Studio Sans",Arial,sans-serif;letter-spacing:.26em;text-transform:uppercase;color:var(--studio-rust,#a44f37);margin:0 0 8px}
+.mx-move{font:400 12.5px/1.65 "Studio Sans",Arial,sans-serif;color:var(--s-body,#46515e);margin:0 0 6px}
+.mx-move b{font-weight:700;color:var(--s-ink,#202936)}
+.mx-again{color:var(--studio-rust,#a44f37);font-style:italic}
+.mx-answer{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(164,79,55,.35)}
+.mx-answer>b{font:700 9.5px/1.6 "Studio Sans",Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--s-muted,#626973);margin-right:6px}
+html.ao-night .mx-frame{background:rgba(237,182,158,.06)}
+@media(prefers-reduced-motion:reduce){.mx-frame{animation:none}}

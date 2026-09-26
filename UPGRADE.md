@@ -1291,6 +1291,40 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 28 · v66 "Examiner's Marginalia" — explanation craft as brand voice (2026-09-26)
+
+Design-review §5.2, the second bar-raiser: UWorld wins trust with explanation
+structure; MAMSS wins it with explanation voice. Presentation layer only —
+the bank stays hash-locked and the engine is never edited.
+
+  * **The marker's frame** (`docs/ui/marginalia.js`, new): a MutationObserver
+    watches `#qExplain` (the single explanation surface in the studio). When
+    the engine renders a verdict + explanation, the note is composed on the
+    spot — red-pen rule, small-caps strap **THE EXAMINER'S NOTE**, and three
+    movements:
+      * *What the question wants* — the WAEC command word parsed from the
+        stem (15 verbs + a fallback, matched in order over the opening 120
+        characters) translated into marks: "a number, with working — method
+        marks live in the steps, not the final line."
+      * *Where marks are lost* — the classic trap for that command word, plus
+        a personal line when the very question sits in the member's mistake
+        bank ("it caught you before"). No invented statistics: the trap lines
+        are craft, and the personal line is real local data.
+      * *The full answer* — the engine's own verdict and explanation,
+        byte-for-byte untouched, under a dashed rule.
+  * **Fail-quiet and idempotent**: no stem readable → the engine's words stand
+    alone; an already-framed explanation is never re-framed; the observer's
+    own write cannot loop it.
+  * The stem is read past the `Q<n>` medal span; matching against the mistake
+    bank is whitespace-normalised.
+  * a11y: the frame lives inside the existing `role=status` live region, so
+    screen readers hear verdict → note → answer as one announcement.
+  * sw `-v71` (precache marginalia.js); whats-new v66; verify.py §31 (8 pins)
+    and four `-v70`→`-v71` bumps.
+  * Test: `marginaliatest.js` — command-word table, frame composition over a
+    real answered question, personal mistake-bank line, idempotence across
+    question changes, fail-quiet, zero page errors.
+
 ## 27 · v65 "The Admission Slip" — activation as a ceremony (2026-09-26)
 
 Design-review §5.1, the first bar-raiser: no competitor issues seats, so no
