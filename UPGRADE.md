@@ -765,11 +765,23 @@ keys, no new config, no new vendor.
    school"* — nothing else on the site is affected (tested). (The file already
    carries the v55 `webcam` column; if you ran the v54 version of it earlier,
    also run the one-line `alter table` at the bottom of the file.)
+   **Status (2026-09-26): DONE — the school ran the file in the dashboard and
+   it was verified remotely, end to end.** Tables + both timing triggers + both
+   PK rules + delete-blocked RLS: 14/14 over REST with the publishable key.
+   Realtime broadcast: A→B relay in 742 ms on the production socket, speaking
+   the exact protocol `LiveRoom` uses. Live site: the CBT tab now reads the
+   real tables (the "being set up" card is gone for good). One permanent
+   setup-probe remains — deletes are blocked by design, so session `ZZ9999`
+   (*"— setup probe (safe to ignore) —"*, status `ended`, plus one
+   attempt/answer pair under device `probe-dev`) stays in the table. Nobody
+   can join it: anyone typing the code is told the session has ended.
+
 2. **Hand out teacher slips.** 10 `TEACHER-1` slips were generated on
    2026-09-26 and live ONLY in `tools/private/codes-TEACHER-1-2026-09-26.html`
    (print & cut) + `.csv` — git-ignored, never uploaded, same discipline as
    the student slips. A teacher activates exactly like a student; the console
-   appears by itself. More teachers later:
+   appears by itself. (The slips were handed over for printing on
+   2026-09-26.) More teachers later:
    `python3 tools/issue_codes.py --count N --batch TEACHER-2` (ranges update
    automatically; any batch named `TEACHER-*` grants the role).
 
