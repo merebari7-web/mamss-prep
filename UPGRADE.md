@@ -1291,6 +1291,35 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 27 · v65 "The Admission Slip" — activation as a ceremony (2026-09-26)
+
+Design-review §5.1, the first bar-raiser: no competitor issues seats, so no
+competitor can copy this. The gate's database write becomes the emotional
+object of the product.
+
+  * **The admission letter** (`docs/ui/slip.js`, new): the first time a school
+    code is redeemed on a device, a full-screen letter rises on cream paper —
+    engraved crest, "«First name» — you are admitted." in the display serif,
+    the slip serial embossed in gold letterspacing, allocation (SS1–SS3 ·
+    Main / Top-up / Teaching seat), issue date, one line of law ("This seat is
+    yours alone. Keep the code private.") and two actions: **Print my slip**
+    (print CSS isolates the letter alone on the page) and **Enter the studio**.
+  * **Hooked at every fresh-activation branch** (upgrade.js ×3: offline,
+    ledger-confirmed, provisional) — one `MAMSS_SLIP.fresh()` call each; the
+    letter waits ~900 ms so the lock closes first, and shows once per slip
+    (`nssc_slip_seen` = code hash prefix).
+  * **Fail-closed**: no activation record → no slip, ever; the reprint entry
+    ("My admission slip", overview heading) only mounts for activated devices.
+    Display layer only — the record itself is untouched; nothing new syncs.
+  * a11y: `role=dialog aria-modal`, labelled by its heading, Esc/backdrop
+    close, focus to "Enter the studio" and restored on close; the serial's
+    middle-dots get a visually-hidden reading; honours reduced motion.
+  * sw `-v70` (precache slip.js); whats-new v65; verify.py §30 (9 pins) and
+    the three `-v69`→`-v70` bumps.
+  * Test: `sliptest.js` (real codes from the git-ignored CSV, run against the
+    no-ledger copy) — ceremony, copy, serial, once-only, reprint, print class,
+    a11y, zero page errors.
+
 ## 26 · v64 "The Habit Loop" — gamification (2026-09-26)
 
 Roadmap item #8, built on the Duolingo mechanics research: persistent state

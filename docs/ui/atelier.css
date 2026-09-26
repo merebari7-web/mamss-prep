@@ -2744,3 +2744,42 @@ html.ao-night .hab-bar{background:rgba(255,255,255,.12)}
 @media(max-width:800px){.hab-grid{grid-template-columns:1fr 1fr}.hab-league{grid-column:1/-1}}
 @media(max-width:560px){.hab-grid{grid-template-columns:1fr}.hab-flamecard{flex-direction:row;gap:10px;justify-content:flex-start;text-align:left}}
 @media(prefers-reduced-motion:reduce){.hab-cel-card,.hab-cel-burst{animation:none}.hab-bar i{transition:none}}
+
+/* ═══ v65 · The Admission Slip — activation as a ceremony ═══ */
+.slip-overlay{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(20,24,32,.62);backdrop-filter:blur(3px);animation:slipIn .45s ease both}
+.slip-overlay .vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.slip-paper{position:relative;max-width:560px;width:100%;max-height:calc(100vh - 48px);overflow:auto;background:#fdfbf4;color:#2b2a24;border-radius:14px;padding:52px 44px 40px;text-align:center;box-shadow:0 30px 90px rgba(10,12,18,.45),0 2px 0 rgba(255,255,255,.6) inset;animation:slipRise .5s cubic-bezier(.2,.9,.25,1) both}
+.slip-frame{position:absolute;inset:14px;border:1px solid rgba(149,117,71,.5);border-radius:8px;pointer-events:none}
+.slip-frame::after{content:"";position:absolute;inset:4px;border:1px solid rgba(149,117,71,.22);border-radius:6px}
+.slip-crest{width:52px;height:52px;color:#957547;margin-bottom:10px}
+.slip-school{font:600 10px/1.6 "Studio Sans",Arial,sans-serif;letter-spacing:.28em;text-transform:uppercase;color:#6f6955;margin:0 0 22px}
+.slip-head{font:400 clamp(24px,4.4vw,34px)/1.2 "Studio Display",Georgia,serif;color:#23211a;margin:0 0 14px}
+.slip-head span{color:#7c5f31}
+.slip-body{font:400 14px/1.75 "Studio Sans",Arial,sans-serif;color:#4d4a3e;margin:0 auto 14px;max-width:42ch}
+.slip-law{font:italic 400 13px/1.7 "Studio Display",Georgia,serif;color:#7c5f31;margin:0 auto 26px;max-width:40ch}
+.slip-kicker{font:600 9px/1.6 "Studio Sans",Arial,sans-serif;letter-spacing:.3em;text-transform:uppercase;color:#6f6955;margin:0 0 4px}
+.slip-serial{font:600 clamp(15px,2.6vw,19px)/1.5 "Studio Display",Georgia,serif;letter-spacing:.34em;color:transparent;background:linear-gradient(180deg,#b99a5e,#8a6d3d);-webkit-background-clip:text;background-clip:text;margin:0 0 26px;text-transform:uppercase}
+.slip-meta{display:flex;justify-content:center;gap:28px;flex-wrap:wrap;border-top:1px solid rgba(149,117,71,.3);border-bottom:1px solid rgba(149,117,71,.3);padding:16px 0;margin:0 0 28px}
+.slip-meta div{display:flex;flex-direction:column;gap:3px}
+.slip-meta dt{font:600 9px/1.5 "Studio Sans",Arial,sans-serif;letter-spacing:.22em;text-transform:uppercase;color:#6f6955}
+.slip-meta dd{font:400 13px/1.5 "Studio Display",Georgia,serif;color:#3a382e;margin:0}
+.slip-actions{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.slip-actions button{font:600 13px/1 "Studio Sans",Arial,sans-serif;letter-spacing:.04em;border-radius:999px;padding:13px 24px;cursor:pointer;border:1px solid transparent;transition:transform .15s ease,box-shadow .15s ease}
+.slip-print{background:transparent;color:#7c5f31;border-color:rgba(149,117,71,.55)!important}
+.slip-print:hover{background:rgba(149,117,71,.08)}
+.slip-enter{background:linear-gradient(180deg,#2c3a52,#1b2638);color:#f4efe2;box-shadow:0 8px 24px rgba(27,38,56,.35)}
+.slip-enter:hover{transform:translateY(-1px);box-shadow:0 12px 28px rgba(27,38,56,.4)}
+.slip-reopen{display:inline-flex;align-items:center;gap:6px;margin-top:10px}
+.slip-reopen .ico{width:15px;height:15px;color:var(--studio-gold,#957547)}
+@keyframes slipIn{from{opacity:0}to{opacity:1}}
+@keyframes slipRise{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+@media(max-width:560px){.slip-paper{padding:40px 24px 30px}.slip-meta{gap:16px}}
+@media(prefers-reduced-motion:reduce){.slip-overlay,.slip-paper{animation:none}.slip-actions button{transition:none}}
+/* print: the letter alone, on real paper */
+@media print{
+  html.slip-printing body>*:not(#slipOverlay){display:none!important}
+  html.slip-printing .slip-overlay{position:static;display:block;background:none;padding:0;backdrop-filter:none;animation:none}
+  html.slip-printing .slip-paper{max-width:none;width:100%;max-height:none;box-shadow:none;border-radius:0;background:#fff;animation:none}
+  html.slip-printing .slip-actions,html.slip-printing .slip-crest{display:none!important}
+  html.slip-printing .slip-serial{color:#8a6d3d;-webkit-text-fill-color:#8a6d3d}
+}
