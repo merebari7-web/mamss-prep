@@ -435,6 +435,8 @@ def main():
     (ok if "(!u&&!a)" not in isrc and 'id="mpLockReveal"' in isrc else fail)(
         "index.html: pre-paint lock keyed on activation only (no signed-in bypass)")
     swsrc = open(os.path.join(DOCS, "sw.js"), encoding="utf-8").read()
+    _swm = re.search(r'"-v(\d+)"', swsrc)
+    SWV = int(_swm.group(1)) if _swm else 0   # numeric cache-key version, so "vN+" checks survive future bumps
     (ok if '"./codes.js"' in swsrc else fail)("service worker precaches codes.js (works offline)")
     mk = re.search(r'"-v(\d+)"', swsrc)
     (ok if mk and int(mk.group(1)) >= 45 else fail)(
@@ -448,7 +450,7 @@ def main():
         ok("sw.js precaches the document once")
     (ok if 'cache:"reload"' not in swsrc and "cache: \"reload\"" not in swsrc else fail)(
         "sw.js install does not force a second download (no cache:reload)")
-    (ok if swsrc.count('"-v5') >= 1 and re.search(r'"-v5[1-9]"', swsrc) else fail)("sw key at v51+")
+    (ok if SWV >= 51 else fail)("sw key at v51+")
     n_pre = len(re.findall(r'rel="preload"', isrc))
     (ok if n_pre >= 2 else warn)("index.html preloads above-the-fold assets (%d)" % n_pre)
     (ok if 'rel="preconnect"' in isrc else warn)("index.html preconnects to the Google sign-in origin")
@@ -473,7 +475,7 @@ def main():
         ):
             (ok if needle in exsrc else fail)("exclusive.js: %s" % why)
     (ok if '"./exclusive.js"' in swsrc else fail)("service worker precaches exclusive.js (offline studio)")
-    (ok if re.search(r'"-v5[2-9]"', swsrc) else fail)("sw cache key bumped to v52+")
+    (ok if SWV >= 52 else fail)("sw cache key bumped to v52+")
     (ok if "loadExclusive" in usrc else fail)("upgrade.js lazy-loads the studio (no cost until opened)")
     (ok if "mpOralOpen" in usrc and "mpPalOpen" in usrc else fail)("hub rows wire both studio doors")
     (ok if re.search(r"var V = (4[7-9]|[5-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 47+ (what's-new fires)")
@@ -496,7 +498,7 @@ def main():
             (ok if needle in exsrc else fail)("exclusive.js: %s" % why)
     (ok if "mpArenaOpen" in usrc and "mpAutoOpen" in usrc else fail)("hub rows wire arena + autopilot")
     (ok if re.search(r"var V = (4[8-9]|[5-9]\d)", usrc) else fail)("upgrade.js version bumped to 48+")
-    (ok if re.search(r'"-v5[3-9]"', swsrc) else fail)("sw cache key bumped to v53+")
+    (ok if SWV >= 53 else fail)("sw cache key bumped to v53+")
     (ok if ".mp-ex-due" in cssrc and ".mp-ex-curve" in cssrc else fail)("studio styles extended for due list + curve")
 
     print("\n[14] v49 Prestige — membership card + WhatsApp activation contact")
@@ -509,7 +511,7 @@ def main():
     (ok if "Ledger-verified" in usrc and "Provisional" in usrc else fail)("the card states the license honestly (verified/provisional)")
     (ok if re.search(r"var V = (49|[5-9]\d)", usrc) else fail)("upgrade.js version bumped to 49+")
     (ok if ".mp-prestige" in cssrc and ".mp-pres-contact" in cssrc else fail)("prestige styles are self-contained in upgrade.css")
-    (ok if re.search(r'"-v5[4-9]"', swsrc) else fail)("sw cache key bumped to v54+")
+    (ok if SWV >= 54 else fail)("sw cache key bumped to v54+")
 
     print("\n[15] v50 Exam Command Center — heatmap + generated study plan")
     if os.path.exists(expath):
@@ -526,7 +528,7 @@ def main():
             (ok if needle in exsrc else fail)("exclusive.js: %s" % why)
     (ok if "mpCmdOpen" in usrc else fail)("hub row wires the command center")
     (ok if re.search(r"var V = ([5-9]\d|\d{3,})", usrc) else fail)("upgrade.js version bumped to 50+")
-    (ok if re.search(r'"-v5[5-9]"', swsrc) else fail)("sw cache key bumped to v55+")
+    (ok if SWV >= 55 else fail)("sw cache key bumped to v55+")
     (ok if ".mp-hm-grid" in cssrc and "@media print" in cssrc else fail)("heatmap + print styles in upgrade.css")
 
     print("\n[16] v51 'Why MAMSS PREP' prospectus page")
@@ -602,7 +604,7 @@ def main():
     (ok if not re.search(r'"[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}"', codesrc) else fail)("codes.js: no plaintext slip strings (XXXX-XXXX)")
 
     # --- upgrade.js: role stamping + API ---
-    (ok if 'var V = 54, NAME = "Live CBT Hall"' in usrc else fail)("upgrade.js: V=54 NAME=Live CBT Hall")
+    (ok if re.search(r"var V = 5[4-9]", usrc) and 'NAME = "Live CBT Cameras"' in usrc and "Live CBT Hall" in usrc else fail)("upgrade.js: V=54+ shipped (Live CBT Hall entry retained, now Live CBT Cameras)")
     (ok if "function batchOf(h)" in usrc and "CODES.batchRanges" in usrc else fail)("upgrade.js: batchOf() resolves the TRUE batch via batchRanges")
     (ok if usrc.count("role: roleOfHash(h)") == 3 else fail)("upgrade.js: all 3 nssc_act stamps carry role (got %d)" % usrc.count("role: roleOfHash(h)"))
     (ok if "batch: batchOf(h) }])" in usrc else fail)("upgrade.js: ledger claim posts the true batch")
@@ -631,7 +633,7 @@ def main():
     (ok if 'data-view="cbt" href="#cbt"' in isrc else fail)("index.html: mobile dock link")
     (ok if 'cbt: "Live CBT Hall"' in studysrc else fail)("study.js: titles whitelist includes cbt")
     (ok if 'load("cbt.js")' in studysrc and "MAMSS_CBT.mount()" in studysrc else fail)("study.js: navigate() lazy-loads + mounts the hall")
-    (ok if '"-v59"' in swsrc else fail)("sw.js: cache bumped to -v59")
+    (ok if SWV >= 59 else fail)("sw.js: cache bumped to -v59+")
     (ok if '"./cbt.js"' in swsrc else fail)("sw.js: cbt.js precached")
     (ok if "repeat(5, minmax(0, 1fr))" in atelier else fail)("atelier.css: mobile dock widened to 5 tabs")
 
@@ -643,6 +645,30 @@ def main():
     (ok if "for delete" not in schema else fail)("cbt_schema.sql: no delete policies (rows are permanent)")
     (ok if "supabase_realtime" in schema else fail)("cbt_schema.sql: realtime publication")
     (ok if "--seed-ranges" in issuer and "batchRanges" in issuer else fail)("issue_codes.py: maintains batchRanges (--seed-ranges migration)")
+
+    print("\n[20] v55 Live CBT Cameras (webcam monitoring, ephemeral by design)")
+    (ok if 'var V = 55, NAME = "Live CBT Cameras"' in usrc else fail)("upgrade.js: V=55 NAME=Live CBT Cameras")
+    (ok if "Live CBT Cameras" in usrc and "never recorded and never stored" in usrc else fail)("whats-new announces the cameras with the privacy promise")
+    (ok if 'var VERSION = "55"' in cbtsrc else fail)("cbt.js: VERSION 55")
+    (ok if "getUserMedia" in cbtsrc and "facingMode: \"user\"" in cbtsrc and "audio: false" in cbtsrc else fail)("cbt.js: video-only getUserMedia (front camera, no audio)")
+    (ok if "__CBT_WS_URL" in cbtsrc and "__CBT_CAM_MS" in cbtsrc else fail)("cbt.js: WS-URL + frame-interval test hooks")
+    (ok if "CAM_INTERVAL = 12000" in cbtsrc else fail)("cbt.js: one snapshot every 12 s")
+    (ok if "if (document.hidden) return;" in cbtsrc else fail)("cbt.js: hidden tabs broadcast nothing (integrity log covers that window)")
+    (ok if "26000" in cbtsrc and "192, 144, 0.4" in cbtsrc else fail)("cbt.js: adaptive downscale keeps frames under the realtime message cap")
+    (ok if all(x in cbtsrc for x in ('stampWebcam("on")', 'stampWebcam(denied ? "denied" : "unavailable")', 'stampWebcam("skipped")')) else fail)("cbt.js: attempt row records only a status word (on/denied/unavailable/skipped)")
+    (ok if "renderCamGate" in cbtsrc and "camProceed" in cbtsrc else fail)("cbt.js: required mode gates the runner behind the CAMERA CHECK")
+    (ok if "never recorded and never stored" in cbtsrc and "see yourself here first" in cbtsrc else fail)("cbt.js: gate states the plain-language privacy promise + self-preview")
+    (ok if cbtsrc.count("stopCam()") >= 4 else fail)("cbt.js: camera stopped at submit, finish, leave and tab-reset (%d stopCam sites)" % cbtsrc.count("stopCam()"))
+    (ok if "cbtWebcam" in cbtsrc and "Webcam monitoring" in cbtsrc else fail)("cbt.js: teacher chooses off/optional/required per paper")
+    (ok if "webcam: d.webcam" in cbtsrc else fail)("cbt.js: goLive persists settings.webcam")
+    (ok if "camFrames" in cbtsrc and "updateCams" in cbtsrc and "cbtCams" in cbtsrc else fail)("cbt.js: monitor renders live camera tiles")
+    (ok if cbtsrc.count("camCell(") >= 2 else fail)("cbt.js: webcam status shown on roster AND results")
+    (ok if "cam: function ()" in cbtsrc and "cams: function ()" in cbtsrc else fail)("cbt.js: _test cam hooks")
+    (ok if "webcam       text not null default ''" in schema else fail)("cbt_schema.sql: attempts carry the webcam status column")
+    (ok if "add column if not exists webcam" in schema else fail)("cbt_schema.sql: one-line migration for early v54 adopters")
+    (ok if '"-v60"' in swsrc else fail)("sw.js: cache bumped to -v60")
+    r = subprocess.run(["node", "--check", cbtsrc_path], capture_output=True, text=True)
+    (ok if r.returncode == 0 else fail)("cbt.js: node --check clean (v55)")
 
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))

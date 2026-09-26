@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 54, NAME = "Live CBT Hall";
+  var V = 55, NAME = "Live CBT Cameras";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -638,7 +638,8 @@
       ["✦", "Why MAMSS PREP — shareable page", "A prestige prospectus you can share in any parents' group or WhatsApp status: the five world-first tools, the honest global audit, and one tap to request an activation key from the school office. Find it on the lock screen and in the App Centre."],
       ["📝", "WAEC-standard question bank", "Every question in the bank has been audited to WAEC standard: command-word phrasing, sentence punctuation, ordinal and article grammar — and every machine-worded stem and explanation rewritten into clean examination English. Same questions, same answers; now phrased the way WAEC phrases them."],
       ["🧠", "Adaptive Engine", "The app now remembers how you answer every topic — accuracy, speed and a Leitner-style memory box with spaced due dates. The Daily Challenge weights six of its ten questions toward your three weakest topics, and the AI Coach shows each weak topic's memory box and offers speed drills when you are correct but slow. On-device, offline, no account — as always."],
-      ["🏫", "Live CBT Hall", "Teachers can now run a real live examination: build the paper from the question bank (or add fresh questions), go live with a 6-character session code, watch every device join and answer in real time, extend or end the sitting, and get the ranking with per-question breakdown immediately after. Students join from the new Live CBT tab with the activation they already have — one device per session, every answer saved the instant it is given, and the clock lives on the school server so a refresh cannot reset it."]
+      ["🏫", "Live CBT Hall", "Teachers can now run a real live examination: build the paper from the question bank (or add fresh questions), go live with a 6-character session code, watch every device join and answer in real time, extend or end the sitting, and get the ranking with per-question breakdown immediately after. Students join from the new Live CBT tab with the activation they already have — one device per session, every answer saved the instant it is given, and the clock lives on the school server so a refresh cannot reset it."],
+      ["📹", "Live CBT Cameras", "Webcam monitoring for live exams: the teacher chooses off, optional or required per paper. Students see themselves before going live and give permission explicitly; during the exam the teacher receives small snapshots about every 12 seconds — sent live over the school's realtime channel, never recorded and never stored. When the paper ends the video is gone; only a status word (on · denied · no camera · skipped) remains on the result row."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");

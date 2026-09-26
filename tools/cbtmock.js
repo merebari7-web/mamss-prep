@@ -127,7 +127,7 @@ http.createServer((req, res) => {
         for (const it of items) {
           attempts.set(it.session_code + '|' + it.device_id, Object.assign({
             name: '', slip: '', status: 'waiting', current_q: 0, score: null, total: null,
-            integrity: 0, joined_at: now(), started_at: null, submitted_at: null, last_seen_at: now(),
+            integrity: 0, webcam: '', joined_at: now(), started_at: null, submitted_at: null, last_seen_at: now(),
           }, it));
         }
         return send(res, 201, undefined);

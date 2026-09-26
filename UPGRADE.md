@@ -634,7 +634,7 @@ full, item order, with **Firebase** chosen for the cloud items. Ledger:
 | 3 | Teacher/admin dashboard (aggregate class performance) | **live-session slice shipped — v54 Live CBT Hall** (real-time roster, integrity flags, ranking + per-question breakdown, CSV); whole-school aggregate dashboard still queued behind #2 |
 | 4 | Teacher content pipeline (CSV/JSON → bank, validated) | queued |
 | 5 | Accessibility & performance audit | queued (a11y scaffolding — `a11yApply`/`a11yOpen` — already exists and gets audited, not rebuilt) |
-| 6 | Exam-mode integrity | **shipped for live sessions — v54** (blur/visibility logging with 1.2 s accidental-bounce grace, escalating warnings, forgiving auto-submit at 5, copy/paste block with a Readable-a11y exemption, server-enforced no-going-back); practice-mode exam integrity polish remains queued |
+| 6 | Exam-mode integrity | **shipped for live sessions — v54** (blur/visibility logging with 1.2 s accidental-bounce grace, escalating warnings, forgiving auto-submit at 5, copy/paste block with a Readable-a11y exemption, server-enforced no-going-back; **webcam monitoring — v55**: off/optional/required per paper, ephemeral live snapshots, explicit consent gate); practice-mode exam integrity polish remains queued |
 | 7 | Offline-first PWA polish | queued (≈90 % live since v46: installable, offline SW, safe-update Reload prompt; remaining: explicit "new questions" update copy + zero-connectivity cold-start proof) |
 | 8 | Gamification depth | queued (`readinessScore`/`readinessTier` already exist — the SS3-readiness bar builds on them; adds subject mastery badges + canvas-rendered WhatsApp share cards) |
 
@@ -762,7 +762,9 @@ keys, no new config, no new vendor.
    ledger) → SQL editor → paste `tools/cbt_schema.sql` → Run. It creates three
    tables, two timing triggers, RLS policies and the realtime publication.
    Until this is run the Live CBT tab simply says *"being set up by the
-   school"* — nothing else on the site is affected (tested).
+   school"* — nothing else on the site is affected (tested). (The file already
+   carries the v55 `webcam` column; if you ran the v54 version of it earlier,
+   also run the one-line `alter table` at the bottom of the file.)
 2. **Hand out teacher slips.** 10 `TEACHER-1` slips were generated on
    2026-09-26 and live ONLY in `tools/private/codes-TEACHER-1-2026-09-26.html`
    (print & cut) + `.csv` — git-ignored, never uploaded, same discipline as
@@ -851,3 +853,61 @@ ALL, command ALL, prospectus ALL, roll-call 33/33 (:8101 ledger-free),
 real-ledger e2e 19/19 against the LIVE Supabase (slips #17–19 rotated in and
 burned — §6.2 cleanup list updated; ledger now 14 rows).
 `verify.py` §[19] → **214 checks · 0 failures**.
+
+## 17. v55 "Live CBT Cameras" — webcam monitoring, ephemeral by design
+
+The school asked for webcam monitoring on top of the Live CBT Hall. Built as an
+extension of the v54 realtime channel — **no media server, no storage bucket,
+no new vendor, nothing recorded**:
+
+* **How frames travel.** While an exam runs, a student's device grabs a small
+  JPEG (320×240, q0.55 — auto-downscaled if a frame would exceed the realtime
+  message cap) **every 12 seconds** and broadcasts it on the session's
+  Supabase Realtime channel. The teacher's monitor renders a tile per student
+  (frame, name, live/stale dot, click to enlarge). Upload cost per student is
+  ~1.7 KB/s — deliberately kind to mobile data; a 40-student room costs the
+  teacher roughly 0.5 Mbps down. Hidden tabs broadcast nothing (the integrity
+  log already covers that window), and the camera is **hard-stopped at submit**
+  (all media tracks ended — asserted in tests, the phone's camera light goes
+  off with the paper).
+* **Teacher control per paper** (builder → *Webcam monitoring*): **Off** /
+  **Optional** (student's choice, chip in the runner) / **Required** (a
+  CAMERA CHECK gate before the first question). The roster and the results
+  table carry a 📹 column: `on · denied · no cam · skipped` — a student who
+  continues without a camera is never silently invisible; the teacher decides
+  what that means. Camera tiles ride the realtime socket: in polling-fallback
+  mode the monitor says so honestly (everything else keeps working).
+* **Student consent, plainly.** The gate promises in words a student can hold
+  us to: snapshots go to *your teacher only*, about every 12 seconds, are
+  **never recorded and never stored**, and are gone when the paper ends. The
+  browser's own camera permission prompt can never be bypassed, the student
+  **sees themselves first**, and only then confirms ("Looks good — start the
+  exam"). Broken/absent hardware gets an honest error and a flagged
+  "continue without camera" path.
+* **What is persisted:** one status word on the attempt row
+  (`cbt_attempts.webcam` — new column, in `cbt_schema.sql`; early v54
+  adopters run the one-line `alter table` at the bottom of that file). Frames
+  themselves exist only in flight; the Supabase relay sees them transiently,
+  like any broadcast. If the school ever wants *recorded* proctoring, that is
+  a deliberate future decision (consent copy + Storage bucket + retention
+  policy) — intentionally NOT built here.
+
+### 17.1 Delivery & tests
+
+`V = 55`, `NAME = "Live CBT Cameras"`, whats-new entry with the privacy
+promise, sw cache key `-v60` (suites seed `nssc_mp_seen='55'`). `docs/cbt.js`
+grows the camera engine (~250 lines): `enableCam`/`startCamLoop`/`sendCamFrame`
+(adaptive downscale)/`stopCam`, camgate view, runner pin + chip, teacher tile
+grid, `__CBT_WS_URL`/`__CBT_CAM_MS` test hooks.
+
+`cbttest.js` → **80/80** (Chromium fake media device + a local Phoenix-protocol
+echo relay `cbtws.js`; new assertions: required-mode gate + privacy copy,
+self-preview, pin/chip, `webcam=on` stamp, frames received over the socket,
+streaming loop, roster 📹, tracks-ended-at-submit, broken-camera path with
+`unavailable` stamp, optional mode never blocks and never stamps, zero page
+errors). `verify.py` §[20] → **235 checks · 0 failures** (the sw-version
+checks were also made bump-proof: parsed integer ≥ N instead of pinned
+strings). Full regression: adaptive 18/18, bank 20/20, studio/arena/prestige/
+command/prospectus ALL PASS, roll-call 33/33 (:8101). `realtest` deliberately
+not re-run — v55 does not touch the redeem path (last live-ledger run: 19/19
+under v54, slips #17–19 burned).

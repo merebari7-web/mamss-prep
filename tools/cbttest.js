@@ -29,22 +29,30 @@ async function tweak(payload) {
   return r.json();
 }
 
-function seedFor(role) {
+function seedFor(role, opts) {
+  opts = opts || {};
   const act = role === 'teacher'
     ? { h: 'testsuite0000000', mask: 'MAMSS··TEACH··', at: Date.now(), batch: 'TEACHER-1', role: 'teacher', name: 'Mr Okoro' }
     : { h: 'testsuite0000001', mask: 'MAMSS··STUDE··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada Student' };
+  const head = opts.ws
+    ? "window.__CBT_WS_URL = 'ws://127.0.0.1:8127/realtime/v1/websocket'; window.__CBT_CAM_MS = 2000;"
+    : "window.__CBT_FORCE_POLL = 1;";
+  const noCam = opts.noCam
+    ? "Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: function () { return Promise.reject(Object.assign(new Error('no camera'), { name: 'NotFoundError' })); } } });"
+    : "";
   return `
-    window.__CBT_FORCE_POLL = 1;
-    localStorage.setItem('nssc_mp_seen', '54');
-    localStorage.setItem('nssc_devid', JSON.stringify('${role}-test-device'));
+    ${head}
+    localStorage.setItem('nssc_mp_seen', '55');
+    localStorage.setItem('nssc_devid', JSON.stringify('${role}-test-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
+    ${noCam}
   `;
 }
 
 async function mkCtx(browser, role, opts) {
   opts = opts || {};
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, serviceWorkers: 'block' });
-  await ctx.addInitScript(seedFor(role));
+  await ctx.addInitScript(seedFor(role, opts));
   if (opts.deadTables) {
     await ctx.route('**/rest/v1/**', route => route.fulfill({
       status: 404, contentType: 'application/json',
@@ -90,9 +98,10 @@ async function openCbt(p) {
 
 (async () => {
   const mock = spawn('node', [__dirname + '/cbtmock.js', String(MOCK_PORT)], { stdio: 'ignore' });
+  const wsecho = spawn('node', [__dirname + '/cbtws.js', '8127'], { stdio: 'ignore' });
   await sleep(500);
   await fetch(MOCK + '/_reset', { method: 'POST' }).catch(() => {});
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
   console.log('\n=== v54 Live CBT Hall ===\nBASE ' + BASE + ' → mock :' + MOCK_PORT + '\n');
 
   try {
@@ -328,7 +337,98 @@ async function openCbt(p) {
     ok('pre-SQL installations degrade to a friendly “being set up” card', true);
     ok('rest of app unaffected in degraded mode', await D.p.evaluate(() => !!document.querySelector('.study-nav a[data-view="practice"]')));
 
-    /* ---------- 16. page errors ---------- */
+    /* ---------- 16. live cameras (v55): WS echo + Chromium fake media device ---------- */
+    const T3 = await mkCtx(browser, 'teacher', { ws: true, tag: '-t3' });
+    const S3 = await mkCtx(browser, 'student', { ws: true, tag: '-s3' });
+    await openCbt(T3.p);
+    await T3.p.click('#cbtConsoleBtn');
+    await T3.p.waitForSelector('.cbt-tabs', { timeout: 10000 });
+    await T3.p.waitForFunction(() => typeof CLASSES !== 'undefined' && CLASSES.length === 3, null, { timeout: 45000 });
+    await T3.p.fill('#cbtDraftTitle', 'Camera Paper');
+    await T3.p.fill('#cbtCount', '2');
+    await T3.p.selectOption('#cbtWebcam', 'required');
+    await T3.p.click('#cbtDraw');
+    await T3.p.waitForFunction(() => document.querySelectorAll('.cbt-draft-q').length === 2, null, { timeout: 15000 });
+    await T3.p.click('#cbtGoLive');
+    await T3.p.waitForSelector('.cbt-big-code', { timeout: 15000 });
+    const codeC = (await T3.p.locator('.cbt-big-code').innerText()).trim().replace('-', '');
+    const sC = (await dump('sessions')).find(x => x.code === codeC);
+    ok('session settings carry webcam=required', !!sC && sC.settings && sC.settings.webcam === 'required');
+    await T3.p.click('#cbtStart');
+    await T3.p.waitForSelector('.cbt-chip.live', { timeout: 8000 });
+    ok('monitor renders the live-cameras section', await T3.p.locator('#cbtCams').count() === 1);
+    /* student: required mode gates the runner behind a camera check */
+    await openCbt(S3.p);
+    await S3.p.fill('#cbtJoinCode', codeC);
+    await S3.p.click('#cbtJoinBtn');
+    await S3.p.waitForSelector('#cbtGateCamEnable', { timeout: 15000 });
+    ok('required mode opens the CAMERA CHECK gate', await S3.p.locator('#viewCbt').innerText().then(t => /requires webcam monitoring/i.test(t)));
+    ok('gate states the privacy promise plainly', await S3.p.locator('#viewCbt').innerText().then(t => /never recorded/i.test(t) && /never stored/i.test(t)));
+    await S3.p.click('#cbtGateCamEnable');
+    await S3.p.waitForFunction(() => { const w = document.getElementById('cbtGateCamWrap'); return w && !w.hidden; }, null, { timeout: 10000 });
+    ok('self-preview appears once permission is granted', true);
+    await S3.p.waitForFunction(() => /Looks good/.test(document.getElementById('cbtGateCamEnable').textContent), null, { timeout: 5000 });
+    await S3.p.click('#cbtGateCamEnable');
+    await S3.p.waitForSelector('#cbtRunTimer', { timeout: 10000 });
+    ok('runner opens after confirm, with corner pin + 📹 On chip', await S3.p.locator('#cbtCamPin:not([hidden])').count() === 1 && await S3.p.locator('#cbtCamChip').innerText().then(t => /On/.test(t)));
+    const attC = (await dump('attempts')).filter(a => a.session_code === codeC);
+    ok('attempt row stamped webcam=on', attC.length === 1 && attC[0].webcam === 'on');
+    /* teacher receives frames over the socket */
+    await T3.p.waitForFunction(() => { const c = MAMSS_CBT._test.cams(); const k = Object.keys(c); return k.length === 1 && c[k[0]].n >= 1; }, null, { timeout: 12000 });
+    ok('teacher receives live snapshots over the realtime socket', await T3.p.locator('#cbtCams .cbt-cam').count() === 1);
+    ok('tile shows name + jpeg frame', await T3.p.locator('#cbtCams .cbt-cam b').innerText().then(t => /Ada/.test(t)) && (await T3.p.getAttribute('#cbtCams .cbt-cam img', 'src')).startsWith('data:image/jpeg'));
+    await T3.p.waitForFunction(() => { const c = MAMSS_CBT._test.cams(); const k = Object.keys(c); return k.length === 1 && c[k[0]].n >= 2; }, null, { timeout: 12000 });
+    ok('snapshot loop keeps streaming (frame 2+ arrived)', true);
+    ok('roster shows 📹 for the student', await T3.p.locator('#cbtRoster').innerText().then(t => /📹/.test(t)));
+    /* finishing kills the camera completely */
+    for (let i = 1; i <= 2; i++) {
+      await S3.p.waitForSelector('.cbt-opt', { timeout: 8000 });
+      await S3.p.locator('.cbt-opt').first().click();
+      await S3.p.waitForFunction(() => { const b = document.getElementById('cbtNextBtn'); return b && !b.disabled; }, null, { timeout: 4000 });
+      await S3.p.click('#cbtNextBtn');
+      if (i < 2) await S3.p.waitForFunction(n => new RegExp('Question ' + n + ' of 2').test(document.querySelector('#viewCbt').textContent), 2, { timeout: 8000 });
+    }
+    await S3.p.waitForFunction(() => /SUBMITTED/.test(document.querySelector('#viewCbt').textContent), null, { timeout: 12000 });
+    const camAfter = await S3.p.evaluate(() => MAMSS_CBT._test.cam());
+    ok('camera fully stops at submit (all tracks ended — light off)', camAfter.on === false && camAfter.tracks.length === 0);
+    /* broken hardware: honest error + exam still possible, teacher sees the status */
+    const S4 = await mkCtx(browser, 'student', { noCam: true, tag: '-s4' });
+    await openCbt(S4.p);
+    await S4.p.fill('#cbtJoinCode', codeC);
+    await S4.p.click('#cbtJoinBtn');
+    await S4.p.waitForSelector('#cbtGateCamEnable', { timeout: 15000 });
+    await S4.p.click('#cbtGateCamEnable');
+    await S4.p.waitForFunction(() => /continue without camera/i.test(document.getElementById('cbtGateCamFb').textContent), null, { timeout: 8000 });
+    ok('broken camera → honest error + continue option', true);
+    await S4.p.click('#cbtGateCamSkip');
+    await S4.p.waitForSelector('#cbtRunTimer', { timeout: 10000 });
+    ok('exam still runs without a camera (teacher decides what to do)', true);
+    const attC2 = (await dump('attempts')).filter(a => a.session_code === codeC);
+    ok('unavailable camera stamped on the attempt row', attC2.some(a => a.webcam === 'unavailable'));
+    /* optional mode never blocks */
+    await T3.p.click('[data-ctab="create"]');
+    await T3.p.fill('#cbtDraftTitle', 'Optional Cam Paper');
+    await T3.p.fill('#cbtCount', '2');
+    await T3.p.click('#cbtDraw');
+    await T3.p.waitForFunction(() => document.querySelectorAll('.cbt-draft-q').length === 2, null, { timeout: 15000 });
+    await T3.p.click('#cbtGoLive');
+    await T3.p.waitForSelector('.cbt-big-code', { timeout: 15000 });
+    const codeD = (await T3.p.locator('.cbt-big-code').innerText()).trim().replace('-', '');
+    await T3.p.click('#cbtStart');
+    await T3.p.waitForSelector('.cbt-chip.live', { timeout: 8000 });
+    await S3.p.evaluate(() => MAMSS_CBT.mount());
+    await openCbt(S3.p);
+    await S3.p.fill('#cbtJoinCode', codeD);
+    await S3.p.click('#cbtJoinBtn');
+    await S3.p.waitForSelector('#cbtRunTimer', { timeout: 15000 });
+    ok('optional mode: runner opens with no gate', await S3.p.locator('#cbtGateCamEnable').count() === 0);
+    ok('optional mode: chip offers Enable camera', await S3.p.locator('#cbtCamRunEnable').count() === 1);
+    const attD = (await dump('attempts')).filter(a => a.session_code === codeD);
+    ok('no stamp until the student actually enables (webcam stays empty)', attD.length === 1 && !attD[0].webcam);
+    ok('no page errors (teacher cam ctx)', T3.errs.length === 0, T3.errs.slice(0, 2).join(' | '));
+    ok('no page errors (student cam ctx)', S3.errs.length === 0, S3.errs.slice(0, 2).join(' | '));
+
+    /* ---------- 17. page errors ---------- */
     ok('no page errors (teacher)', T.errs.length === 0, T.errs.slice(0, 2).join(' | '));
     ok('no page errors (student)', S.errs.length === 0, S.errs.slice(0, 2).join(' | '));
   } catch (e) {
@@ -337,6 +437,7 @@ async function openCbt(p) {
   } finally {
     await browser.close();
     mock.kill();
+    wsecho.kill();
     console.log('\n' + pass + ' passed, ' + fail + ' failed');
     process.exit(fail ? 1 : 0);
   }

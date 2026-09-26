@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "54";
+  var VERSION = "55";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -146,7 +146,7 @@
     if (!window.__CBT_FORCE_POLL) {
       try {
         var c = cfg();
-        var url = c.url.replace(/^http/, "ws") + "/realtime/v1/websocket?apikey=" + encodeURIComponent(c.key) + "&vsn=1.0.0";
+        var url = window.__CBT_WS_URL || (c.url.replace(/^http/, "ws") + "/realtime/v1/websocket?apikey=" + encodeURIComponent(c.key) + "&vsn=1.0.0");
         var ws = new WebSocket(url); this.ws = ws;
         ws.onopen = function () {
           ws.send(JSON.stringify({ topic: "realtime:cbt-" + self.code, event: "phx_join", ref: String(self.ref++), join_ref: "1", payload: { config: { broadcast: { self: true } } } }));
@@ -228,7 +228,7 @@
     if ($("cbtStyles")) return;
     var css = "" +
       ".cbt-wrap{max-width:1060px;margin:0 auto;padding:4px 2px 40px}" +
-      ".cbt-card{background:var(--card,#fff);border:1px solid var(--line,rgba(0,33,71,.14));border-radius:14px;padding:18px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,33,71,.05)}" +
+      ".cbt-card{background:var(--card,#fff);border:1px solid var(--line,rgba(0,33,71,.14));border-radius:14px;padding:18px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,33,71,.05);position:relative}" +
       ".cbt-card h3{margin:0 0 4px;font-size:1.06rem;color:var(--ink,#002147)}" +
       ".cbt-sub{color:var(--mut,#5b6b84);font-size:.85rem;margin:0 0 12px}" +
       ".cbt-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}" +
@@ -279,6 +279,17 @@
       ".cbt-muted{color:var(--mut,#5b6b84);font-size:.83rem}" +
       ".cbt-live-dot{display:inline-block;width:10px;height:10px;border-radius:50%;background:#14783c;margin-right:7px;animation:cbtPulse 1.6s infinite}" +
       ".cbt-setup{font-size:.9rem}" +
+      ".cbt-cam-pin{position:absolute;top:12px;right:12px;width:118px;border-radius:9px;overflow:hidden;border:1.5px solid rgba(0,33,71,.25);box-shadow:0 2px 8px rgba(0,33,71,.18);z-index:5;background:#101820}" +
+      ".cbt-cam-pin video{display:block;width:100%;transform:scaleX(-1)}" +
+      ".cbt-cam-self{width:230px;margin:10px auto}" +
+      ".cbt-cam-self video{display:block;width:100%;border-radius:11px;transform:scaleX(-1);background:#101820}" +
+      ".cbt-cams{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}" +
+      ".cbt-cam{border:1px solid var(--line,rgba(0,33,71,.14));border-radius:10px;overflow:hidden;background:var(--card,#fff);cursor:pointer;margin:0}" +
+      ".cbt-cam img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#101820}" +
+      ".cbt-cam .cap{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:.76rem}" +
+      ".cbt-cam .cap b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
+      ".cbt-cam.big{grid-column:1/-1}" +
+      ".cbt-cam.big img{aspect-ratio:16/9;max-height:60vh;object-fit:contain}" +
       ".cbt-flex1{flex:1}";
     var n = el("style", { id: "cbtStyles" }); n.textContent = css;
     document.head.appendChild(n);
@@ -287,6 +298,102 @@
   /* --------------------------------------------------------------- state */
   var root = null, room = null, tickTimer = 0, integrityBound = null;
   var ui = { tab: "home", session: null, attempt: null, answers: [], draft: null, busy: false };
+
+  /* ================================================== v55 live cameras ==
+     Ephemeral by design: frames ride the realtime broadcast channel and are
+     NEVER written to any table or bucket — what the teacher sees exists only
+     while the exam runs. Students always preview themselves first, the
+     browser permission prompt can never be bypassed, and the attempt row
+     records only a status word (on/denied/unavailable/skipped).            */
+  var CAM_INTERVAL = 12000;
+  var camState = { stream: null, video: null, timer: 0, on: false, err: "" };
+  var camFrames = {}, camTickN = 0;
+  function camInterval() { return (+window.__CBT_CAM_MS > 0 ? +window.__CBT_CAM_MS : 0) || CAM_INTERVAL; }
+  function camMode(s) { return (s && s.settings && s.settings.webcam) || "off"; }
+  function hasCamAPI() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
+  function enableCam(onOk, onErr) {
+    if (camState.on) { if (onOk) onOk(); return; }
+    if (!hasCamAPI()) { camState.err = "This browser cannot access a camera."; stampWebcam("unavailable"); if (onErr) onErr(camState.err); return; }
+    navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 320 }, height: { ideal: 240 }, facingMode: "user" }, audio: false })
+      .then(function (stream) {
+        camState.stream = stream; camState.on = true; camState.err = "";
+        startCamLoop();
+        stampWebcam("on");
+        if (onOk) onOk();
+      })
+      .catch(function (e) {
+        var denied = e && (e.name === "NotAllowedError" || e.name === "SecurityError");
+        camState.err = denied ? "Camera permission was denied." : "No camera could be started (" + ((e && e.name) || "error") + ").";
+        stampWebcam(denied ? "denied" : "unavailable");
+        if (onErr) onErr(camState.err);
+      });
+  }
+  function stampWebcam(v) {
+    try {
+      if (ui.attempt) ui.attempt.webcam = v;
+      if (ui.session) patchAttempt(ui.session.code, me().did, { webcam: v }).catch(function () {});
+    } catch (e) {}
+  }
+  function startCamLoop() {
+    if (camState.timer) clearInterval(camState.timer);
+    sendCamFrame();
+    camState.timer = setInterval(sendCamFrame, camInterval());
+  }
+  function sendCamFrame() {
+    if (!camState.on || !camState.stream || !ui.session) return;
+    if (document.hidden) return;   /* a hidden tab broadcasts nothing — the integrity log already covers that window */
+    var v = camState.video;
+    if (!v || v.readyState < 2 || !v.videoWidth) return;
+    var img = grabFrame(v, 320, 240, 0.55);
+    if (img.length > 26000) img = grabFrame(v, 240, 180, 0.45);
+    if (img.length > 30000) img = grabFrame(v, 192, 144, 0.4);
+    if (room) room.notify("cam", { img: img, n: me().name });
+  }
+  function grabFrame(v, W, H, Q) {
+    var c = document.createElement("canvas"); c.width = W; c.height = H;
+    var x = c.getContext("2d");
+    x.drawImage(v, 0, 0, W, H);
+    return c.toDataURL("image/jpeg", Q);
+  }
+  function stopCam() {
+    if (camState.timer) { clearInterval(camState.timer); camState.timer = 0; }
+    if (camState.stream) { try { camState.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} }
+    camState.stream = null; camState.on = false; camState.video = null;
+  }
+  function attachCamVideo(elm) {
+    if (!elm) return;
+    camState.video = elm;
+    try { elm.srcObject = camState.stream; if (elm.play) { var pr = elm.play(); if (pr && pr.catch) pr.catch(function () {}); } } catch (e) {}
+  }
+  function camCell(w) {
+    return w === "on" ? "📹" : w === "denied" ? '<span style="color:#8a1f1f">denied</span>' : w === "unavailable" ? '<span class="cbt-muted">no cam</span>' : w === "skipped" ? '<span style="color:#8a6d1f">skipped</span>' : "—";
+  }
+  function cssId(did) { return String(did).replace(/[^a-zA-Z0-9]/g, "_"); }
+  function updateCams() {
+    var host = $("cbtCams"); if (!host) return;
+    var ids = Object.keys(camFrames);
+    if (!ids.length) {
+      if (!host.querySelector("p")) host.innerHTML = '<p class="cbt-muted">Waiting for cameras — a tile appears the moment a student enables theirs.</p>';
+      return;
+    }
+    var ph = host.querySelector("p"); if (ph) ph.remove();
+    ids.forEach(function (did) {
+      var f = camFrames[did];
+      var fig = document.getElementById("cam-" + cssId(did));
+      if (!fig) {
+        fig = el("figure", { class: "cbt-cam", id: "cam-" + cssId(did) });
+        fig.innerHTML = '<img alt="">' + '<div class="cap"><span class="cbt-dot fresh"></span><b></b><small class="cbt-muted"></small></div>';
+        fig.onclick = function () { fig.classList.toggle("big"); };
+        host.appendChild(fig);
+      }
+      var age = Date.now() - f.at;
+      fig.querySelector("img").src = f.img;
+      fig.querySelector("img").alt = "Live snapshot from " + f.name;
+      fig.querySelector("b").textContent = f.name;
+      fig.querySelector("small").textContent = age < 25000 ? "live" : Math.round(age / 1000) + "s ago";
+      fig.querySelector(".cbt-dot").className = "cbt-dot " + (age < 25000 ? "fresh" : "stale");
+    });
+  }
 
   function setRoot(r) { root = r; }
   function toast(msg, ico) {
@@ -310,7 +417,7 @@
     /* re-entering the tab after finishing (or idling in the waiting room)
        shows a fresh hall — results live server-side and in the recent list;
        an active runner is NEVER reset by a re-mount. */
-    if (ui.tab === "done" || ui.tab === "waiting") { closeRoom(); ui.tab = "home"; }
+    if (ui.tab === "done" || ui.tab === "waiting") { closeRoom(); stopCam(); ui.tab = "home"; }
     render();
   }
   function render() {
@@ -320,6 +427,7 @@
       if (ui.tab === "join") return renderJoin();
       if (ui.tab === "waiting") return renderWaiting();
       if (ui.tab === "run") return renderRun();
+      if (ui.tab === "camgate") return renderCamGate();
       if (ui.tab === "done") return renderDone();
       if (ui.tab === "console") return renderConsole();
       renderHome();
@@ -454,6 +562,32 @@
     recent.unshift({ code: s.code, title: s.title, at: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short" }) });
     st.set("nssc_cbt_recent", recent.slice(0, 12));
   }
+  function camCard(s) {
+    var mode = camMode(s);
+    if (mode === "off") return "";
+    return '<div class="cbt-card" style="text-align:center"><h3>📹 Webcam monitoring is ' + (mode === "required" ? "required" : "optional") + " for this exam</h3>" +
+      '<p class="cbt-sub">' + (mode === "required" ? "Enable your camera now so you are ready the moment the paper starts." : "You may enable your camera — it helps your teacher watch the room.") +
+      " Small snapshots go live to your teacher only, about every 12 seconds. Nothing is recorded or stored.</p>" +
+      '<div class="cbt-cam-self" id="cbtWaitCamWrap" hidden><video id="cbtWaitCamVideo" autoplay playsinline muted></video></div>' +
+      '<button class="cbt-btn' + (mode === "required" ? " gold" : " ghost") + '" id="cbtWaitCamBtn">📹 Enable my camera</button>' +
+      '<div id="cbtWaitCamFb"></div></div>';
+  }
+  function wireCamCard(btnId, wrapId, videoId, fbId) {
+    var wb = $(btnId);
+    if (!wb) return;
+    wb.onclick = function () {
+      wb.disabled = true;
+      enableCam(function () {
+        var w = $(wrapId); if (w) { w.hidden = false; attachCamVideo($(videoId)); }
+        wb.disabled = false; wb.className = "cbt-btn ghost"; wb.textContent = "✔ Camera on — your teacher can see you";
+        wb.onclick = null;
+        var f = $(fbId); if (f) f.innerHTML = "";
+      }, function (msg) {
+        wb.disabled = false;
+        var f = $(fbId); if (f) f.innerHTML = errBox(msg + " You can retry here, or enable it later inside the exam.");
+      });
+    };
+  }
   function renderWaitingCount(s) {
     var n = $("cbtWaitingCount");
     if (n) getAttempts(s.code).then(function (a) { n.textContent = a.length + " device" + (a.length === 1 ? "" : "s") + " in the hall"; }).catch(function () {});
@@ -468,9 +602,10 @@
       '<p class="cbt-sub" id="cbtWaitingCount">Counting devices…</p>' +
       '<p class="cbt-sub">' + qs.length + " questions · " + mmss(s.duration_s) + " · one attempt per device · answers save as you go</p>" +
       '<div class="cbt-note">📵 When the paper starts, leaving this tab is logged. Put your phone on silent and stay put.</div>' +
-      '<button class="cbt-btn ghost" id="cbtLeave">Leave the hall</button></div>';
+      '<button class="cbt-btn ghost" id="cbtLeave">Leave the hall</button></div>' + camCard(s);
     root.innerHTML = wrap(h);
-    var lb = $("cbtLeave"); if (lb) lb.onclick = function () { go("home"); toast("Left the waiting room — your spot is kept", "🚪"); };
+    var lb = $("cbtLeave"); if (lb) lb.onclick = function () { stopCam(); go("home"); toast("Left the waiting room — your spot is kept", "🚪"); };
+    wireCamCard("cbtWaitCamBtn", "cbtWaitCamWrap", "cbtWaitCamVideo", "cbtWaitCamFb");
     renderWaitingCount(s);
   }
 
@@ -489,9 +624,9 @@
         patchAttempt(s.code, id.did, { status: "running" }).catch(function () {});
       }
       ui.attempt = existing || ui.attempt;
-      go("run");
+      go(camMode(s) === "required" && !camState.on ? "camgate" : "run");
       openRoom(s.code, function (kind) {
-        if (ui.tab !== "run") return;
+        if (ui.tab !== "run" && ui.tab !== "camgate") return;
         if (kind === "ended" || kind === "extended" || kind === "started" || kind === "poll") {
           getSession(s.code).then(function (fresh) {
             if (!fresh || ui.tab !== "run") return;
@@ -502,7 +637,7 @@
           }).catch(function () {});
         }
       });
-      bindIntegrity(s);   /* AFTER go() AND openRoom(): both call closeRoom(), which unbinds */
+      if (ui.tab === "run") bindIntegrity(s);   /* AFTER go() AND openRoom(): both call closeRoom(), which unbinds. camgate binds on proceed. */
       startTick(s);
     }).catch(renderFailure);
   }
@@ -513,10 +648,12 @@
   function startTick(s) {
     if (tickTimer) clearInterval(tickTimer);
     tickTimer = setInterval(function () {
-      if (ui.tab !== "run") return;
-      var t = $("cbtRunTimer");
+      if (ui.tab !== "run" && ui.tab !== "camgate") return;
       var left = deadlineLeft(ui.session || s);
+      var t = $("cbtRunTimer");
       if (t) { t.textContent = fmtClock(left); t.classList.toggle("red", left < 60000); }
+      var gt = $("cbtCamGateTimer");
+      if (gt) gt.textContent = "⏱ Time left: " + fmtClock(left) + " — the exam clock is already running.";
       if (left <= 0) submitNow(ui.session || s, "autosubmitted", "timeout");
     }, 250);
   }
@@ -525,18 +662,88 @@
     var qs = s.questions || [];
     if (ui.idx >= qs.length) return submitNow(s, "submitted", "finished");
     var id = me();
+    var mode = camMode(s);
     var h = '<div class="cbt-card">' +
-      '<div class="cbt-row" style="justify-content:space-between"><div><b>' + esc(s.title) + '</b><br><span class="cbt-muted">Question ' + (ui.idx + 1) + " of " + qs.length + " · " + esc(prettyCode(s.code)) + '</span></div><div class="cbt-timer" id="cbtRunTimer">–:––</div></div>' +
+      '<div class="cbt-row" style="justify-content:space-between"><div><b>' + esc(s.title) + '</b><br><span class="cbt-muted">Question ' + (ui.idx + 1) + " of " + qs.length + " · " + esc(prettyCode(s.code)) + '</span></div><div class="cbt-row"><span id="cbtCamChip"></span><div class="cbt-timer" id="cbtRunTimer">–:––</div></div></div>' +
+      (mode !== "off" ? '<div class="cbt-cam-pin" id="cbtCamPin" hidden><video id="cbtRunSelfView" autoplay playsinline muted></video></div>' : "") +
       '<div class="cbt-prog" style="margin:10px 0 14px"><i id="cbtRunProg" style="width:' + Math.round(ui.idx / qs.length * 100) + '%"></i></div>' +
       '<div id="cbtIntBox"></div>' +
       '<div id="cbtQHost"></div>' +
       "</div>";
     root.innerHTML = wrap(h);
+    updateCamChip();
+    if (camState.on && mode !== "off") {
+      var pin = $("cbtCamPin");
+      if (pin) { pin.hidden = false; attachCamVideo($("cbtRunSelfView")); }
+    }
     renderQuestion();
     startTick(s);
     void id;
   }
   function renderRunChrome() { var t = $("cbtRunTimer"); if (t) { var left = deadlineLeft(ui.session); t.textContent = fmtClock(left); t.classList.toggle("red", left < 60000); } }
+  function updateCamChip() {
+    var chip = $("cbtCamChip"); if (!chip) return;
+    var mode = camMode(ui.session);
+    if (mode === "off") { chip.innerHTML = ""; return; }
+    var html = "";
+    if (camState.on) html = '<span class="cbt-chip live">📹 On</span>';
+    else {
+      var w = ui.attempt && ui.attempt.webcam;
+      if (w === "denied") html = '<span class="cbt-chip ended">📹 Denied</span>';
+      else if (w === "unavailable") html = '<span class="cbt-chip ended">📹 No camera</span>';
+      else if (w === "skipped") html = '<span class="cbt-chip ended">📹 Skipped</span>';
+      html += '<button class="cbt-btn ghost" id="cbtCamRunEnable" style="padding:6px 11px;margin-left:6px">📹 Enable camera</button>';
+    }
+    chip.innerHTML = html;
+    var b = $("cbtCamRunEnable");
+    if (b) b.onclick = function () {
+      b.disabled = true;
+      enableCam(function () {
+        var pin = $("cbtCamPin");
+        if (pin) { pin.hidden = false; attachCamVideo($("cbtRunSelfView")); }
+        updateCamChip();
+        toast("Camera on — your teacher receives small live snapshots", "📹");
+      }, function (msg) { b.disabled = false; toast(msg, "⚠️"); updateCamChip(); });
+    };
+  }
+  function renderCamGate() {
+    var s = ui.session; if (!s) return go("home");
+    var h = '<div class="cbt-card" style="text-align:center"><span class="cbt-chip waiting">CAMERA CHECK</span>' +
+      "<h3 style='margin-top:10px'>" + esc(s.title) + "</h3>" +
+      '<p class="cbt-sub">Your teacher requires webcam monitoring for this exam.</p>' +
+      '<div class="cbt-cam-self" id="cbtGateCamWrap" hidden><video id="cbtGateCamVideo" autoplay playsinline muted></video></div>' +
+      '<div class="cbt-note" style="text-align:left">🔒 <b>Privacy, plainly:</b> while the exam runs, your teacher receives a small snapshot from your camera about every 12 seconds. Snapshots are sent live and are <b>never recorded and never stored</b> — when the paper ends, the video is gone. Your browser will ask for camera permission, and you will see yourself here first.</div>' +
+      '<div id="cbtGateCamFb"></div>' +
+      '<div class="cbt-row" style="justify-content:center;margin-top:10px">' +
+      '<button class="cbt-btn gold" id="cbtGateCamEnable">📹 Enable my camera</button>' +
+      '<button class="cbt-btn ghost" id="cbtGateCamSkip">Continue without camera — your teacher will see</button></div>' +
+      '<p class="cbt-muted" id="cbtCamGateTimer"></p></div>';
+    root.innerHTML = wrap(h);
+    var btn = $("cbtGateCamEnable");
+    btn.onclick = function () {
+      var fb = $("cbtGateCamFb"); fb.innerHTML = "";
+      btn.disabled = true;
+      enableCam(function () {
+        var w = $("cbtGateCamWrap"); if (w) { w.hidden = false; attachCamVideo($("cbtGateCamVideo")); }
+        btn.disabled = false;
+        btn.textContent = "✔ Looks good — start the exam";
+        btn.onclick = camProceed;
+      }, function (msg) {
+        btn.disabled = false;
+        fb.innerHTML = errBox(msg + " You can retry — or continue without camera; your teacher will see it was not available.");
+      });
+    };
+    $("cbtGateCamSkip").onclick = function () {
+      if (!camState.on && !(ui.attempt && ui.attempt.webcam)) stampWebcam("skipped");
+      camProceed();
+    };
+  }
+  function camProceed() {
+    if (ui.tab !== "camgate") return;
+    ui.tab = "run";
+    bindIntegrity(ui.session);
+    render();
+  }
   function renderQuestion() {
     var s = ui.session, qs = s.questions || [], q = qs[ui.idx];
     var host = $("cbtQHost"); if (!host || !q) return;
@@ -656,6 +863,7 @@
   function submitNow(s, status, why) {
     if (ui.submitting) return; ui.submitting = true;
     closeRoom();
+    stopCam();
     var id = me();
     var qs = s.questions || [];
     var score = 0;
@@ -670,6 +878,7 @@
   function finishView(s, attempt, answers, why) {
     ui.submitting = false;
     closeRoom();
+    stopCam();
     ui.tab = "done";
     var qs = s.questions || [];
     var instant = !!(s.settings && s.settings.instantResults !== false);
@@ -718,10 +927,12 @@
     cons.session = s || null;
     cons.tab = s ? "monitor" : "create";
     if (!ui.draft) ui.draft = st.get("nssc_cbt_draft", null) || newDraft();
+    if (ui.draft && !ui.draft.webcam) ui.draft.webcam = "optional";
+    camFrames = {};
     go("console");
   }
   function newDraft() {
-    return { title: "", cls: "SS1", subject: "", topic: "", count: 20, duration: 30, scheduledAt: "", instantResults: true, showRank: true, questions: [] };
+    return { title: "", cls: "SS1", subject: "", topic: "", count: 20, duration: 30, scheduledAt: "", instantResults: true, showRank: true, webcam: "optional", questions: [] };
   }
   function renderConsole() {
     if (!me().teacher) { go("home"); return; }
@@ -788,6 +999,10 @@
       [10, 20, 30, 45, 60, 90].map(function (m) { return '<option value="' + m + '"' + (d.duration === m ? " selected" : "") + ">" + m + " minutes</option>"; }).join("") + "</select></div>";
     h += '<div><label class="cbt-muted">Scheduled start (shown to students; you press Start)</label><input class="cbt-inp" type="datetime-local" id="cbtSched" value="' + esc(d.scheduledAt || "") + '"></div>';
     h += '<div><label class="cbt-muted">Questions to draw</label><input class="cbt-inp" type="number" min="1" max="100" id="cbtCount" value="' + d.count + '"></div>';
+    h += '<div><label class="cbt-muted">Webcam monitoring</label><select class="cbt-inp" id="cbtWebcam">' +
+      [["off", "Off — no cameras"], ["optional", "Optional — student's choice"], ["required", "Required — camera check before the paper"]].map(function (o) {
+        return '<option value="' + o[0] + '"' + ((d.webcam || "optional") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
+      }).join("") + "</select></div>";
     h += "</div>";
     h += '<div class="cbt-row" style="margin:12px 0"><label class="cbt-muted"><input type="checkbox" id="cbtInstant"' + (d.instantResults ? " checked" : "") + '> Students see instant results &amp; explanations</label>' +
       '<label class="cbt-muted"><input type="checkbox" id="cbtRank"' + (d.showRank ? " checked" : "") + "> Show class ranking to students</label></div>";
@@ -802,7 +1017,7 @@
     host.querySelectorAll("[data-cls]").forEach(function (b) {
       b.onclick = function () { d.cls = b.getAttribute("data-cls"); saveDraft(); renderBuilder(); };
     });
-    ["cbtDraftTitle", "cbtSubject", "cbtTopic", "cbtDuration", "cbtSched", "cbtCount", "cbtInstant", "cbtRank"].forEach(function (idn) {
+    ["cbtDraftTitle", "cbtSubject", "cbtTopic", "cbtDuration", "cbtSched", "cbtCount", "cbtInstant", "cbtRank", "cbtWebcam"].forEach(function (idn) {
       var n2 = $(idn); if (n2) n2.addEventListener("change", function () { syncDraftFromForm(); saveDraft(); if (idn === "cbtSubject") renderBuilder(); });
     });
     var dr = $("cbtDraw"); if (dr) dr.onclick = drawFromBank;
@@ -836,6 +1051,7 @@
     var cn = $("cbtCount"); if (cn) d.count = Math.max(1, Math.min(100, +cn.value || 20));
     var ir = $("cbtInstant"); if (ir) d.instantResults = ir.checked;
     var rk = $("cbtRank"); if (rk) d.showRank = rk.checked;
+    var wc = $("cbtWebcam"); if (wc) d.webcam = wc.value;
   }
   function saveDraft() { st.set("nssc_cbt_draft", ui.draft); }
   function draftListHtml(d) {
@@ -924,7 +1140,7 @@
       code: makeCode(), teacher: id.name, device_id: id.did, title: d.title.trim(),
       cls: d.cls, subject: d.subject || "", duration_s: Math.max(30, d.duration * 60),
       status: "waiting", extend_s: 0,
-      settings: { instantResults: !!d.instantResults, showRank: !!d.showRank, scheduledAt: d.scheduledAt || null },
+      settings: { instantResults: !!d.instantResults, showRank: !!d.showRank, scheduledAt: d.scheduledAt || null, webcam: d.webcam || "optional" },
       questions: d.questions
     };
     showBusy("Posting the paper to the school server…");
@@ -951,6 +1167,7 @@
     getSession(code).then(function (s) {
       if (!s) return;
       cons.session = s;
+      camFrames = {};
       renderConsole();
     }).catch(renderFailure);
   }
@@ -987,7 +1204,9 @@
       '<label class="cbt-muted"><input type="checkbox" id="cbtMonInstant"' + (s.settings && s.settings.instantResults !== false ? " checked" : "") + '> instant results</label>' +
       "</div>" +
       '<div id="cbtMonWarn"></div>' +
-      '<table class="cbt-table" id="cbtRoster"><tr><th>Student</th><th>Status</th><th>Progress</th><th>⚠</th><th>Seen</th></tr></table>';
+      (camMode(s) !== "off" ? '<h3 style="margin:16px 0 8px">📹 Live cameras <span class="cbt-muted">(' + esc(camMode(s)) + " for this paper · snapshots are never stored)</span></h3>" +
+        '<div id="cbtCamDead"></div><div class="cbt-cams" id="cbtCams"></div>' : "") +
+      '<table class="cbt-table" id="cbtRoster"><tr><th>Student</th><th>Status</th><th>Progress</th><th>⚠</th><th>📹</th><th>Seen</th></tr></table>';
     host.innerHTML = h;
     var invite = "MAMSS PREP — Live CBT: " + s.title + ". Join in the Live CBT tab with code " + prettyCode(s.code) + ". https://merebari7-web.github.io/mamss-prep/";
     var cc = $("cbtCopyCode");
@@ -1026,8 +1245,14 @@
       var set2 = Object.assign({}, s.settings || {}, { instantResults: mi.checked });
       patchSession(s.code, { settings: set2 }).then(function () { s.settings = set2; }).catch(function () {});
     };
-    openRoom(s.code, function (kind) {
+    openRoom(s.code, function (kind, p) {
       if (ui.tab !== "console" || cons.tab !== "monitor") return;
+      if (kind === "cam" && p && p.did && p.did !== me().did && p.img) {
+        var prev = camFrames[p.did];
+        camFrames[p.did] = { img: p.img, name: p.n || "Student", at: Date.now(), n: (prev ? prev.n : 0) + 1 };
+        updateCams();
+        return;
+      }
       refreshRoster(kind === "integrity");
       if (kind === "poll") {
         getSession(s.code).then(function (fresh) {
@@ -1039,8 +1264,18 @@
       }
     });
     refreshRoster(false);
+    updateCams();
+    camTickN = 0;
     if (tickTimer) clearInterval(tickTimer);
     tickTimer = setInterval(function () {
+      if (cons.session && camMode(cons.session) !== "off") {
+        camTickN = (camTickN + 1) % 5;
+        if (camTickN === 0) {
+          updateCams();
+          var dn = $("cbtCamDead");
+          if (dn) dn.innerHTML = (room && room.dead) ? '<div class="cbt-note">📡 The realtime socket is not connected right now — camera tiles need it. Everything else keeps working through polling.</div>' : "";
+        }
+      }
       var cd = $("cbtMonCountdown");
       if (!cd || !cons.session) return;
       if (cons.session.status === "live" && cons.session.ends_at) {
@@ -1060,7 +1295,7 @@
       var t = $("cbtRoster"); if (!t || !cons.session) return;
       var qs = (s.questions || []).length || 1;
       var now = Date.now();
-      var h = "<tr><th>Student</th><th>Status</th><th>Progress</th><th>⚠</th><th>Seen</th></tr>";
+      var h = "<tr><th>Student</th><th>Status</th><th>Progress</th><th>⚠</th><th>📹</th><th>Seen</th></tr>";
       rows.forEach(function (r) {
         var seen = r.last_seen_at ? now - new Date(r.last_seen_at).getTime() : Infinity;
         var dot = seen < 30000 ? "fresh" : seen < 120000 ? "warm" : "stale";
@@ -1069,6 +1304,7 @@
           '<td><span class="cbt-chip ' + (r.status === "running" ? "live" : r.status === "waiting" ? "waiting" : "ended") + '">' + esc(r.status.toUpperCase()) + "</span></td>" +
           '<td><div class="cbt-prog"><i style="width:' + pctDone + '%"></i></div><small class="cbt-muted">' + (r.current_q || 0) + "/" + qs + "</small></td>" +
           "<td>" + (r.integrity ? '<b style="color:#8a1f1f">' + r.integrity + "</b>" : "—") + "</td>" +
+          "<td>" + camCell(r.webcam) + "</td>" +
           '<td><span class="cbt-dot ' + dot + '"></span>' + (isFinite(seen) ? Math.round(seen / 1000) + "s" : "—") + "</td></tr>";
       });
       t.innerHTML = h;
@@ -1120,12 +1356,12 @@
       var h = '<div class="cbt-row" style="justify-content:space-between;margin-bottom:10px"><div><b>' + esc(s.title) + '</b><br><span class="cbt-muted">' + attempts.length + " device" + (attempts.length === 1 ? "" : "s") + " · " + answers.length + " answers persisted</span></div>" +
         '<div class="cbt-row"><button class="cbt-btn ghost" id="cbtCsv">⬇ CSV</button><button class="cbt-btn ghost" id="cbtWaResults">💬 Summary</button></div></div>';
       if (s.status !== "ended") h += '<div class="cbt-note">Session is still <b>' + s.status + "</b> — these are live standings. End it in the Monitor tab to freeze the ranking.</div>";
-      h += '<h3 style="margin:14px 0 6px">🏆 Class ranking</h3><table class="cbt-table"><tr><th>#</th><th>Student</th><th>Score</th><th>%</th><th>⚠</th><th>Status</th></tr>';
+      h += '<h3 style="margin:14px 0 6px">🏆 Class ranking</h3><table class="cbt-table"><tr><th>#</th><th>Student</th><th>Score</th><th>%</th><th>⚠</th><th>📹</th><th>Status</th></tr>';
       g.rows.forEach(function (r, i) {
         var t = r.attempt;
         h += "<tr><td class='cbt-medal'>" + (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1) + "</td><td><b>" + esc(t.name || "Anonymous") + '</b><br><small class="cbt-muted">' + esc(t.slip || "") + "</small></td>" +
           "<td>" + r.score + "/" + r.total + (r.mismatch ? ' <small style="color:#8a1f1f" title="the device reported a different score — the server rows win">⚠ mismatch</small>' : "") + "</td>" +
-          "<td><b>" + r.pct + "%</b></td><td>" + (t.integrity || 0) + "</td><td>" + esc(t.status) + "</td></tr>";
+          "<td><b>" + r.pct + "%</b></td><td>" + (t.integrity || 0) + "</td><td>" + camCell(t.webcam) + "</td><td>" + esc(t.status) + "</td></tr>";
       });
       h += "</table>";
       h += '<h3 style="margin:16px 0 6px">📊 Per-question accuracy</h3>';
@@ -1169,7 +1405,11 @@
     mount: mount,
     openTeacher: openConsole,
     join: doJoin,
-    _test: { makeCode: makeCode, normCode: normCode, gradePaper: gradePaper, me: me, cfg: cfg, rest: rest }
+    _test: {
+      makeCode: makeCode, normCode: normCode, gradePaper: gradePaper, me: me, cfg: cfg, rest: rest,
+      cam: function () { return { on: camState.on, tracks: camState.stream ? camState.stream.getTracks().map(function (t) { return t.readyState; }) : [] }; },
+      cams: function () { return camFrames; }
+    }
   };
   try {
     window.addEventListener("study:view", function (e) {

@@ -49,6 +49,7 @@ create table if not exists public.cbt_attempts (
   score        integer,                            -- client-graded; results page re-grades server rows
   total        integer,
   integrity    integer not null default 0,         -- tab-switch/blur events
+  webcam       text not null default '',           -- on | denied | unavailable | skipped | '' (v55)
   joined_at    timestamptz not null default now(),
   started_at   timestamptz,
   submitted_at timestamptz,
@@ -151,3 +152,6 @@ begin
     alter publication supabase_realtime add table public.cbt_answers;
   exception when duplicate_object then null; end;
 end $$;
+
+-- v55 "Live CBT Cameras" — already ran the v54 schema? Run just this instead:
+--   alter table public.cbt_attempts add column if not exists webcam text not null default '';
