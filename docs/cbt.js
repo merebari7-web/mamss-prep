@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "55";
+  var VERSION = "57";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -271,7 +271,7 @@
       ".cbt-tabs{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}" +
       ".cbt-tab{border:1.5px solid rgba(0,33,71,.2);background:transparent;border-radius:99px;padding:8px 16px;font:700 .85rem inherit;cursor:pointer;color:#3c4a63}" +
       ".cbt-tab.on{background:#002147;border-color:#002147;color:#fff}" +
-      ".cbt-bar{display:flex;gap:3px;align-items:flex-end;height:44px}" +
+      ".cbt-bar{display:flex;gap:3px;align-items:flex-end;height:44px}.cbt-hbar{height:10px;background:rgba(20,38,59,.08);border-radius:999px;overflow:hidden}.cbt-hbar>i{display:block;height:100%;background:#2f7d4f;border-radius:999px}" +
       ".cbt-bar i{flex:1;background:linear-gradient(180deg,#c9a227,#002147);border-radius:3px 3px 0 0;min-height:2px}" +
       ".cbt-draft-q{border:1px solid var(--line,rgba(0,33,71,.14));border-radius:10px;padding:9px 11px;margin:0 0 7px;font-size:.85rem;display:flex;gap:9px;align-items:flex-start}" +
       ".cbt-draft-q small{color:var(--mut,#5b6b84);display:block}" +
@@ -418,6 +418,7 @@
        shows a fresh hall — results live server-side and in the recent list;
        an active runner is NEVER reset by a re-mount. */
     if (ui.tab === "done" || ui.tab === "waiting") { closeRoom(); stopCam(); ui.tab = "home"; }
+    dashStop();
     render();
   }
   function render() {
@@ -941,13 +942,16 @@
       '<button class="cbt-tab' + (cons.tab === "create" ? " on" : "") + '" data-ctab="create">1 · Build paper</button>' +
       '<button class="cbt-tab' + (cons.tab === "monitor" ? " on" : "") + '" data-ctab="monitor">2 · Monitor</button>' +
       '<button class="cbt-tab' + (cons.tab === "results" ? " on" : "") + '" data-ctab="results">3 · Results</button>' +
+      '<button class="cbt-tab' + (cons.tab === "school" ? " on" : "") + '" data-ctab="school">4 · School</button>' +
       "</div><div id='cbtConsBody'></div></div>";
     root.innerHTML = wrap(h);
     root.querySelectorAll("[data-ctab]").forEach(function (b) {
       b.onclick = function () { cons.tab = b.getAttribute("data-ctab"); renderConsole(); };
     });
+    if (cons.tab !== "school") dashStop();
     if (cons.tab === "create") renderBuilder();
     else if (cons.tab === "monitor") renderMonitor();
+    else if (cons.tab === "school") renderSchool();
     else renderResults();
   }
 
@@ -1211,7 +1215,7 @@
     var invite = "MAMSS PREP — Live CBT: " + s.title + ". Join in the Live CBT tab with code " + prettyCode(s.code) + ". https://merebari7-web.github.io/mamss-prep/";
     var cc = $("cbtCopyCode");
     if (cc) cc.onclick = function () {
-      try { navigator.clipboard && navigator.clipboard.writeText(invite); } catch (e) {}
+      try { var ci = navigator.clipboard && navigator.clipboard.writeText(invite); if (ci && ci.catch) ci.catch(function () {}); } catch (e) {}
       toast("Invite copied — paste it anywhere", "📋");
     };
     var wa = $("cbtWaShare");
@@ -1393,10 +1397,252 @@
         var txt = "📊 MAMSS PREP Live CBT — " + s.title + "\n" + g.rows.length + " sat · class average " +
           (g.rows.length ? Math.round(g.rows.reduce(function (x, r) { return x + r.pct; }, 0) / g.rows.length) : 0) + "%\n" + top +
           (hardest ? "\nHardest question: #" + (hardest.i + 1) + " (" + hardest.pct + "% correct)" : "");
-        try { navigator.clipboard && navigator.clipboard.writeText(txt); } catch (e) {}
+        try { var cp = navigator.clipboard && navigator.clipboard.writeText(txt); if (cp && cp.catch) cp.catch(function () {}); } catch (e) {}
         window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener");
       };
     }).catch(renderFailure);
+  }
+
+
+  /* ------------------------------------------------- school dashboard (v57) */
+  /* Whole-school aggregates for teachers: every live exam this project has
+     run + the activation roll-out. Practice progress (Cloud Sync) is private
+     per student BY DESIGN and is never readable here — the dashboard only
+     aggregates exam rows the school already shares with its teachers. */
+  var dash = { data: null, timer: null, err: "" };
+  function dashStop() { if (dash.timer) { clearInterval(dash.timer); dash.timer = null; } }
+  function fmtDay(iso) {
+    try { return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short" }); } catch (e) { return ""; }
+  }
+  function schoolFetch() {
+    var sessP = rest("cbt_sessions?select=code,title,cls,subject,status,teacher,created_at,live_at,ended_at&order=created_at.desc&limit=200");
+    var attP = rest("cbt_attempts?select=session_code,name,slip,status,score,total,integrity,webcam,submitted_at&order=submitted_at.desc&limit=2000");
+    var ledP = rest("code_redemptions?select=batch,redeemed_at&order=redeemed_at.desc&limit=1000")
+      .catch(function () { return { ok: false, status: 0, json: null, soft: true }; });
+    return Promise.all([sessP, attP, ledP]).then(function (rs) {
+      if (isMissingTables(rs[0]) || isMissingTables(rs[1])) { var e = setupError(); throw e; }
+      var sessions = (rs[0].ok && Array.isArray(rs[0].json)) ? rs[0].json : [];
+      var attempts = (rs[1].ok && Array.isArray(rs[1].json)) ? rs[1].json : [];
+      var ledger = (rs[2] && rs[2].ok && Array.isArray(rs[2].json)) ? rs[2].json : null;
+      return { sessions: sessions, attempts: attempts, ledger: ledger, at: Date.now() };
+    });
+  }
+  /* pure aggregator — exported for tests */
+  function schoolStats(sessions, attempts, ledger) {
+    var graded = [], i;
+    for (i = 0; i < attempts.length; i++) {
+      var a = attempts[i];
+      if ((a.status === "submitted" || a.status === "autosubmitted") && a.total > 0 && a.score != null) {
+        graded.push({ a: a, pct: Math.round(a.score / a.total * 100) });
+      }
+    }
+    var sum = 0, flags = 0, camOn = 0, uniq = {}, liveNow = 0;
+    for (i = 0; i < graded.length; i++) sum += graded[i].pct;
+    for (i = 0; i < attempts.length; i++) {
+      flags += (+attempts[i].integrity || 0);
+      if (attempts[i].webcam === "on") camOn++;
+      var idn = attempts[i].slip || attempts[i].name || attempts[i].session_code;
+      uniq[idn] = 1;
+    }
+    for (i = 0; i < sessions.length; i++) if (sessions[i].status === "live") liveNow++;
+    var bySess = {};
+    for (i = 0; i < sessions.length; i++) bySess[sessions[i].code] = { s: sessions[i], sat: 0, graded: [], top: null };
+    for (i = 0; i < attempts.length; i++) {
+      var b = bySess[attempts[i].session_code];
+      if (!b) continue;
+      b.sat++;
+    }
+    for (i = 0; i < graded.length; i++) {
+      var g = bySess[graded[i].a.session_code];
+      if (!g) continue;
+      g.graded.push(graded[i]);
+      if (!g.top || graded[i].pct > g.top.pct) g.top = { name: graded[i].a.name || "Anonymous", pct: graded[i].pct };
+    }
+    var rows = [];
+    for (i = 0; i < sessions.length; i++) {
+      var r = bySess[sessions[i].code];
+      var rsum = 0, j;
+      for (j = 0; j < r.graded.length; j++) rsum += r.graded[j].pct;
+      rows.push({
+        code: sessions[i].code, title: sessions[i].title, cls: sessions[i].cls, subject: sessions[i].subject || "Mixed",
+        status: sessions[i].status, day: fmtDay(sessions[i].live_at || sessions[i].created_at),
+        sat: r.sat, avg: r.graded.length ? Math.round(rsum / r.graded.length) : null, top: r.top
+      });
+    }
+    var classes = {}, cs;
+    for (i = 0; i < rows.length; i++) {
+      cs = classes[rows[i].cls] || (classes[rows[i].cls] = { sat: 0, sum: 0, n: 0, sessions: 0 });
+      cs.sat += rows[i].sat; cs.sessions++;
+      var sr = bySess[rows[i].code];
+      for (j = 0; j < sr.graded.length; j++) { cs.sum += sr.graded[j].pct; cs.n++; }
+    }
+    var hist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    for (i = 0; i < graded.length; i++) hist[Math.min(9, Math.floor(graded[i].pct / 10))]++;
+    var act = null;
+    if (ledger) {
+      act = { byBatch: {}, week: 0, total: ledger.length };
+      var cutoff = Date.now() - 7 * 86400000;
+      for (i = 0; i < ledger.length; i++) {
+        var bn = ledger[i].batch || "?";
+        act.byBatch[bn] = (act.byBatch[bn] || 0) + 1;
+        try { if (new Date(ledger[i].redeemed_at).getTime() >= cutoff) act.week++; } catch (e) {}
+      }
+    }
+    return {
+      sessions: sessions.length, liveNow: liveNow, sittings: attempts.length, graded: graded.length,
+      avg: graded.length ? Math.round(sum / graded.length) : null,
+      students: Object.keys(uniq).length, flags: flags, camOn: camOn,
+      rows: rows, classes: classes, hist: hist, act: act
+    };
+  }
+  function batchSizes() {
+    try {
+      var C = window.MAMSS_CODES;
+      var out = [], i;
+      if (C && C.batches && C.batchRanges) for (i = 0; i < C.batches.length; i++)
+        out.push({ name: C.batches[i], size: (C.batchRanges[i][1] - C.batchRanges[i][0]), total: C.count });
+      return out;
+    } catch (e) { return []; }
+  }
+  function renderSchool() {
+    var host = $("cbtConsBody"); if (!host) return;
+    if (!cfg()) { host.innerHTML = "<p class='cbt-muted'>The school dashboard needs the live ledger — this copy of the site has none configured.</p>"; return; }
+    dashStop();
+    host.innerHTML = "<p class='cbt-muted'>Crunching the whole school…</p>";
+    schoolFetch().then(function (data) {
+      dash.data = data; dash.err = "";
+      if (ui.tab !== "console" || cons.tab !== "school") return;
+      drawSchool(host, data);
+      dash.timer = setInterval(function () {
+        if (ui.tab !== "console" || cons.tab !== "school") { dashStop(); return; }
+        schoolFetch().then(function (d2) {
+          dash.data = d2;
+          var h2 = $("cbtConsBody");
+          if (h2 && ui.tab === "console" && cons.tab === "school") drawSchool(h2, d2);
+        }).catch(function () {});
+      }, 30000);
+    }).catch(function (e) {
+      if (e && e.setup) {
+        host.innerHTML = "<div class='cbt-note'>The school dashboard is <b>being set up</b> — the exam tables are not on the school server yet. Ask the school office to run the setup SQL (it takes a minute); nothing else on the site is affected.</div>";
+        return;
+      }
+      dash.err = (e && e.message) || "network";
+      host.innerHTML = "<div class='cbt-note'>Could not reach the school server just now (" + esc(dash.err) + "). <button class='cbt-btn ghost' id='cbtDashRetry'>Try again</button></div>";
+      var rb = $("cbtDashRetry");
+      if (rb) rb.onclick = function () { renderSchool(); };
+    });
+  }
+  function drawSchool(host, data) {
+    var st = schoolStats(data.sessions, data.attempts, data.ledger);
+    dash.stats = st;
+    var h = "";
+    h += '<div class="cbt-row" style="justify-content:space-between;margin-bottom:8px"><b>🏫 Whole school</b>' +
+      '<div class="cbt-row"><button class="cbt-btn ghost" id="cbtDashRefresh">⟳ Refresh</button>' +
+      '<button class="cbt-btn ghost" id="cbtDashCsv">⬇ CSV</button>' +
+      '<button class="cbt-btn ghost" id="cbtDashWa">💬 Summary</button></div></div>';
+    h += '<p class="cbt-sub">Updated ' + fmtTime(data.at) + ' · refreshes itself every 30 s while you watch</p>';
+    /* stat chips */
+    h += '<div class="cbt-row" style="flex-wrap:wrap;gap:8px;margin:10px 0">';
+    var chips = [
+      ["Papers run", st.sessions + (st.liveNow ? ' <b style="color:#16a34a">(' + st.liveNow + ' live)</b>' : "")],
+      ["Sittings", st.sittings],
+      ["School average", st.avg == null ? "—" : st.avg + "%"],
+      ["Students", st.students],
+      ["⚠ Flags", st.flags],
+      ["📹 Cameras on", st.camOn]
+    ];
+    chips.forEach(function (c) {
+      h += '<span class="cbt-chip">' + c[0] + ': <b>' + c[1] + "</b></span>";
+    });
+    h += "</div>";
+    if (!st.sessions) {
+      h += "<div class='cbt-note'>No live exams yet — build the first paper in tab 1 and the whole school's story starts here.</div>";
+    } else {
+      /* per-class bars */
+      h += '<h3 style="margin:14px 0 6px">By class</h3>';
+      Object.keys(st.classes).sort().forEach(function (cn) {
+        var cs = st.classes[cn];
+        var cavg = cs.n ? Math.round(cs.sum / cs.n) : null;
+        h += '<div class="cbt-row" style="gap:10px;margin:4px 0"><b style="min-width:44px">' + esc(cn) + "</b>" +
+          '<div class="cbt-flex1"><div class="cbt-hbar"><i style="width:' + (cavg == null ? 0 : cavg) + '%"></i></div></div>' +
+          "<small class='cbt-muted'>" + (cavg == null ? "no graded sittings" : cavg + "% avg") + " · " + cs.sat + " sat · " + cs.sessions + " paper" + (cs.sessions === 1 ? "" : "s") + "</small></div>";
+      });
+      /* score distribution */
+      if (st.graded) {
+        var maxH = Math.max.apply(null, st.hist.concat([1]));
+        h += '<h3 style="margin:16px 0 6px">Score spread</h3><div class="cbt-bar" title="Graded sittings by score band">';
+        for (var bi = 0; bi < 10; bi++)
+          h += '<i style="height:' + Math.round(st.hist[bi] / maxH * 100) + '%;opacity:' + (st.hist[bi] ? "1" : ".25") + '" data-l="' + (bi * 10) + '"></i>';
+        h += '</div><small class="cbt-muted">share of sittings scoring 0–9 … 90–100%</small>';
+      }
+      /* session table */
+      h += '<h3 style="margin:16px 0 6px">Every paper</h3><table class="cbt-table"><tr><th>Date</th><th>Paper</th><th>Class</th><th>Status</th><th>Sat</th><th>Avg</th><th>Top</th><th></th></tr>';
+      st.rows.forEach(function (r) {
+        h += "<tr><td>" + esc(r.day) + "</td><td><b>" + esc(r.title) + '</b><br><small class="cbt-muted">' + esc(r.subject) + "</small></td>" +
+          "<td>" + esc(r.cls) + "</td><td>" + (r.status === "live" ? '<b style="color:#16a34a">LIVE</b>' : esc(r.status)) + "</td>" +
+          "<td>" + r.sat + "</td><td>" + (r.avg == null ? "—" : "<b>" + r.avg + "%</b>") + "</td>" +
+          "<td>" + (r.top ? esc(r.top.name) + " · " + r.top.pct + "%" : "—") + "</td>" +
+          "<td><button class='cbt-btn ghost' data-dash-open='" + esc(r.code) + "'>Open →</button></td></tr>";
+      });
+      h += "</table>";
+    }
+    /* activation roll-out */
+    h += '<h3 style="margin:16px 0 6px">Activation roll-out</h3>';
+    if (!st.act) {
+      h += "<p class='cbt-muted'>The slip ledger is not reachable from this copy of the site.</p>";
+    } else {
+      var bs = batchSizes(), used = 0, total = 0;
+      bs.forEach(function (b) {
+        var u = st.act.byBatch[b.name] || 0;
+        used += u; total += b.size;
+        h += '<div class="cbt-row" style="gap:10px;margin:4px 0"><b style="min-width:110px">' + esc(b.name) + "</b>" +
+          '<div class="cbt-flex1"><div class="cbt-hbar"><i style="width:' + (b.size ? Math.round(u / b.size * 100) : 0) + '%"></i></div></div>' +
+          "<small class='cbt-muted'>" + u + " of " + b.size + " slips used</small></div>";
+      });
+      h += "<p class='cbt-sub'>" + used + " of " + (total || st.act.total) + " slips activated · <b>" + st.act.week + "</b> in the last 7 days</p>";
+    }
+    h += "<p class='cbt-note'>🔒 Practice progress (Cloud Sync) is private to each student and never appears here — the dashboard aggregates live exams and slip activation only.</p>";
+    host.innerHTML = h;
+    var rf = $("cbtDashRefresh"); if (rf) rf.onclick = function () { renderSchool(); };
+    host.querySelectorAll("[data-dash-open]").forEach(function (b) {
+      b.onclick = function () {
+        b.disabled = true; b.textContent = "Opening…";
+        getSession(b.getAttribute("data-dash-open")).then(function (s) {
+          if (!s) { b.disabled = false; b.textContent = "Open →"; return; }
+          cons.session = s; cons.tab = "results"; dashStop(); renderConsole();
+        }).catch(function () { b.disabled = false; b.textContent = "Open →"; });
+      };
+    });
+    var cv = $("cbtDashCsv");
+    if (cv) cv.onclick = function () {
+      var lines = ["date,session,class,subject,name,slip,score,total,pct,integrity,webcam,status"];
+      st.rows.forEach(function (r) {
+        data.attempts.forEach(function (a) {
+          if (a.session_code !== r.code) return;
+          var pct = (a.status === "submitted" || a.status === "autosubmitted") && a.total > 0 && a.score != null ? Math.round(a.score / a.total * 100) : "";
+          lines.push([r.day, '"' + String(r.title).replace(/"/g, "'") + '"', r.cls, '"' + String(r.subject).replace(/"/g, "'") + '"',
+            '"' + String(a.name || "").replace(/"/g, "'") + '"', a.slip || "", a.score == null ? "" : a.score, a.total == null ? "" : a.total,
+            pct, a.integrity || 0, a.webcam || "", a.status].join(","));
+        });
+      });
+      var uri = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n"));
+      var a2 = el("a", { href: uri, download: "mamss-school-dashboard.csv" });
+      document.body.appendChild(a2); a2.click(); a2.remove();
+    };
+    var wa = $("cbtDashWa");
+    if (wa) wa.onclick = function () {
+      var best = st.rows.filter(function (r) { return r.avg != null; }).sort(function (x, y) { return y.avg - x.avg; })[0];
+      var txt = "🏫 MAMSS PREP — school dashboard\n" +
+        st.sessions + " live paper" + (st.sessions === 1 ? "" : "s") + " run · " + st.sittings + " sittings · " + st.students + " students\n" +
+        "School average: " + (st.avg == null ? "—" : st.avg + "%") + "\n" +
+        (best ? "Strongest paper: " + best.title + " (" + best.avg + "% avg)\n" : "") +
+        (st.act ? "Activation: " + st.act.total + " slips used, " + st.act.week + " this week" : "");
+      try { var cp = navigator.clipboard && navigator.clipboard.writeText(txt); if (cp && cp.catch) cp.catch(function () {}); } catch (e) {}
+      window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener");
+    };
+  }
+  function fmtTime(ms) {
+    try { return new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; }
   }
 
   /* ---------------------------------------------------------------- api */
@@ -1408,7 +1654,9 @@
     _test: {
       makeCode: makeCode, normCode: normCode, gradePaper: gradePaper, me: me, cfg: cfg, rest: rest,
       cam: function () { return { on: camState.on, tracks: camState.stream ? camState.stream.getTracks().map(function (t) { return t.readyState; }) : [] }; },
-      cams: function () { return camFrames; }
+      cams: function () { return camFrames; },
+      schoolStats: schoolStats, schoolFetch: schoolFetch,
+      dash: function () { return { data: dash.data, stats: dash.stats || null, err: dash.err }; }
     }
   };
   try {

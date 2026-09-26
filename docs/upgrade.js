@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 56, NAME = "Cloud Sync";
+  var V = 57, NAME = "School Dashboard";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -640,7 +640,8 @@
       ["🧠", "Adaptive Engine", "The app now remembers how you answer every topic — accuracy, speed and a Leitner-style memory box with spaced due dates. The Daily Challenge weights six of its ten questions toward your three weakest topics, and the AI Coach shows each weak topic's memory box and offers speed drills when you are correct but slow. On-device, offline, no account — as always."],
       ["🏫", "Live CBT Hall", "Teachers can now run a real live examination: build the paper from the question bank (or add fresh questions), go live with a 6-character session code, watch every device join and answer in real time, extend or end the sitting, and get the ranking with per-question breakdown immediately after. Students join from the new Live CBT tab with the activation they already have — one device per session, every answer saved the instant it is given, and the clock lives on the school server so a refresh cannot reset it."],
       ["📹", "Live CBT Cameras", "Webcam monitoring for live exams: the teacher chooses off, optional or required per paper. Students see themselves before going live and give permission explicitly; during the exam the teacher receives small snapshots about every 12 seconds — sent live over the school's realtime channel, never recorded and never stored. When the paper ends the video is gone; only a status word (on · denied · no camera · skipped) remains on the result row."],
-      ["☁️", "Cloud Sync — your progress, any device (optional)", "Sign in with Google in the new Cloud Sync tab and your XP, badges, attempt history, mistakes, bookmarks, journal, adaptive stats and goals merge losslessly between your devices — two phones syncing at once keep everything from both, and counters can never double-count. Stay signed out and nothing changes: everything lives on your device, offline, as always. Your activation code is NEVER uploaded and sync grants no access — the school slip remains the only door. Your cloud row is private to your sign-in; even this site's public key cannot read it."]
+      ["☁️", "Cloud Sync — your progress, any device (optional)", "Sign in with Google in the new Cloud Sync tab and your XP, badges, attempt history, mistakes, bookmarks, journal, adaptive stats and goals merge losslessly between your devices — two phones syncing at once keep everything from both, and counters can never double-count. Stay signed out and nothing changes: everything lives on your device, offline, as always. Your activation code is NEVER uploaded and sync grants no access — the school slip remains the only door. Your cloud row is private to your sign-in; even this site's public key cannot read it."],
+      ["📊", "School Dashboard", "The teacher console grows a fourth tab: the whole school in one view. Every live paper ever run — sittings, averages, top scorers — with one click through to the full ranking and per-question breakdown. Class-vs-class bars, a score-spread histogram, the activation roll-out (slips used per batch, last-7-days pace), a CSV of every sitting and a one-tap WhatsApp summary for the staff group. Practice progress stays private per student by design — the dashboard aggregates live exams and slip activation only."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");

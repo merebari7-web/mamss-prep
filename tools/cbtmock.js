@@ -9,6 +9,7 @@ const PORT = +(process.argv[2] || 8124);
 const sessions = new Map();  // code -> row
 const attempts = new Map();  // code|did -> row
 const answers = new Map();   // code|did|qidx -> row
+const redemptions = new Map(); // code_hash -> row (v57 school dashboard: activation roll-out)
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +70,7 @@ http.createServer((req, res) => {
     if (raw) { try { body = JSON.parse(raw); } catch (e) { return send(res, 400, { message: 'bad json' }); } }
 
     /* ---- test helpers ---- */
-    if (u === '/_reset' && req.method === 'POST') { sessions.clear(); attempts.clear(); answers.clear(); return send(res, 200, { reset: true }); }
+    if (u === '/_reset' && req.method === 'POST') { sessions.clear(); attempts.clear(); answers.clear(); redemptions.clear(); return send(res, 200, { reset: true }); }
     if (u === '/_dump') {
       const t = parseFilters(search).table || search.match(/table=([a-z]+)/);
       const table = typeof t === 'string' ? t : (t && t[1]) || 'sessions';
@@ -157,6 +158,25 @@ http.createServer((req, res) => {
         for (const it of items) {
           answers.set(it.session_code + '|' + it.device_id + '|' + it.q_idx, Object.assign({
             choice: 0, correct: false, ms: 0, flagged: false, saved_at: now(),
+          }, it));
+        }
+        return send(res, 201, undefined);
+      }
+    }
+
+    /* ---- code_redemptions (read-only surface for the v57 dashboard) ---- */
+    if (u === '/rest/v1/code_redemptions') {
+      if (req.method === 'GET') {
+        const rows = [...redemptions.values()];
+        rows.sort((a, b) => String(b.redeemed_at).localeCompare(String(a.redeemed_at)));
+        return send(res, 200, rows);
+      }
+      if (req.method === 'POST') {
+        const items = Array.isArray(body) ? body : [body];
+        for (const it of items) if (redemptions.has(it.code_hash)) return conflict(res);
+        for (const it of items) {
+          redemptions.set(it.code_hash, Object.assign({
+            device_id: '', device_label: '', batch: '', redeemed_at: now(),
           }, it));
         }
         return send(res, 201, undefined);

@@ -631,7 +631,7 @@ full, item order, with **Firebase** chosen for the cloud items. Ledger:
 |---|------|--------|
 | 1 | Adaptive learning engine (Leitner/SM-2 + weak-topic weighting) | **shipped — v53 (this section)** |
 | 2 | Real backend / sync (Google sign-in, cross-device progress) | **shipped — v56 "Cloud Sync" (this section below)**. Originally approved with Firebase; on 2026-09-26 the owner re-chose **Supabase** when offered: the project was already live (ledger + CBT), the site's existing Google button works unchanged via Supabase's official ID-token flow (no secret, no new SDK, no new keys), and the SQL workflow was proven the same day. Firebase stays approved but unused. The hard constraint held: `nssc_act` never syncs, and sync grants no access. |
-| 3 | Teacher/admin dashboard (aggregate class performance) | **live-session slice shipped — v54 Live CBT Hall** (real-time roster, integrity flags, ranking + per-question breakdown, CSV); whole-school aggregate dashboard still queued behind #2 |
+| 3 | Teacher/admin dashboard (aggregate class performance) | **shipped — v57 "School Dashboard" (whole-school aggregates: every paper, class bars, score spread, activation roll-out, CSV + WhatsApp summary, one-click drill-down to v54 results) on top of the v54 live-session slice** (real-time roster, integrity flags, ranking + per-question breakdown) |
 | 4 | Teacher content pipeline (CSV/JSON → bank, validated) | queued |
 | 5 | Accessibility & performance audit | queued (a11y scaffolding — `a11yApply`/`a11yOpen` — already exists and gets audited, not rebuilt) |
 | 6 | Exam-mode integrity | **shipped for live sessions — v54** (blur/visibility logging with 1.2 s accidental-bounce grace, escalating warnings, forgiving auto-submit at 5, copy/paste block with a Readable-a11y exemption, server-enforced no-going-back; **webcam monitoring — v55**: off/optional/required per paper, ephemeral live snapshots, explicit consent gate); practice-mode exam integrity polish remains queued |
@@ -1063,3 +1063,78 @@ ledger-stripped copy, zero page errors. `verify.py` §[21] → **276 · 0**
 Full regression: cbt 80/80, adaptive 18/18, bank 20/20, roll-call 33/33
 (:8101), studio/arena/prestige/command/prospectus ALL PASS. `realtest` not
 re-run (redeem path untouched; slips #17–19 remain the last burn).
+
+---
+
+## 19. v57 "School Dashboard" — roadmap item 3 of 8 (zero new setup)
+
+The teacher console grows a **fourth tab: "4 · School"** — the whole school in
+one view, built entirely on tables that ALREADY exist (v54/v55 CBT rows + the
+v45 slip ledger). **No new SQL, no dashboard toggles, no school steps at
+all**: it works the moment the site updates.
+
+### 19.1 What it shows
+
+* **Headline chips** — papers run (with a live-now callout), sittings, school
+  average %, unique students, summed integrity flags, cameras on.
+* **By class** — SS1/SS2/SS3 horizontal bars: average %, sittings, papers.
+* **Score spread** — 10-band histogram of graded sittings (0–9 … 90–100 %).
+* **Every paper** — date, title, subject, status (LIVE flagged green), sat,
+  avg %, top scorer, and **Open →** which jumps straight into the existing v54
+  results view for that paper (full ranking + per-question accuracy + CSV).
+* **Activation roll-out** — slips used per batch (5/120 main, 2/380 topup,
+  1/10 teacher style bars), school total out of 510, last-7-days pace.
+  Reads ONLY `batch` + `redeemed_at` from the ledger — never names or hashes.
+* **Whole-school CSV** (every sitting, one row) and a **💬 WhatsApp summary**
+  for the staff group (averages, strongest paper, activation pace).
+* Refreshes itself every 30 s while the tab is open (timer stopped the moment
+  the teacher leaves the tab or the view; `mount()` also stops it).
+
+### 19.2 Aggregation semantics (all client-side, all pure — unit-tested)
+
+Graded sitting = `status ∈ {submitted, autosubmitted}` with `total > 0` and a
+non-null `score` (client-graded column; the per-paper results view still
+re-grades from answer rows — the dashboard is an overview, the paper view is
+the record). Per-student pct is rounded first, then averaged (matches the
+results table). Unique students = distinct masked slip, falling back to name.
+Histogram bucket = `min(9, floor(pct/10))`. Weekly pace = redeemed_at within
+7 days. Empty states are nulls and friendly notes, never NaN.
+
+### 19.3 Privacy posture (unchanged, and stated in the UI)
+
+The dashboard aggregates exactly what the school already shares with its
+teachers: live-exam rows (open to the console since v54) and ledger counts.
+**Cloud Sync practice progress is private per student (owner-only RLS) and
+structurally unreachable from the dashboard** — the note says so on-screen.
+Teacher-gating is the same client-side role stamp as the whole console
+(`TEACHER-*` batch); students never see the tab (re-asserted in tests).
+
+### 19.4 Latent bug fixed on the way
+
+`navigator.clipboard.writeText(...)` returns a promise; the v54 `try/catch`
+around it could not catch async rejections — a denied clipboard permission
+surfaced as an unhandled page error. All THREE sites (results summary,
+invite copy, new dashboard summary) now attach `.catch()` to the promise.
+dashtest asserts zero page errors after clicking every button.
+
+### 19.5 Tests
+
+New `testrig/dashtest.js` (mirrored in tools/) → **37 passed · 0 failed**:
+seeds a whole-school dataset (3 papers — ended/live, 7 sittings across 6
+unique students, 8 activations across 3 batches) into cbtmock (which grew a
+`code_redemptions` table), then checks every exact aggregate (70 % school
+average from (80+90+60+70+50)/5, 77/60 per-class averages, dedupe by slip,
+flags sum, weekly cutoff at 8 days, 100 % bucket edge), the drill-down into
+v54 results and back, CSV/WhatsApp/refresh buttons (WA text asserted through
+a stubbed `window.open`), pure-aggregator units, the "being set up" degrade,
+student role-gating, and zero page errors. Full regression: cbt 80/80, sync
+60/60, adaptive 18/18, bank 20/20, roll-call 33/33 (:8101), studio/arena/
+prestige/command/prospectus ALL PASS. `verify.py` §[22] → **295 · 0**
+(§20/§21 pins made bump-proof: parsed-int `CBTVER`, `VP` for the app
+version). `realtest` not re-run (redeem path untouched).
+
+Honest edges: fetches cap at 200 sessions / 2000 sittings (school-scale by
+design; the CSV covers what is fetched); any teacher sees every session
+(same open-console posture as v54 — the CBT tables are school-public by
+design, and rows carry no practice data); the 30 s auto-refresh polls only
+while the School tab is visible.

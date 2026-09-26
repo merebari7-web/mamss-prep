@@ -42,7 +42,7 @@ function seedFor(role, opts) {
     : "";
   return `
     ${head}
-    localStorage.setItem('nssc_mp_seen', '56');
+    localStorage.setItem('nssc_mp_seen', '57');
     localStorage.setItem('nssc_devid', JSON.stringify('${role}-test-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
     ${noCam}
