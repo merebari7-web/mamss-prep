@@ -22,6 +22,7 @@
     progress: "My progress",
     tools: "Study toolkit",
     cbt: "Live CBT Hall",
+    sync: "Cloud Sync",
   };
   let current = "overview",
     grade = Math.max(0, Math.min(2, Number(store.get("study_grade", 0)) || 0));
@@ -409,6 +410,17 @@
           if (host)
             host.innerHTML =
               '<div class="cbt-note" style="margin:10px">Live CBT needs a one-time download — reconnect and open this tab again. Your practice progress is untouched.</div>';
+        }
+      }
+      if (view === "sync") {
+        try {
+          await load("sync.js");
+          if (window.MAMSS_SYNC) window.MAMSS_SYNC.mount();
+        } catch (e) {
+          const host = $("syncRoot");
+          if (host)
+            host.innerHTML =
+              '<div class="syn-card" style="margin:10px">Cloud Sync needs a one-time download — reconnect and open this tab again. Your progress is untouched.</div>';
         }
       }
       show(view, updateURL);
@@ -1044,6 +1056,13 @@
     if (route && titles[route] && route !== "overview")
       actionBusy(null, () => navigate(route, false));
     else show("overview", false, false);
+    // v56: Cloud Sync boots quietly in the background — it does anything at all
+    // only for users who connect it themselves; guests see zero change.
+    load("sync.js")
+      .then(() => {
+        if (window.MAMSS_SYNC) window.MAMSS_SYNC.boot();
+      })
+      .catch(() => {});
     // No compulsory account, no downloaded decoration, no background tool execution.
     document.body.classList.remove("gated");
     document.body.style.overflow = "";

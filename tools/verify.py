@@ -437,6 +437,13 @@ def main():
     swsrc = open(os.path.join(DOCS, "sw.js"), encoding="utf-8").read()
     _swm = re.search(r'"-v(\d+)"', swsrc)
     SWV = int(_swm.group(1)) if _swm else 0   # numeric cache-key version, so "vN+" checks survive future bumps
+    _vm = re.search(r"var V = (\d+), NAME", usrc)
+    VP = int(_vm.group(1)) if _vm else 0      # numeric app version — same bump-proofing
+    def dockcols(src):
+        i = src.find(".study-app .studio-dock {")
+        seg = src[i:i + 500] if i >= 0 else src
+        m = re.search(r"repeat\((\d+), minmax", seg)
+        return int(m.group(1)) if m else 0
     (ok if '"./codes.js"' in swsrc else fail)("service worker precaches codes.js (works offline)")
     mk = re.search(r'"-v(\d+)"', swsrc)
     (ok if mk and int(mk.group(1)) >= 45 else fail)(
@@ -604,7 +611,7 @@ def main():
     (ok if not re.search(r'"[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}"', codesrc) else fail)("codes.js: no plaintext slip strings (XXXX-XXXX)")
 
     # --- upgrade.js: role stamping + API ---
-    (ok if re.search(r"var V = 5[4-9]", usrc) and 'NAME = "Live CBT Cameras"' in usrc and "Live CBT Hall" in usrc else fail)("upgrade.js: V=54+ shipped (Live CBT Hall entry retained, now Live CBT Cameras)")
+    (ok if VP >= 54 and "Live CBT Hall" in usrc and "Live CBT Cameras" in usrc else fail)("upgrade.js: V=54+ shipped (Live CBT Hall + Cameras entries retained)")
     (ok if "function batchOf(h)" in usrc and "CODES.batchRanges" in usrc else fail)("upgrade.js: batchOf() resolves the TRUE batch via batchRanges")
     (ok if usrc.count("role: roleOfHash(h)") == 3 else fail)("upgrade.js: all 3 nssc_act stamps carry role (got %d)" % usrc.count("role: roleOfHash(h)"))
     (ok if "batch: batchOf(h) }])" in usrc else fail)("upgrade.js: ledger claim posts the true batch")
@@ -635,7 +642,7 @@ def main():
     (ok if 'load("cbt.js")' in studysrc and "MAMSS_CBT.mount()" in studysrc else fail)("study.js: navigate() lazy-loads + mounts the hall")
     (ok if SWV >= 59 else fail)("sw.js: cache bumped to -v59+")
     (ok if '"./cbt.js"' in swsrc else fail)("sw.js: cbt.js precached")
-    (ok if "repeat(5, minmax(0, 1fr))" in atelier else fail)("atelier.css: mobile dock widened to 5 tabs")
+    (ok if dockcols(atelier) >= 5 else fail)("atelier.css: mobile dock widened to 5+ tabs (%d now)" % dockcols(atelier))
 
     # --- schema + issuer ---
     (ok if all(t in schema for t in ("create table if not exists public.cbt_sessions", "create table if not exists public.cbt_attempts", "create table if not exists public.cbt_answers")) else fail)("cbt_schema.sql: the 3 tables")
@@ -647,7 +654,7 @@ def main():
     (ok if "--seed-ranges" in issuer and "batchRanges" in issuer else fail)("issue_codes.py: maintains batchRanges (--seed-ranges migration)")
 
     print("\n[20] v55 Live CBT Cameras (webcam monitoring, ephemeral by design)")
-    (ok if 'var V = 55, NAME = "Live CBT Cameras"' in usrc else fail)("upgrade.js: V=55 NAME=Live CBT Cameras")
+    (ok if VP >= 55 and "Live CBT Cameras" in usrc else fail)("upgrade.js: V=55+ with the Live CBT Cameras entry retained")
     (ok if "Live CBT Cameras" in usrc and "never recorded and never stored" in usrc else fail)("whats-new announces the cameras with the privacy promise")
     (ok if 'var VERSION = "55"' in cbtsrc else fail)("cbt.js: VERSION 55")
     (ok if "getUserMedia" in cbtsrc and "facingMode: \"user\"" in cbtsrc and "audio: false" in cbtsrc else fail)("cbt.js: video-only getUserMedia (front camera, no audio)")
@@ -666,9 +673,59 @@ def main():
     (ok if "cam: function ()" in cbtsrc and "cams: function ()" in cbtsrc else fail)("cbt.js: _test cam hooks")
     (ok if "webcam       text not null default ''" in schema else fail)("cbt_schema.sql: attempts carry the webcam status column")
     (ok if "add column if not exists webcam" in schema else fail)("cbt_schema.sql: one-line migration for early v54 adopters")
-    (ok if '"-v60"' in swsrc else fail)("sw.js: cache bumped to -v60")
+    (ok if SWV >= 60 else fail)("sw.js: cache bumped to -v60+")
     r = subprocess.run(["node", "--check", cbtsrc_path], capture_output=True, text=True)
     (ok if r.returncode == 0 else fail)("cbt.js: node --check clean (v55)")
+
+    print("\n[21] v56 Cloud Sync (Supabase, Google ID token, lossless merge)")
+    syncp = os.path.join(DOCS, "sync.js")
+    (ok if os.path.exists(syncp) else fail)("docs/sync.js exists")
+    syncsrc = open(syncp, encoding="utf-8").read() if os.path.exists(syncp) else ""
+    studysrc = open(os.path.join(DOCS, "ui", "study.js"), encoding="utf-8").read()
+    atsrc = open(os.path.join(DOCS, "ui", "atelier.css"), encoding="utf-8").read()
+    sschema_p = os.path.join(ROOT, "tools", "sync_schema.sql")
+    (ok if os.path.exists(sschema_p) else fail)("tools/sync_schema.sql exists")
+    sschema = open(sschema_p, encoding="utf-8").read() if os.path.exists(sschema_p) else ""
+    (ok if 'var VERSION = "56"' in syncsrc else fail)("sync.js: VERSION 56")
+    (ok if all(x in syncsrc for x in ("boot: boot", "mount: mount", "onCred: onCred", "detach: function", "_test:")) else fail)("sync.js: public surface (boot/mount/onCred/detach/_test)")
+    (ok if "SYNC_STATIC" in syncsrc and "SYNC_PREFIX" in syncsrc else fail)("sync.js: explicit allowlist (static keys + prefix families)")
+    (ok if all(('"%s"' % k) in syncsrc.split("NEVER_EXACT = [")[1].split("];")[0] for k in ("nssc_act", "nssc_act_used", "nssc_devid", "nssc_user", "nssc_gcred")) else fail)("sync.js: never-list hard-blocks activation + identity keys")
+    (ok if 'NEVER_PREFIX = ["nssc_sync_", "nssc_mp_"' in syncsrc else fail)("sync.js: never-list covers sync's own state + UI one-shots")
+    (ok if syncsrc.index("NEVER_EXACT.indexOf(k)") < syncsrc.index("SYNC_STATIC.indexOf(k)") else fail)("sync.js: never-list is checked BEFORE the allowlist (belt & braces)")
+    (ok if '"nssc_act"' not in syncsrc.split("SYNC_STATIC = [")[1].split("];")[0] else fail)("sync.js: allowlist itself contains no activation key")
+    (ok if "grant_type=id_token" in syncsrc and "grant_type=refresh_token" in syncsrc else fail)("sync.js: Supabase ID-token sign-in + refresh flow (no new SDK)")
+    (ok if "/rest/v1/user_sync" in syncsrc and "&rev=eq." in syncsrc else fail)("sync.js: pushes with optimistic locking (rev=eq.N)")
+    (ok if "23505" in syncsrc else fail)("sync.js: handles the duplicate-row race (POST 409 → PATCH path)")
+    (ok if "function localChanged()" in syncsrc and "function flushDeferred()" in syncsrc else fail)("sync.js: change detection + deferred-apply queue")
+    (ok if 'dataset.view === "practice"' in syncsrc else fail)("sync.js: never applies cloud data mid-practice")
+    (ok if "Math.max(a, b)" in syncsrc and "unionArr" in syncsrc and "!!(a || b)" in syncsrc else fail)("sync.js: lossless merge (numbers max, arrays union, booleans OR)")
+    (ok if "function wipeCloud()" in syncsrc and "keys: {}" in syncsrc else fail)("sync.js: explicit cloud wipe pushes an EMPTY blob (rows can't be deleted)")
+    (ok if "2800000" in syncsrc else fail)("sync.js: blob size guard below the DB check constraint")
+    (ok if 'id="viewSync"' in isrc and 'id="syncRoot"' in isrc and 'id="syncTitle"' in isrc else fail)("index.html: Cloud Sync view section")
+    (ok if 'data-view="sync" href="#viewSync"' in isrc else fail)("index.html: sidebar nav entry")
+    (ok if 'data-view="sync" href="#sync"' in isrc else fail)("index.html: mobile dock entry")
+    (ok if 'symbol id="i-cloud"' in isrc else fail)("index.html: cloud sprite icon")
+    (ok if 'store.set("nssc_gcred",{jwt:t.credential' in isrc else fail)("index.html: sign-in stores the raw Google credential for sync")
+    (ok if "MAMSS_SYNC.onCred&&MAMSS_SYNC.onCred(t.credential)" in isrc else fail)("index.html: sign-in notifies Cloud Sync (silent connect)")
+    (ok if "MAMSS_SYNC.detach&&MAMSS_SYNC.detach()" in isrc and isrc.count('store.del("nssc_gcred")') == 2 else fail)("index.html: app sign-out detaches sync + clears the credential")
+    (ok if 'sync: "Cloud Sync",' in studysrc else fail)("study.js: titles include sync")
+    (ok if 'if (view === "sync")' in studysrc and 'await load("sync.js")' in studysrc else fail)("study.js: lazy-loads + mounts sync.js for the tab")
+    (ok if "MAMSS_SYNC.boot()" in studysrc else fail)("study.js: background boot at startup (silent, guests unaffected)")
+    (ok if dockcols(atsrc) >= 6 else fail)("atelier.css: dock widened to 6 columns (Cloud Sync tab)")
+    (ok if 'var V = 56, NAME = "Cloud Sync"' in usrc else fail)("upgrade.js: V=56 NAME=Cloud Sync")
+    (ok if "unless you connect Cloud Sync yourself" in usrc else fail)("upgrade.js: whats-new tagline is honest about uploads now")
+    (ok if "activation code is NEVER uploaded" in usrc else fail)("upgrade.js: v56 entry states the activation guarantee")
+    (ok if SWV >= 61 else fail)("sw.js: cache bumped to -v61+")
+    (ok if '"./sync.js"' in swsrc else fail)("sw.js: sync.js precached")
+    (ok if "create table if not exists public.user_sync" in sschema else fail)("sync_schema.sql: user_sync table")
+    (ok if "uid        uuid primary key references auth.users" in sschema else fail)("sync_schema.sql: row keyed to the Supabase Auth user")
+    (ok if sschema.count("uid = (select auth.uid())") == 4 and "to authenticated" in sschema else fail)("sync_schema.sql: owner-only RLS on select/insert/update (authenticated)")
+    (ok if "for delete" not in sschema else fail)("sync_schema.sql: no delete policy (history cannot be erased)")
+    (ok if "3000000" in sschema else fail)("sync_schema.sql: blob size check constraint (3 MB)")
+    (ok if "648029341991-3onmssrflm9jqvmjbjtsl1ebag4k9afi" in sschema and "Authorized Client IDs" in sschema else fail)("sync_schema.sql: dashboard step documented with the site's own client ID (no secret)")
+    (ok if "new.rev <= old.rev" in sschema else fail)("sync_schema.sql: trigger refuses a backwards rev")
+    r = subprocess.run(["node", "--check", syncp], capture_output=True, text=True)
+    (ok if r.returncode == 0 else fail)("sync.js: node --check clean (v56)")
 
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))

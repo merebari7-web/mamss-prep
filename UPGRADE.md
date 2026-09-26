@@ -630,7 +630,7 @@ full, item order, with **Firebase** chosen for the cloud items. Ledger:
 | # | Item | Status |
 |---|------|--------|
 | 1 | Adaptive learning engine (Leitner/SM-2 + weak-topic weighting) | **shipped — v53 (this section)** |
-| 2 | Real backend / sync (Google sign-in, cross-device progress) | approved (Firebase); NEXT — the redesign ALREADY ships Google sign-in (`GOOGLE_CLIENT_ID`, GIS, `migrateAnonymousAttempts`), so v55 adds the sync layer under it. (v54 became the Live CBT Hall instead: on 2026-09-26 the school asked for real-time teacher-posted exams as the new top priority; it reuses the EXISTING Supabase project, so Firebase stays reserved for this sync item.) |
+| 2 | Real backend / sync (Google sign-in, cross-device progress) | **shipped — v56 "Cloud Sync" (this section below)**. Originally approved with Firebase; on 2026-09-26 the owner re-chose **Supabase** when offered: the project was already live (ledger + CBT), the site's existing Google button works unchanged via Supabase's official ID-token flow (no secret, no new SDK, no new keys), and the SQL workflow was proven the same day. Firebase stays approved but unused. The hard constraint held: `nssc_act` never syncs, and sync grants no access. |
 | 3 | Teacher/admin dashboard (aggregate class performance) | **live-session slice shipped — v54 Live CBT Hall** (real-time roster, integrity flags, ranking + per-question breakdown, CSV); whole-school aggregate dashboard still queued behind #2 |
 | 4 | Teacher content pipeline (CSV/JSON → bank, validated) | queued |
 | 5 | Accessibility & performance audit | queued (a11y scaffolding — `a11yApply`/`a11yOpen` — already exists and gets audited, not rebuilt) |
@@ -923,3 +923,128 @@ strings). Full regression: adaptive 18/18, bank 20/20, studio/arena/prestige/
 command/prospectus ALL PASS, roll-call 33/33 (:8101). `realtest` deliberately
 not re-run — v55 does not touch the redeem path (last live-ledger run: 19/19
 under v54, slips #17–19 burned).
+
+---
+
+## 18. v56 "Cloud Sync" — roadmap item 2 of 8 (Supabase, Google ID token)
+
+Cross-device progress sync under the site's EXISTING Google button. Zero new
+vendors, zero new SDKs, zero new keys: `docs/sync.js` speaks raw REST to the
+same Supabase project as the ledger and the Live CBT Hall.
+
+### 18.1 Architecture
+
+* **Sign-in.** The app's GIS callback (`onGoogleCred`) now also stores the raw
+  credential JWT (`nssc_gcred`) and calls `MAMSS_SYNC.onCred(jwt)`. sync.js
+  exchanges it at `POST /auth/v1/token?grant_type=id_token` (Supabase's
+  official "Google pre-built configuration" path — the dashboard needs the
+  client ID in *Authorized Client IDs* and NO OAuth secret). The Supabase
+  session (`nssc_sync_sess`, access+refresh+exp+uid+email) stays device-local
+  and is refreshed automatically; a failed refresh signs out cleanly.
+* **Storage.** One row per account in `public.user_sync`
+  (`tools/sync_schema.sql`): `uid` PK → `auth.users`, a jsonb `blob`
+  `{v:1, keys:{<storeKey>:{t,d}}}`, and a `rev` counter. RLS: select/insert/
+  update ONLY for `authenticated` where `uid = auth.uid()` — the site's public
+  key sees nothing; this is the project's first auth-uid-scoped table. NO
+  delete policy (history is permanent); a trigger stamps `updated_at` and
+  refuses a backwards `rev`; a check constraint caps the blob at 3 MB (the
+  client guards at 2.8 MB).
+* **The allowlist is the security model.** Only `SYNC_STATIC` (marks,
+  mistakes, profiles, badges, revtotal, journal, target exam, notes-done,
+  cbt recent/mine, attempts_guest, guest_id, study_grade, results) and
+  `SYNC_PREFIX` families (attempts_/xp_/coins_/topics_/adaptive_/daily_/
+  qday_/items_/goal_/lab_ per uid) can ever enter a blob. A `NEVER` layer
+  (exact + prefix) is checked FIRST and hard-blocks `nssc_act`,
+  `nssc_act_used`, `nssc_devid`, `nssc_user`, `nssc_gcred`, theme/font/
+  sound/motion/a11y settings, ledger config, `nssc_mp_*` UI one-shots,
+  teacher CBT drafts and sync's own `nssc_sync_*` state — even if a future
+  edit accidentally allowlists one of them. **The activation gate is
+  untouched: sync grants no access and the slip remains the only door.**
+
+### 18.2 The merge engine (lossless, idempotent)
+
+Per-key timestamps (`t`) + cheap fingerprints (length+djb2 hash) against a
+device-local base snapshot (`nssc_sync_base`) decide what changed locally.
+* Remote unchanged since base (`rev === base.rev`) → push the local snapshot.
+* Otherwise deep-merge both sides: **numbers → max** (XP/coins can never
+  double-count or regress), **arrays → union by identity** (`id`/`tms`/`code`/
+  `q`/full-value hash — journal, mistakes, attempts keep EVERY entry),
+  **objects → recursive union** (per-topic stats, daily maps, bookmarks),
+  **booleans → OR** (a bookmark survives any tie), **null yields to data**,
+  scalar ties keep the local value. `nssc_goal_*` / `nssc_target_exam` are
+  newer-stamp-wins (single-value settings).
+* Pushes use optimistic locking: `PATCH …&rev=eq.<base>`; 0 rows → re-pull,
+  re-merge, retry (≤3). A lost update is structurally impossible.
+* **Local deletes never propagate** (a sign-out on one phone must not eat
+  another phone's cloud copy): keys absent locally are carried along from
+  base. True removal = the explicit **"Delete cloud copy"** button, which
+  pushes an empty blob (the row itself can never be deleted).
+* **Practice-safe:** cloud values are never applied while the Practice view
+  is open (a running paper is never disturbed). They wait in a persistent
+  defer queue (`nssc_sync_defer`) that flushes BEFORE the next snapshot, so
+  stale local values can't clobber the merge on the following push.
+* Auto-sync: 60 s tick + `online` + `visibilitychange`, gated on a cheap
+  local-change check; manual "Sync now"; offline failures mark `pending`
+  with reassuring copy and retry automatically.
+
+### 18.3 UI (matches the house style)
+
+New **Cloud Sync** tab (sidebar + mobile dock, now 6 columns; new `i-cloud`
+sprite icon; `#viewSync` section). Signed out: honest "your progress lives on
+this device" card + Connect button (fresh `nssc_gcred` → direct adopt; stale
+→ Google one-tap `prompt('')`; not displayed → opens the existing account
+overlay) + a two-column "What travels / What NEVER leaves this device" card.
+Signed in: account email, live status chip (Synced X ago · Syncing · Waiting
+· offline note), Sync now, Auto-sync ON/OFF, Delete cloud copy (confirm),
+Sign out, plus stats (items tracked, KB, rev). Degraded copies without the
+ledger config show "not configured" and sync nothing. The whats-new overlay
+tagline was amended for honesty: "Nothing is uploaded — **unless you connect
+Cloud Sync yourself**." App sign-out now detaches sync and clears `nssc_gcred`
+(no ghost sessions); sync boot happens quietly at startup for everyone and
+does anything at all only for users who connect.
+
+### 18.4 One-time setup for the school (like the CBT SQL — ~2 minutes)
+
+1. Run `tools/sync_schema.sql` in the Supabase SQL editor (creates
+   `user_sync` + trigger + RLS + publication; idempotent).
+2. Supabase dashboard → Authentication → Sign In / Providers → Google →
+   Enable → paste the site's existing client ID
+   `648029341991-3onmssrflm9jqvmjbjtsl1ebag4k9afi.apps.googleusercontent.com`
+   into **Authorized Client IDs** → Save. Leave OAuth ID/secret BLANK (the
+   ID-token flow needs neither). Until both steps are done, sync sign-in
+   fails gracefully with an honest error; the rest of the site is unaffected.
+
+### 18.5 Honest edges
+
+* Merge granularity is one blob per user: a key's scalar conflict resolves by
+  timestamp, and max-merging per-topic counters approximates (never
+  inflates) multi-device usage. Collections are exact.
+* No tombstones by design → re-creating data the user deleted on another
+  device is possible for collection entries (union keeps both). Accepted:
+  losing data is worse than resurfacing an old journal line.
+* The realtime publication exists but is unused — sync is timer/event based.
+* The credential JWT lives in localStorage for reuse (≤45 min freshness
+  window); it is a bearer token for the Google profile only — the site could
+  already see everything in it at sign-in. The Supabase refresh token is the
+  long-lived secret and never leaves the device.
+* `user_sync` rows survive sign-out (by design — that is the point).
+
+### 18.6 Tests
+
+`testrig/synctest.js` (+ `syncmock.js`, a miniature Supabase with CORS, RLS
+simulation, rev locking and a control plane) → **60 passed · 0 failed**:
+background boot, allowlist/never-list (incl. seeded `nssc_act` decoy that
+must never appear in a blob), first-sign-in two-way lossless merge (guest
+data up, cloud data down, max counters, union journal/badges/marks,
+newer-wins exam), idempotent re-syncs, racing-device conflict retry (fetch
+interceptor bumps the row mid-push; BOTH sides survive), offline queue +
+recovery, expired-token auto-refresh, practice-safe deferral + flush + no
+clobber-back, auto tick, cloud wipe (empty blob, local intact, rebuild on
+next sync), sign-out + app-level detach (no ghost session, credential
+cleared), stale-credential prompt fallback (opens the account overlay),
+fresh-credential direct connect, merge-engine unit checks, degraded
+ledger-stripped copy, zero page errors. `verify.py` §[21] → **276 · 0**
+(older sections made bump-proof: parsed-int `VP` + scoped `dockcols`).
+Full regression: cbt 80/80, adaptive 18/18, bank 20/20, roll-call 33/33
+(:8101), studio/arena/prestige/command/prospectus ALL PASS. `realtest` not
+re-run (redeem path untouched; slips #17–19 remain the last burn).
