@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 58, NAME = "Question Pipeline";
+  var V = 59, NAME = "Access & Speed";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -642,7 +642,8 @@
       ["📹", "Live CBT Cameras", "Webcam monitoring for live exams: the teacher chooses off, optional or required per paper. Students see themselves before going live and give permission explicitly; during the exam the teacher receives small snapshots about every 12 seconds — sent live over the school's realtime channel, never recorded and never stored. When the paper ends the video is gone; only a status word (on · denied · no camera · skipped) remains on the result row."],
       ["☁️", "Cloud Sync — your progress, any device (optional)", "Sign in with Google in the new Cloud Sync tab and your XP, badges, attempt history, mistakes, bookmarks, journal, adaptive stats and goals merge losslessly between your devices — two phones syncing at once keep everything from both, and counters can never double-count. Stay signed out and nothing changes: everything lives on your device, offline, as always. Your activation code is NEVER uploaded and sync grants no access — the school slip remains the only door. Your cloud row is private to your sign-in; even this site's public key cannot read it."],
       ["📊", "School Dashboard", "The teacher console grows a fourth tab: the whole school in one view. Every live paper ever run — sittings, averages, top scorers — with one click through to the full ranking and per-question breakdown. Class-vs-class bars, a score-spread histogram, the activation roll-out (slips used per batch, last-7-days pace), a CSV of every sitting and a one-tap WhatsApp summary for the staff group. Practice progress stays private per student by design — the dashboard aggregates live exams and slip activation only."],
-      ["🧪", "Question Pipeline", "Teachers can now feed the school's own questions in bulk: paste CSV or JSON (or drop in a file), and every row is checked with the WAEC mechanics rules before it enters a shared review queue. Teachers approve or reject each other's submissions, and approved questions land in a school pool that drops straight into any live paper. The national bank stays hash-locked and untouched — the pipeline feeds your papers, not the bank."]
+      ["🧪", "Question Pipeline", "Teachers can now feed the school's own questions in bulk: paste CSV or JSON (or drop in a file), and every row is checked with the WAEC mechanics rules before it enters a shared review queue. Teachers approve or reject each other's submissions, and approved questions land in a school pool that drops straight into any live paper. The national bank stays hash-locked and untouched — the pipeline feeds your papers, not the bank."],
+      ["\u26a1", "Access & Speed", "The whole app just got more usable for everyone. Screen readers now hear proper names on every teacher-console control and polite announcements when feedback appears; headings follow a clean order for keyboard and reader navigation; a \"Skip to main content\" link jumps straight past the chrome; What's-new closes with the Escape key and returns focus where you were; the floating school-help button lives in a named landmark; the 404 page text is darker for sunlight readability; and the app pre-connects to the school server so your first live test or sync handshake starts faster. Same look, better for more people."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -655,10 +656,17 @@
       '<button class="btn btn-ghost" type="button" id="mpNewHub">🚀 Open App Centre</button>' +
       '<button class="btn btn-primary" type="button" id="mpNewOk">Start studying</button></div></div>';
     ov.innerHTML = h;
-    var close = function () { try { ov.remove(); } catch (e) {} };
+    var lastFocus = document.activeElement;
+    var close = function () {
+      try { document.removeEventListener("keydown", onKey); } catch (e) {}
+      try { ov.remove(); } catch (e) {}
+      try { if (lastFocus && lastFocus.focus) lastFocus.focus(); } catch (e) {}
+    };
+    var onKey = function (e) { if (e.key === "Escape" || e.key === "Esc") close(); };
+    document.addEventListener("keydown", onKey);
     on(ov, "click", function (e) { if (e.target === ov) close(); });
     document.body.appendChild(ov);
-    requestAnimationFrame(function () { ov.classList.remove("hidden"); });
+    requestAnimationFrame(function () { ov.classList.remove("hidden"); try { var fok = $("mpNewOk"); if (fok) fok.focus(); } catch (e) {} });
     on(ov.querySelector(".x"), "click", close);
     on($("mpNewOk"), "click", close);
     on($("mpNewHub"), "click", function () { close(); openHub(); });

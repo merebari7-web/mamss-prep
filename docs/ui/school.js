@@ -118,7 +118,13 @@
       `.mss-wa:hover{transform:translateY(-2px)}` +
       `@media(max-width:640px){.mss-wa{right:10px;bottom:calc(78px + env(safe-area-inset-bottom));padding:9px 13px}.mss-wa span{display:none}}`;
     document.head.appendChild(style);
-    document.body.appendChild(a);
+    /* v59 a11y: the floating link lives in a named complementary landmark so
+       every bit of page content sits inside a landmark (axe "region"). */
+    const land = document.createElement("aside");
+    land.id = "mssWaLand";
+    land.setAttribute("aria-label", "School help");
+    land.appendChild(a);
+    document.body.appendChild(land);
   }
 
   function init() {

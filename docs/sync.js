@@ -532,7 +532,7 @@
     el.textContent =
       ".syn-wrap{display:grid;gap:14px;margin:10px 0 26px}" +
       ".syn-card{background:var(--s-card,#fff);border:1px solid var(--s-line,#e5eaf0);border-radius:14px;padding:16px 18px}" +
-      ".syn-card h3{margin:0 0 6px;font-size:17px}" +
+      ".syn-card h2,.syn-card h3{margin:0 0 6px;font-size:17px}" +
       ".syn-card p{margin:6px 0;color:var(--s-muted,#5c6b7a);font-size:14px;line-height:1.55}" +
       ".syn-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}" +
       ".syn-chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--s-line,#e5eaf0);border-radius:999px;padding:4px 12px;font-size:13px;color:var(--s-muted,#5c6b7a);background:var(--s-soft,#f6f8fa)}" +
@@ -564,10 +564,10 @@
     var html = '<div class="syn-wrap">';
 
     if (!baseUrl() || !siteKey()) {
-      html += '<div class="syn-card"><h3>Cloud sync is not configured on this copy of the site.</h3>' +
+      html += '<div class="syn-card"><h2>Cloud sync is not configured on this copy of the site.</h2>' +
         '<p>Everything still works — your progress simply lives on this device, as it always has.</p></div>';
     } else if (!s) {
-      html += '<div class="syn-card"><h3>Your progress lives on this device.</h3>' +
+      html += '<div class="syn-card"><h2>Your progress lives on this device.</h2>' +
         '<p>Connect with Google and your XP, badges, attempt history, mistakes, bookmarks, journal and goals travel with you — phone at home, phone at school, same you. No account? Nothing changes: the whole site works exactly as before, offline and private.</p>' +
         '<div class="syn-row"><button class="syn-btn pri" id="synConnect" type="button">☁️ Connect with Google</button></div>' +
         '<p class="syn-note" id="synHint">Uses the same Google button as your account card. This site never sees your password — Google only shares your name and email, and your sync row is readable by your sign-in alone.</p>' +
@@ -578,7 +578,7 @@
       var nKeys = b && b.keys ? Object.keys(b.keys).length : 0;
       var kb = 0;
       try { kb = Math.round(JSON.stringify((b && b.keys) || {}).length / 1024); } catch (e) {}
-      html += '<div class="syn-card"><h3>Connected <span class="syn-chip"><span class="syn-dot ' + chip[0] + '"></span>' + esc(chip[1]) + '</span></h3>' +
+      html += '<div class="syn-card"><h2>Connected <span class="syn-chip"><span class="syn-dot ' + chip[0] + '"></span>' + esc(chip[1]) + '</span></h2>' +
         '<p>' + esc(s.email || "your Google account") + ' — your progress now travels with you.</p>' +
         '<div class="syn-row">' +
         '<button class="syn-btn pri" id="synNow" type="button">Sync now</button>' +

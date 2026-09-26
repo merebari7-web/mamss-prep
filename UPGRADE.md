@@ -633,7 +633,7 @@ full, item order, with **Firebase** chosen for the cloud items. Ledger:
 | 2 | Real backend / sync (Google sign-in, cross-device progress) | **shipped — v56 "Cloud Sync" (this section below)**. Originally approved with Firebase; on 2026-09-26 the owner re-chose **Supabase** when offered: the project was already live (ledger + CBT), the site's existing Google button works unchanged via Supabase's official ID-token flow (no secret, no new SDK, no new keys), and the SQL workflow was proven the same day. Firebase stays approved but unused. The hard constraint held: `nssc_act` never syncs, and sync grants no access. |
 | 3 | Teacher/admin dashboard (aggregate class performance) | **shipped — v57 "School Dashboard" (whole-school aggregates: every paper, class bars, score spread, activation roll-out, CSV + WhatsApp summary, one-click drill-down to v54 results) on top of the v54 live-session slice** (real-time roster, integrity flags, ranking + per-question breakdown) |
 | 4 | Teacher content pipeline (CSV/JSON → validated intake) | **shipped — v58 "Question Pipeline"** (bulk CSV/JSON intake with the WAEC-rules validator, shared review queue with approve/reject audit trail, school pool feeding the paper builder; the hash-locked bank is never touched) |
-| 5 | Accessibility & performance audit | queued (a11y scaffolding — `a11yApply`/`a11yOpen` — already exists and gets audited, not rebuilt) |
+| 5 | Accessibility + performance pass | **shipped — v59 "Access & Speed"** (axe-core audit across every main view → **zero violations**; named form controls, ordered headings, landmarks, skip link, Escape/focus handling on What's-new, polite live regions, sunlight-readable 404, Supabase preconnect) |
 | 6 | Exam-mode integrity | **shipped for live sessions — v54** (blur/visibility logging with 1.2 s accidental-bounce grace, escalating warnings, forgiving auto-submit at 5, copy/paste block with a Readable-a11y exemption, server-enforced no-going-back; **webcam monitoring — v55**: off/optional/required per paper, ephemeral live snapshots, explicit consent gate); practice-mode exam integrity polish remains queued |
 | 7 | Offline-first PWA polish | queued (≈90 % live since v46: installable, offline SW, safe-update Reload prompt; remaining: explicit "new questions" update copy + zero-connectivity cold-start proof) |
 | 8 | Gamification depth | queued (`readinessScore`/`readinessTier` already exist — the SS3-readiness bar builds on them; adds subject mastery badges + canvas-rendered WhatsApp share cards) |
@@ -1216,3 +1216,75 @@ until then it silently skips, the other guards still work); rejection notes
 use `window.prompt` (fine on every target browser); RLS is school-open like
 the CBT tables — anyone with the publishable key can read the queue, which
 contains only questions teachers wrote for the whole school.
+
+---
+
+## 21. v59 "Access & Speed" — roadmap item 5 of 8 (audit-first a11y + perf)
+
+Measured before touching anything: an axe-core scan (WCAG 2.1 AA +
+best-practice) of **15 views** — home, all six dock views, all five teacher
+console tabs, the student CBT hall, why.html, 404.html — plus first-load
+metrics. The baseline was already strong (the v44-era perf/SEO pass did its
+job): **DCL 266 ms, 15 requests, 319 KB transferred, 1678 DOM nodes**, with
+arcade/edu/labs/bank-raw/legacy.css all lazy and fonts preloaded. The audit
+found exactly **8 rules violated**; v59 fixes all 8 and adds the enhancements
+axe cannot check for itself.
+
+### 21.1 The fixes (every one asserted twice — see 21.3)
+
+* **Named controls (critical)** — six builder labels get `for=` associations
+  (subject/topic/duration/webcam/count/schedule); `aria-label` on the paper
+  title, pipeline textarea and file input. Screen readers now announce what
+  every control is.
+* **Heading order (moderate)** — view-root cards promoted `h3 → h2` in cbt.js
+  (hall, console, waiting room, webcam, exam, results, error/loading cards)
+  and sync.js (the three first-card states); CSS selectors extended
+  (`h2,h3`) so the look is pixel-identical.
+* **Landmarks (moderate)** — the floating WhatsApp help now lives in a named
+  `<aside aria-label="School help">` (was the app's only content outside a
+  landmark); why.html and 404.html gain `<main>`.
+* **Contrast (serious)** — 404.html muted text `#a08a68 → #6b5839`
+  (3.0:1 → 6.0:1, readable in sunlight).
+* **Empty table headers (minor)** — the three action columns get
+  visually-hidden labels (`.cbt-vh` utility).
+* **Skip link** — first focusable element on the page, "Skip to main
+  content" → `#workspace`; colors locked with `!important` after the audit
+  caught the redesign's global link styles overriding them on focus (a
+  1.03:1 disaster that only appears in the focused state — exactly why the
+  suite presses Tab before scanning).
+* **Keyboard + focus (What's-new overlay)** — Escape closes it, focus starts
+  on "Start studying", and focus returns to the opener afterwards. The
+  activation gate overlay deliberately keeps NO Escape close (fail-closed
+  access is the whole point); its dialog semantics were already in place.
+* **Polite live regions** — `role="status"` on the four feedback slots that
+  update silently (join code, bank draw, new-question, pipeline), so reader
+  users hear "Sent 3 questions…" instead of nothing.
+* **Perf** — `<link rel="preconnect">` + dns-prefetch to the school's
+  Supabase origin: the first live-test join, activation check and sync
+  handshake skip DNS+TLS setup. Post-fix load: **DCL 253 ms** (no regression;
+  bank-raw rescue copy confirmed NOT fetched on modern browsers).
+
+### 21.2 Result
+
+**Zero axe violations on every scanned view** (was: 2 critical rules in the
+console, 1 serious on 404, 3 moderate + 1 minor app-wide). The whats-new
+entry explains it for students: same look, better for more people.
+
+### 21.3 Tests
+
+New `testrig/a11ytest.js` (mirrored in tools/) → **38 passed · 0 failed**:
+seven full axe scans held at zero violations, the Escape/focus choreography
+on a fresh context, skip-link position/visibility/target, the aside landmark,
+label associations, live regions, promoted headings, the darkened 404 token,
+and performance guards (≤ 20 requests, ≤ 450 KB, DCL < 2 s, bank-raw never
+fetched) — all with zero page errors. Full regression: cbt 80/80, dash
+37/37, pipe 57/57, sync 60/60, adaptive 18/18, bank 20/20, roll-call ALL
+PASS (:8101), studio/arena/prestige/command/prospectus ALL PASS.
+`verify.py` §[24] (18 static checks across all 7 touched files) → **334 · 0**.
+`realtest` not re-run (redeem path untouched).
+
+Honest edges: the Escape/focus upgrade covers the What's-new overlay only —
+the studio/arena/prestige modals keep their existing (button-driven) close
+paths and were left untouched to avoid destabilizing five suites; axe scans
+run the light theme (the 404 dark-theme `--mut` was not flagged and was left
+as-is); the audit scans primary view states, not every transient modal.

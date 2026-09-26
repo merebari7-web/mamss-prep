@@ -36,6 +36,7 @@ if(!ok){document.documentElement.classList.add("mp-codes-pending");
 var l=document.getElementById("mpLock");if(l)l.hidden=false;}
 }catch(e){}})();</script>
 <style id="mpLockCss">
+.mp-skip{position:absolute;left:-9999px;top:0;z-index:100001;background:#1b2638!important;color:#fff!important;padding:10px 16px;border-radius:0 0 10px 0;font:700 14px/1.2 system-ui,sans-serif;text-decoration:none}.mp-skip:focus{left:0}
 #mpLock{position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;
 padding:18px;background:rgba(10,14,22,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 #mpLock[hidden]{display:none}
@@ -65,9 +66,11 @@ html.mp-codes-pending:not(.mp-code-ok) #gateOverlay #gateGsiNote{display:none!im
 <link rel="preload" href="ui/assets/dm-semibold.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preconnect" href="https://accounts.google.com" crossorigin>
 <link rel="dns-prefetch" href="https://ssl.gstatic.com">
+<link rel="preconnect" href="https://mrhbuxsfhtqguxkxfczv.supabase.co" crossorigin>
+<link rel="dns-prefetch" href="https://mrhbuxsfhtqguxkxfczv.supabase.co">
 <link href="ui/study.css" rel="stylesheet"/><link href="ui/favicon.svg" rel="icon" type="image/svg+xml"/><link href="manifest.webmanifest" rel="manifest"/><link as="font" crossorigin="" href="ui/assets/caslon-display.woff2" rel="preload" type="font/woff2"/><link href="ui/atelier.css?v=46" rel="stylesheet"/></head>
 <div aria-hidden="true" class="luxe-frame"></div>
-<body data-view="overview"><svg aria-hidden="true" class="icon-defs" xmlns="http://www.w3.org/2000/svg"><defs>
+<body data-view="overview"><a class="mp-skip" href="#workspace">Skip to main content</a><svg aria-hidden="true" class="icon-defs" xmlns="http://www.w3.org/2000/svg"><defs>
 <symbol id="i-grid" viewbox="0 0 24 24"><rect height="7" rx="2" width="7" x="3" y="3"></rect><rect height="7" rx="2" width="7" x="14" y="3"></rect><rect height="7" rx="2" width="7" x="3" y="14"></rect><rect height="7" rx="2" width="7" x="14" y="14"></rect></symbol>
 <symbol id="i-book" viewbox="0 0 24 24"><path d="M12 5C8 2 3 4 3 4v15s5-2 9 1c4-3 9-1 9-1V4s-5-2-9 1Zm0 0v15"></path></symbol>
 <symbol id="i-chart" viewbox="0 0 24 24"><path d="M4 3v17h17M8 15l4-5 4 2 5-7"></path><path d="M17 5h4v4"></path></symbol>

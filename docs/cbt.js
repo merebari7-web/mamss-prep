@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "58";
+  var VERSION = "59";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -229,7 +229,8 @@
     var css = "" +
       ".cbt-wrap{max-width:1060px;margin:0 auto;padding:4px 2px 40px}" +
       ".cbt-card{background:var(--card,#fff);border:1px solid var(--line,rgba(0,33,71,.14));border-radius:14px;padding:18px;margin:0 0 14px;box-shadow:0 1px 2px rgba(0,33,71,.05);position:relative}" +
-      ".cbt-card h3{margin:0 0 4px;font-size:1.06rem;color:var(--ink,#002147)}" +
+      ".cbt-card h2,.cbt-card h3{margin:0 0 4px;font-size:1.06rem;color:var(--ink,#002147)}" +
+      ".cbt-vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}" +
       ".cbt-sub{color:var(--mut,#5b6b84);font-size:.85rem;margin:0 0 12px}" +
       ".cbt-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}" +
       ".cbt-inp,select.cbt-inp{flex:1;min-width:150px;padding:11px 13px;border:1.5px solid var(--line,rgba(0,33,71,.2));border-radius:10px;font:inherit;background:var(--card,#fff);color:var(--ink,#002147)}" +
@@ -451,12 +452,12 @@
     var recent = st.get("nssc_cbt_recent", []) || [];
     var mine = st.get("nssc_cbt_mine", []) || [];
     var h = "";
-    h += '<div class="cbt-card"><h3>🏫 Live CBT Hall</h3><p class="cbt-sub">Real-time examinations posted by your teachers. Join with the session code from the board — your activation is your identity; no signup.</p>';
+    h += '<div class="cbt-card"><h2>🏫 Live CBT Hall</h2><p class="cbt-sub">Real-time examinations posted by your teachers. Join with the session code from the board — your activation is your identity; no signup.</p>';
     if (!cfg()) {
       h += '<div class="cbt-note">This installation has no school server configured — Live CBT needs the school\'s Supabase ledger config in codes.js.</div>';
     } else {
       h += '<div class="cbt-row"><input id="cbtJoinCode" class="cbt-inp cbt-code-inp" placeholder="ABC-123" maxlength="9" autocapitalize="characters" spellcheck="false" aria-label="Live session code"><button class="cbt-btn gold" id="cbtJoinBtn">Join live session</button></div>';
-      h += '<div id="cbtJoinFb"></div>';
+      h += '<div id="cbtJoinFb" role="status"></div>';
     }
     h += "</div>";
     if (id.teacher) {
@@ -465,14 +466,14 @@
       h += '<div class="cbt-card"><h3>🎓 Are you a teacher?</h3><p class="cbt-sub">The console unlocks automatically on devices activated with a <b>TEACHER</b> slip from the school office.</p></div>';
     }
     if (recent.length) {
-      h += '<div class="cbt-card"><h3>🕘 Your recent sessions</h3><table class="cbt-table"><tr><th>Session</th><th>When</th><th>Result</th><th></th></tr>';
+      h += '<div class="cbt-card"><h3>🕘 Your recent sessions</h3><table class="cbt-table"><tr><th>Session</th><th>When</th><th>Result</th><th><span class="cbt-vh">Actions</span></th></tr>';
       recent.slice(0, 6).forEach(function (r) {
         h += "<tr><td><b>" + esc(r.title || prettyCode(r.code)) + "</b><br><small class='cbt-muted'>" + esc(prettyCode(r.code)) + "</small></td><td>" + esc(r.at || "") + "</td><td>" + esc(r.score != null ? r.score + "/" + r.total + (r.pct != null ? " · " + r.pct + "%" : "") : r.status || "—") + "</td><td><button class='cbt-btn ghost' data-reopen='" + esc(r.code) + "'>Open</button></td></tr>";
       });
       h += "</table></div>";
     }
     if (id.teacher && mine.length) {
-      h += '<div class="cbt-card"><h3>📋 Sessions you posted</h3><table class="cbt-table"><tr><th>Session</th><th>Code</th><th>Created</th><th></th></tr>';
+      h += '<div class="cbt-card"><h3>📋 Sessions you posted</h3><table class="cbt-table"><tr><th>Session</th><th>Code</th><th>Created</th><th><span class="cbt-vh">Actions</span></th></tr>';
       mine.slice(0, 8).forEach(function (m) {
         h += "<tr><td><b>" + esc(m.title) + "</b></td><td class='cbt-muted'>" + esc(prettyCode(m.code)) + "</td><td>" + esc(m.at || "") + "</td><td><button class='cbt-btn ghost' data-reopen='" + esc(m.code) + "'>Console</button></td></tr>";
       });
@@ -500,11 +501,11 @@
   }
   function showBusy(msg) {
     if (!root) return;
-    root.innerHTML = wrap('<div class="cbt-card"><h3>' + esc(msg || "Talking to the school server…") + '</h3><p class="cbt-sub cbt-muted">One moment.</p></div>');
+    root.innerHTML = wrap('<div class="cbt-card"><h2>' + esc(msg || "Talking to the school server…") + '</h2><p class="cbt-sub cbt-muted">One moment.</p></div>');
   }
   function renderFailure(e) {
-    if (e && e.setup) { root.innerHTML = wrap('<div class="cbt-card"><h3>🏫 Live CBT Hall</h3>' + errBox(null, true) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
-    root.innerHTML = wrap('<div class="cbt-card"><h3>🏫 Live CBT Hall</h3>' + errBox("Could not reach the school server (" + esc(e && e.message || e) + "). Live CBT needs a connection — your practice progress is untouched." ) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>');
+    if (e && e.setup) { root.innerHTML = wrap('<div class="cbt-card"><h2>🏫 Live CBT Hall</h2>' + errBox(null, true) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
+    root.innerHTML = wrap('<div class="cbt-card"><h2>🏫 Live CBT Hall</h2>' + errBox("Could not reach the school server (" + esc(e && e.message || e) + "). Live CBT needs a connection — your practice progress is untouched." ) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>');
     var b2 = $("cbtBackHome"); if (b2) b2.onclick = function () { go("home"); };
   }
 
@@ -516,7 +517,7 @@
     if (!cfg()) return;
     showBusy("Checking session " + prettyCode(code) + "…");
     getSession(code).then(function (s) {
-      if (!s) { go("home"); var f = $("cbtJoinFb"); root.innerHTML = wrap('<div class="cbt-card"><h3>🏫 Live CBT Hall</h3>' + errBox("No live session with code " + esc(prettyCode(code)) + ". Check the board and try again.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
+      if (!s) { go("home"); var f = $("cbtJoinFb"); root.innerHTML = wrap('<div class="cbt-card"><h2>🏫 Live CBT Hall</h2>' + errBox("No live session with code " + esc(prettyCode(code)) + ". Check the board and try again.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
       enterStudent(s);
     }).catch(renderFailure);
   }
@@ -540,7 +541,7 @@
     ui.attempt = existing || { session_code: s.code, device_id: id.did, status: "waiting", current_q: 0, integrity: 0 };
     if (s.status === "live") return startRunner(s, existing);
     if (s.status === "ended") {
-      root.innerHTML = wrap('<div class="cbt-card"><h3>' + esc(s.title) + "</h3>" + errBox("This session has already ended.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>');
+      root.innerHTML = wrap('<div class="cbt-card"><h2>' + esc(s.title) + "</h2>" + errBox("This session has already ended.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>');
       var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); };
       return;
     }
@@ -566,7 +567,7 @@
   function camCard(s) {
     var mode = camMode(s);
     if (mode === "off") return "";
-    return '<div class="cbt-card" style="text-align:center"><h3>📹 Webcam monitoring is ' + (mode === "required" ? "required" : "optional") + " for this exam</h3>" +
+    return '<div class="cbt-card" style="text-align:center"><h2>📹 Webcam monitoring is ' + (mode === "required" ? "required" : "optional") + " for this exam</h2>" +
       '<p class="cbt-sub">' + (mode === "required" ? "Enable your camera now so you are ready the moment the paper starts." : "You may enable your camera — it helps your teacher watch the room.") +
       " Small snapshots go live to your teacher only, about every 12 seconds. Nothing is recorded or stored.</p>" +
       '<div class="cbt-cam-self" id="cbtWaitCamWrap" hidden><video id="cbtWaitCamVideo" autoplay playsinline muted></video></div>' +
@@ -597,7 +598,7 @@
     var s = ui.session; if (!s) return go("home");
     var qs = s.questions || [];
     var sched = (s.settings && s.settings.scheduledAt) ? '<div class="cbt-note">⏰ Scheduled for <b>' + esc(String(s.settings.scheduledAt).replace("T", " ").slice(0, 16)) + "</b> — the hall opens when your teacher presses Start.</div>" : "";
-    var h = '<div class="cbt-card" style="text-align:center"><span class="cbt-chip waiting">WAITING ROOM</span><h3 style="margin-top:10px">' + esc(s.title) + "</h3>" +
+    var h = '<div class="cbt-card" style="text-align:center"><span class="cbt-chip waiting">WAITING ROOM</span><h2 style="margin-top:10px">' + esc(s.title) + "</h2>" +
       '<p class="cbt-sub">Posted by ' + esc(s.teacher || "your teacher") + " · " + esc(s.cls) + (s.subject ? " · " + esc(s.subject) : " · mixed subjects") + "</p>" + sched +
       '<div class="cbt-big-code">' + esc(prettyCode(s.code)) + "</div>" +
       '<p class="cbt-sub" id="cbtWaitingCount">Counting devices…</p>' +
@@ -710,7 +711,7 @@
   function renderCamGate() {
     var s = ui.session; if (!s) return go("home");
     var h = '<div class="cbt-card" style="text-align:center"><span class="cbt-chip waiting">CAMERA CHECK</span>' +
-      "<h3 style='margin-top:10px'>" + esc(s.title) + "</h3>" +
+      "<h2 style='margin-top:10px'>" + esc(s.title) + "</h2>" +
       '<p class="cbt-sub">Your teacher requires webcam monitoring for this exam.</p>' +
       '<div class="cbt-cam-self" id="cbtGateCamWrap" hidden><video id="cbtGateCamVideo" autoplay playsinline muted></video></div>' +
       '<div class="cbt-note" style="text-align:left">🔒 <b>Privacy, plainly:</b> while the exam runs, your teacher receives a small snapshot from your camera about every 12 seconds. Snapshots are sent live and are <b>never recorded and never stored</b> — when the paper ends, the video is gone. Your browser will ask for camera permission, and you will see yourself here first.</div>' +
@@ -895,7 +896,7 @@
     st.set("nssc_cbt_recent", recent);
     var h = '<div class="cbt-card" style="text-align:center"><span class="cbt-chip ' + (attempt.status === "autosubmitted" ? "ended" : "live") + '">' +
       (attempt.status === "autosubmitted" ? (why === "integrity" ? "AUTO-SUBMITTED · INTEGRITY LIMIT" : "AUTO-SUBMITTED · TIME") : "SUBMITTED") + "</span>" +
-      "<h3 style='margin-top:10px'>" + esc(s.title) + "</h3>";
+      "<h2 style='margin-top:10px'>" + esc(s.title) + "</h2>";
     if (instant) {
       var pct = attempt.total ? Math.round(attempt.score / attempt.total * 100) : 0;
       h += '<div class="cbt-big-code">' + attempt.score + " / " + attempt.total + "</div>" +
@@ -937,7 +938,7 @@
   }
   function renderConsole() {
     if (!me().teacher) { go("home"); return; }
-    var h = '<div class="cbt-card"><h3>🎓 Teacher console</h3><p class="cbt-sub">Live CBT Hall · signed in as <b>' + esc(me().name) + "</b> (" + esc(me().slip || "teacher slip") + ")</p>" +
+    var h = '<div class="cbt-card"><h2>🎓 Teacher console</h2><p class="cbt-sub">Live CBT Hall · signed in as <b>' + esc(me().name) + "</b> (" + esc(me().slip || "teacher slip") + ")</p>" +
       '<div class="cbt-tabs">' +
       '<button class="cbt-tab' + (cons.tab === "create" ? " on" : "") + '" data-ctab="create">1 · Build paper</button>' +
       '<button class="cbt-tab' + (cons.tab === "monitor" ? " on" : "") + '" data-ctab="monitor">2 · Monitor</button>' +
@@ -993,19 +994,19 @@
     var subs = subjList();
     if (!subs.length && !bankWaited) { whenBank(function () { if (ui.tab === "console" && cons.tab === "create") renderBuilder(true); }); }
     var h = "";
-    h += '<div class="cbt-row" style="margin-bottom:10px"><input class="cbt-inp" id="cbtDraftTitle" placeholder="Paper title — e.g. SS2 Mathematics · Mid-term CBT" maxlength="80" value="' + esc(d.title) + '"></div>';
+    h += '<div class="cbt-row" style="margin-bottom:10px"><input class="cbt-inp" id="cbtDraftTitle" aria-label="Paper title" placeholder="Paper title — e.g. SS2 Mathematics · Mid-term CBT" maxlength="80" value="' + esc(d.title) + '"></div>';
     h += '<div class="cbt-grid2">';
     h += '<div><label class="cbt-muted">Class</label><div class="cbt-row" id="cbtClsRow">' +
       ["SS1", "SS2", "SS3"].map(function (c) { return '<button class="cbt-tab' + (d.cls === c ? " on" : "") + '" data-cls="' + c + '">' + c + "</button>"; }).join("") + "</div></div>";
-    h += '<div><label class="cbt-muted">Subject (for drawing from the bank)</label><select class="cbt-inp" id="cbtSubject"><option value="">Mixed / all subjects</option>' +
+    h += '<div><label class="cbt-muted" for="cbtSubject">Subject (for drawing from the bank)</label><select class="cbt-inp" id="cbtSubject"><option value="">Mixed / all subjects</option>' +
       subs.map(function (s2) { return '<option value="' + esc(s2) + '"' + (d.subject === s2 ? " selected" : "") + ">" + esc(s2) + "</option>"; }).join("") + "</select></div>";
-    h += '<div><label class="cbt-muted">Topic filter (optional)</label><select class="cbt-inp" id="cbtTopic"><option value="">All topics</option>' +
+    h += '<div><label class="cbt-muted" for="cbtTopic">Topic filter (optional)</label><select class="cbt-inp" id="cbtTopic"><option value="">All topics</option>' +
       topicList(d.subject).map(function (t) { return '<option value="' + esc(t) + '"' + (d.topic === t ? " selected" : "") + ">" + esc(t) + "</option>"; }).join("") + "</select></div>";
-    h += '<div><label class="cbt-muted">Duration</label><select class="cbt-inp" id="cbtDuration">' +
+    h += '<div><label class="cbt-muted" for="cbtDuration">Duration</label><select class="cbt-inp" id="cbtDuration">' +
       [10, 20, 30, 45, 60, 90].map(function (m) { return '<option value="' + m + '"' + (d.duration === m ? " selected" : "") + ">" + m + " minutes</option>"; }).join("") + "</select></div>";
-    h += '<div><label class="cbt-muted">Scheduled start (shown to students; you press Start)</label><input class="cbt-inp" type="datetime-local" id="cbtSched" value="' + esc(d.scheduledAt || "") + '"></div>';
-    h += '<div><label class="cbt-muted">Questions to draw</label><input class="cbt-inp" type="number" min="1" max="100" id="cbtCount" value="' + d.count + '"></div>';
-    h += '<div><label class="cbt-muted">Webcam monitoring</label><select class="cbt-inp" id="cbtWebcam">' +
+    h += '<div><label class="cbt-muted" for="cbtSched">Scheduled start (shown to students; you press Start)</label><input class="cbt-inp" type="datetime-local" id="cbtSched" value="' + esc(d.scheduledAt || "") + '"></div>';
+    h += '<div><label class="cbt-muted" for="cbtCount">Questions to draw</label><input class="cbt-inp" type="number" min="1" max="100" id="cbtCount" value="' + d.count + '"></div>';
+    h += '<div><label class="cbt-muted" for="cbtWebcam">Webcam monitoring</label><select class="cbt-inp" id="cbtWebcam">' +
       [["off", "Off — no cameras"], ["optional", "Optional — student's choice"], ["required", "Required — camera check before the paper"]].map(function (o) {
         return '<option value="' + o[0] + '"' + ((d.webcam || "optional") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
       }).join("") + "</select></div>";
@@ -1013,7 +1014,7 @@
     h += '<div class="cbt-row" style="margin:12px 0"><label class="cbt-muted"><input type="checkbox" id="cbtInstant"' + (d.instantResults ? " checked" : "") + '> Students see instant results &amp; explanations</label>' +
       '<label class="cbt-muted"><input type="checkbox" id="cbtRank"' + (d.showRank ? " checked" : "") + "> Show class ranking to students</label></div>";
     h += '<div class="cbt-row" style="margin-bottom:10px"><button class="cbt-btn ghost" id="cbtDraw">🎲 Draw from the question bank</button><button class="cbt-btn ghost" id="cbtAddNew">✍️ Add a new question</button><button class="cbt-btn ghost" id="cbtClearQ">🗑 Clear paper</button></div>';
-    h += '<div id="cbtDrawFb"></div>';
+    h += '<div id="cbtDrawFb" role="status"></div>';
     h += '<div id="cbtNewQ" style="display:none">' + newQForm() + "</div>";
     h += '<div id="cbtQList">' + draftListHtml(d) + "</div>";
     h += '<div class="cbt-row" style="margin-top:14px;justify-content:space-between"><span class="cbt-muted" id="cbtQCount"></span><button class="cbt-btn gold" id="cbtGoLive">🔴 Go live — generate session code</button></div>';
@@ -1044,7 +1045,7 @@
       '<div class="cbt-row" style="margin-top:8px"><label class="cbt-muted">Correct option</label>' +
       [0, 1, 2, 3].map(function (i) { return '<label class="cbt-muted"><input type="radio" name="nqA" value="' + i + '"' + (i === 0 ? " checked" : "") + "> " + "ABCD"[i] + "</label>"; }).join("") + "</div>" +
       '<input class="cbt-inp" id="nqExpl" placeholder="Explanation (shown to students when results are released)" style="width:100%;margin-top:8px">' +
-      '<div id="nqFb"></div>' +
+      '<div id="nqFb" role="status"></div>' +
       '<div class="cbt-row" style="margin-top:8px"><button class="cbt-btn" id="cbtNewQAdd">Add to paper</button></div></div>';
   }
   function syncDraftFromForm() {
@@ -1578,7 +1579,7 @@
         h += '</div><small class="cbt-muted">share of sittings scoring 0–9 … 90–100%</small>';
       }
       /* session table */
-      h += '<h3 style="margin:16px 0 6px">Every paper</h3><table class="cbt-table"><tr><th>Date</th><th>Paper</th><th>Class</th><th>Status</th><th>Sat</th><th>Avg</th><th>Top</th><th></th></tr>';
+      h += '<h3 style="margin:16px 0 6px">Every paper</h3><table class="cbt-table"><tr><th>Date</th><th>Paper</th><th>Class</th><th>Status</th><th>Sat</th><th>Avg</th><th>Top</th><th><span class="cbt-vh">Open paper</span></th></tr>';
       st.rows.forEach(function (r) {
         h += "<tr><td>" + esc(r.day) + "</td><td><b>" + esc(r.title) + '</b><br><small class="cbt-muted">' + esc(r.subject) + "</small></td>" +
           "<td>" + esc(r.cls) + "</td><td>" + (r.status === "live" ? '<b style="color:#16a34a">LIVE</b>' : esc(r.status)) + "</td>" +
@@ -1819,7 +1820,7 @@
     var h = '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
       "<div><h3 style='margin:0'>\ud83e\uddea Question pipeline</h3><p class='cbt-sub' style='margin:4px 0 0'>Feed the school's own questions in bulk \u2014 paste CSV or JSON, every row is checked with the WAEC mechanics rules, approved questions join the paper builder. The national bank stays hash-locked and untouched.</p></div>" +
       '<button class="cbt-btn ghost" id="plRefresh">\u21bb Refresh</button></div>' +
-      plSubTabs() + '<div id="plFb">' + (pl.fb || "") + "</div>";
+      plSubTabs() + '<div id="plFb" role="status">' + (pl.fb || "") + "</div>";
     if (pl.sub === "submit") h += plSubmitHtml();
     else if (pl.sub === "review") h += plReviewHtml();
     else h += plPoolHtml();
@@ -1830,8 +1831,8 @@
     var pv = pl.preview;
     var h = '<div class="cbt-card" style="margin-top:4px"><b>Paste CSV or JSON</b>' +
       '<p class="cbt-muted" style="margin:4px 0 8px">CSV columns: <code>subject,class,topic,question,optionA,optionB,optionC,optionD,answer,explanation</code> \u2014 answer is A\u2013D (or 0\u20133), the header row is optional, and a JSON array of objects works too. You can also drop in a .csv or .json file.</p>' +
-      '<textarea class="cbt-inp" id="plText" rows="7" style="width:100%;font-family:ui-monospace,monospace" placeholder="Mathematics,SS1,Sequences,&quot;What is the next term of 2, 4, 8, ...?&quot;,10,12,16,18,C,Each term doubles">' + esc(pl.text) + "</textarea>" +
-      '<div class="cbt-row" style="margin-top:8px"><input type="file" id="plFile" accept=".csv,.json,.txt"><button class="cbt-btn" id="plCheck">Check questions</button></div></div>';
+      '<textarea class="cbt-inp" id="plText" aria-label="Questions as CSV or JSON" rows="7" style="width:100%;font-family:ui-monospace,monospace" placeholder="Mathematics,SS1,Sequences,&quot;What is the next term of 2, 4, 8, ...?&quot;,10,12,16,18,C,Each term doubles">' + esc(pl.text) + "</textarea>" +
+      '<div class="cbt-row" style="margin-top:8px"><input type="file" id="plFile" accept=".csv,.json,.txt" aria-label="Upload a CSV or JSON file of questions"><button class="cbt-btn" id="plCheck">Check questions</button></div></div>';
     if (pv && pv.length) {
       var okN = pv.filter(function (r) { return r.v.ok; }).length;
       h += '<div class="cbt-card"><b>Preview \u2014 ' + okN + " of " + pv.length + " row" + (pv.length === 1 ? "" : "s") + ' ready</b>' +
