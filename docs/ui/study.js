@@ -21,6 +21,7 @@
     practice: "Practice",
     progress: "My progress",
     tools: "Study toolkit",
+    cbt: "Live CBT Hall",
   };
   let current = "overview",
     grade = Math.max(0, Math.min(2, Number(store.get("study_grade", 0)) || 0));
@@ -397,6 +398,17 @@
           state.subject = null;
           renderClasses();
           setCard("class");
+        }
+      }
+      if (view === "cbt") {
+        try {
+          await load("cbt.js");
+          if (window.MAMSS_CBT) window.MAMSS_CBT.mount();
+        } catch (e) {
+          const host = $("cbtRoot");
+          if (host)
+            host.innerHTML =
+              '<div class="cbt-note" style="margin:10px">Live CBT needs a one-time download — reconnect and open this tab again. Your practice progress is untouched.</div>';
         }
       }
       show(view, updateURL);

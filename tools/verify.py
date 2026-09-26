@@ -582,6 +582,68 @@ def main():
     (ok if re.search(r"var V = 5[3-9]", usrc) else fail)("upgrade.js V=53+ (Adaptive Engine)")
     (ok if "Adaptive Engine" in usrc else fail)("whats-new announces the Adaptive Engine")
 
+    print("\n[19] v54 Live CBT Hall (teacher-posted real-time exams)")
+    codesrc = open(os.path.join(DOCS, "codes.js"), encoding="utf-8").read()
+    cbtsrc_path = os.path.join(DOCS, "cbt.js")
+    (ok if os.path.exists(cbtsrc_path) else fail)("docs/cbt.js present")
+    cbtsrc = open(cbtsrc_path, encoding="utf-8").read() if os.path.exists(cbtsrc_path) else ""
+    studysrc = open(os.path.join(DOCS, "ui", "study.js"), encoding="utf-8").read()
+    atelier = open(os.path.join(DOCS, "ui", "atelier.css"), encoding="utf-8").read()
+    schema = open(os.path.join(ROOT, "tools", "cbt_schema.sql"), encoding="utf-8").read() \
+        if os.path.exists(os.path.join(ROOT, "tools", "cbt_schema.sql")) else ""
+    issuer = open(os.path.join(ROOT, "tools", "issue_codes.py"), encoding="utf-8").read()
+
+    # --- codes.js: true batch ranges + teacher batch, 500 legacy hashes untouched ---
+    (ok if "batchRanges:[[0,120],[120,500],[500,510]]" in codesrc else fail)("codes.js: batchRanges maps the 3 batches by index")
+    (ok if '"TEACHER-1"' in codesrc else fail)("codes.js: TEACHER-1 batch registered")
+    (ok if "count:510" in codesrc else fail)("codes.js: count 510 (500 student + 10 teacher)")
+    (ok if len(re.findall(r'"[0-9a-f]{64}"', codesrc)) == 510 else fail)("codes.js: exactly 510 salted hashes")
+    (ok if re.search(r'ledger:\{url:"https://[^"]+\.supabase\.co",key:"sb_publishable_', codesrc) else fail)("codes.js: ledger config intact (CBT reuses it — no new secrets)")
+    (ok if not re.search(r'"[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}"', codesrc) else fail)("codes.js: no plaintext slip strings (XXXX-XXXX)")
+
+    # --- upgrade.js: role stamping + API ---
+    (ok if 'var V = 54, NAME = "Live CBT Hall"' in usrc else fail)("upgrade.js: V=54 NAME=Live CBT Hall")
+    (ok if "function batchOf(h)" in usrc and "CODES.batchRanges" in usrc else fail)("upgrade.js: batchOf() resolves the TRUE batch via batchRanges")
+    (ok if usrc.count("role: roleOfHash(h)") == 3 else fail)("upgrade.js: all 3 nssc_act stamps carry role (got %d)" % usrc.count("role: roleOfHash(h)"))
+    (ok if "batch: batchOf(h) }])" in usrc else fail)("upgrade.js: ledger claim posts the true batch")
+    (ok if "teacher: function ()" in usrc and "device: deviceId" in usrc else fail)("upgrade.js: MAMSS_ACT exposes teacher() + device()")
+    (ok if "Live CBT Hall" in usrc and "6-character session code" in usrc else fail)("whats-new announces the Live CBT Hall")
+
+    # --- cbt.js: the hall itself ---
+    (ok if "window.MAMSS_CBT" in cbtsrc else fail)("cbt.js: exports MAMSS_CBT")
+    (ok if "MAMSS_CODES.ledger" in cbtsrc or "MAMSS_CODES && window.MAMSS_CODES.ledger" in cbtsrc else fail)("cbt.js: backend config comes from the existing ledger (no new keys)")
+    for t in ("cbt_sessions", "cbt_attempts", "cbt_answers"):
+        (ok if t in cbtsrc else fail)("cbt.js: uses table " + t)
+    (ok if "realtime/v1/websocket" in cbtsrc and "phx_join" in cbtsrc else fail)("cbt.js: Supabase Realtime broadcast client (Phoenix protocol)")
+    (ok if "POLL_MS = 2500" in cbtsrc and "__CBT_FORCE_POLL" in cbtsrc else fail)("cbt.js: 2.5 s polling backbone + test hook")
+    (ok if "ends_at" in cbtsrc and "deadlineLeft" in cbtsrc else fail)("cbt.js: deadline derives from the server row (refresh cannot reset)")
+    (ok if "INTEGRITY_LIMIT = 5" in cbtsrc and "INTEGRITY_GRACE_MS = 1200" in cbtsrc else fail)("cbt.js: forgiving integrity (1.2 s grace, auto-submit at 5)")
+    (ok if '"copy", "cut", "contextmenu"' in cbtsrc and "id.readable" in cbtsrc else fail)("cbt.js: copy-block on questions, lifted for Readable a11y mode")
+    (ok if "status === 409" in cbtsrc else fail)("cbt.js: 409 handled (duplicate session code / attempt / answer)")
+    (ok if "being set up" in cbtsrc and "PGRST205" in cbtsrc else fail)("cbt.js: degrades to a 'being set up' card before the SQL is run")
+    (ok if "gradePaper" in cbtsrc else fail)("cbt.js: results page re-grades from server rows (client score is not trusted)")
+    r = subprocess.run(["node", "--check", cbtsrc_path], capture_output=True, text=True)
+    (ok if r.returncode == 0 else fail)("cbt.js: node --check clean")
+
+    # --- wiring ---
+    (ok if 'id="viewCbt"' in isrc and 'id="cbtRoot"' in isrc else fail)("index.html: viewCbt section + cbtRoot host")
+    (ok if 'data-view="cbt" href="#viewCbt"' in isrc else fail)("index.html: desktop nav link")
+    (ok if 'data-view="cbt" href="#cbt"' in isrc else fail)("index.html: mobile dock link")
+    (ok if 'cbt: "Live CBT Hall"' in studysrc else fail)("study.js: titles whitelist includes cbt")
+    (ok if 'load("cbt.js")' in studysrc and "MAMSS_CBT.mount()" in studysrc else fail)("study.js: navigate() lazy-loads + mounts the hall")
+    (ok if '"-v59"' in swsrc else fail)("sw.js: cache bumped to -v59")
+    (ok if '"./cbt.js"' in swsrc else fail)("sw.js: cbt.js precached")
+    (ok if "repeat(5, minmax(0, 1fr))" in atelier else fail)("atelier.css: mobile dock widened to 5 tabs")
+
+    # --- schema + issuer ---
+    (ok if all(t in schema for t in ("create table if not exists public.cbt_sessions", "create table if not exists public.cbt_attempts", "create table if not exists public.cbt_answers")) else fail)("cbt_schema.sql: the 3 tables")
+    (ok if "primary key (session_code, device_id)" in schema and "primary key (session_code, device_id, q_idx)" in schema else fail)("cbt_schema.sql: PKs enforce one-attempt + no-going-back")
+    (ok if "cbt_session_stamp" in schema and "cbt_attempt_stamp" in schema else fail)("cbt_schema.sql: server-authoritative time triggers")
+    (ok if schema.count("enable row level security") == 3 else fail)("cbt_schema.sql: RLS on all 3 tables")
+    (ok if "for delete" not in schema else fail)("cbt_schema.sql: no delete policies (rows are permanent)")
+    (ok if "supabase_realtime" in schema else fail)("cbt_schema.sql: realtime publication")
+    (ok if "--seed-ranges" in issuer and "batchRanges" in issuer else fail)("issue_codes.py: maintains batchRanges (--seed-ranges migration)")
+
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))
     if FAIL:

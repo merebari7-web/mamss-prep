@@ -317,16 +317,20 @@ delete from public.code_redemptions where code_hash in (
   '43efb42cd6420b2770936d5a29f54b1485c7f9b87004fdbfcbcf2a52e10bdaa1',  -- slip #13
   '5bd9aa40d4add346c63a10380561bec115bcbe5908900bc7448a9b4dda977fbc',  -- slip #14
   'a0cff627a321f948c6b4408aff83d33b7fe5eb61bc87433f5056f8c9e5ce9d33',  -- slip #15
-  '329fef1f9ec89d6af783cde1dfbb6272bebb1c74e9ce0d81c553da0c6cee5d8c'   -- slip #16
+  '329fef1f9ec89d6af783cde1dfbb6272bebb1c74e9ce0d81c553da0c6cee5d8c',  -- slip #16
+  'f3f77cde0ce6bf59543848fd96c0ebe49093dfb46fbc7f34e79d57e4e7df8581',  -- slip #17
+  '22d20af412d8a4cff0f2fd57529900a04fd5d55ba6c62ea2d95794f081770852',  -- slip #18
+  '0c220dda0424127115c3ae8ccc7bebb585f40a979ceb52fc1173cc9a2d54a464'   -- slip #19
 ) or code_hash = '__smoketest_not_a_real_hash__';
 ```
 
 (Slips #1, #2, #7, #8 were consumed by the roll-call suite after the ledger went
 live; #11–13 by the real-ledger e2e on 2026-09-24 and again on 2026-09-25 after
-the first cleanup freed them; #14–16 by the v52 verification run on 2026-09-25 —
-`realtest.js` now rotates to `codes.slice(13, 16)`.) Otherwise treat main-batch
-slips **#1, #2, #7, #8, #11–16 as burned** and don't hand them out. As of the
-v52 run the ledger holds 11 rows; the DELETE above frees every test row.
+the first cleanup freed them; #14–16 by the v52 verification run on 2026-09-25;
+#17–19 by the v54 verification run on 2026-09-26 — `realtest.js` now rotates to
+`codes.slice(16, 19)`.) Otherwise treat main-batch slips **#1, #2, #7, #8,
+#11–19 as burned** and don't hand them out. As of the v54 run the ledger holds
+14 rows; the DELETE above frees every test row.
 
 **Test topology rule:** with the ledger live, `codetest.js` must run against a
 ledger-free copy of the site (`testrig/docsnoled/` on :8101, `codes.js` with the
@@ -626,11 +630,11 @@ full, item order, with **Firebase** chosen for the cloud items. Ledger:
 | # | Item | Status |
 |---|------|--------|
 | 1 | Adaptive learning engine (Leitner/SM-2 + weak-topic weighting) | **shipped — v53 (this section)** |
-| 2 | Real backend / sync (Google sign-in, cross-device progress) | approved (Firebase); queued — the redesign ALREADY ships Google sign-in (`GOOGLE_CLIENT_ID`, GIS, `migrateAnonymousAttempts`), so v54 adds the sync layer under it |
-| 3 | Teacher/admin dashboard (aggregate class performance) | approved (Firebase); queued behind #2 |
+| 2 | Real backend / sync (Google sign-in, cross-device progress) | approved (Firebase); NEXT — the redesign ALREADY ships Google sign-in (`GOOGLE_CLIENT_ID`, GIS, `migrateAnonymousAttempts`), so v55 adds the sync layer under it. (v54 became the Live CBT Hall instead: on 2026-09-26 the school asked for real-time teacher-posted exams as the new top priority; it reuses the EXISTING Supabase project, so Firebase stays reserved for this sync item.) |
+| 3 | Teacher/admin dashboard (aggregate class performance) | **live-session slice shipped — v54 Live CBT Hall** (real-time roster, integrity flags, ranking + per-question breakdown, CSV); whole-school aggregate dashboard still queued behind #2 |
 | 4 | Teacher content pipeline (CSV/JSON → bank, validated) | queued |
 | 5 | Accessibility & performance audit | queued (a11y scaffolding — `a11yApply`/`a11yOpen` — already exists and gets audited, not rebuilt) |
-| 6 | Exam-mode integrity | queued (partly live already: `state.intg` integrity counter + `armExamLock`/`disarmExamLock`; v-item adds blur/copy-paste detection, warning counter, forgiving auto-submit) |
+| 6 | Exam-mode integrity | **shipped for live sessions — v54** (blur/visibility logging with 1.2 s accidental-bounce grace, escalating warnings, forgiving auto-submit at 5, copy/paste block with a Readable-a11y exemption, server-enforced no-going-back); practice-mode exam integrity polish remains queued |
 | 7 | Offline-first PWA polish | queued (≈90 % live since v46: installable, offline SW, safe-update Reload prompt; remaining: explicit "new questions" update copy + zero-connectivity cold-start proof) |
 | 8 | Gamification depth | queued (`readinessScore`/`readinessTier` already exist — the SS3-readiness bar builds on them; adds subject mastery badges + canvas-rendered WhatsApp share cards) |
 
@@ -682,3 +686,168 @@ demote/hold/promote across two submits, pace averaging, both coach entries,
 zero page errors. Full regression: roll-call 33/33 (:8101 ledger-free),
 studio 15/15, arena 16/16, prestige 11/11, command 14/14, prospectus 13/13,
 bank 20/20. `verify.py` §[18] → **172 checks · 0 failures**.
+
+## 16. v54 "Live CBT Hall" — real-time teacher-posted examinations
+
+On 2026-09-26 the school asked for a live CBT mode on top of the existing site:
+teachers post a real examination, students join with a session code on the
+devices they already activated, the teacher watches the room in real time and
+releases results the moment the paper ends. Built as an extension, not a
+rebuild: same visual language, same navigation pattern (a fifth tab, desktop
+sidebar + mobile dock), same question format as the bank, same activation
+identity — and the SAME Supabase project as the roll-call ledger, so no new
+keys, no new config, no new vendor.
+
+### 16.1 What v54 adds
+
+**Teacher console** (unlocks automatically on any device activated with a
+`TEACHER-*` slip — `MAMSS_ACT.teacher()`):
+
+* **Build paper** — draw N questions from the bank filtered by class / subject /
+  topic (seeded shuffle, duplicates impossible), and/or add fresh questions on
+  the spot. Custom questions are checked against the WAEC-standard rules the
+  whole bank now follows (v52): distinct options, non-empty stem, ordinal and
+  article-agreement warnings, duplicate blocking. Drafts survive reloads
+  (`nssc_cbt_draft`).
+* **Go live** — one tap mints a 6-character session code (unambiguous alphabet,
+  shown `XXX-XXX`, collision-retried). Invite text copies to clipboard or
+  shares straight to WhatsApp. Duration 10–90 min; optional scheduled start
+  (displayed in the students' lobby; the room opens when the teacher presses
+  Start — no phantom server cron).
+* **Monitor** — live roster: name, masked slip, status chip, per-student
+  progress bar ("question 14/30"), integrity flags, and a freshness dot from
+  the server-stamped `last_seen_at`. Controls: Start, +5/+15 min extension,
+  End now, instant-results toggle — all reflected on every student device
+  within ~2.5 s.
+* **Results** — the moment the paper ends: class ranking (medals, %, integrity
+  column), per-question accuracy with A/B/C/D answer-distribution bars,
+  one-click CSV export, and a WhatsApp-ready summary (average, top 3, hardest
+  question). Scores are **re-graded from the server rows** — a phone that
+  reports a flattering score is shown with a ⚠ mismatch marker; the database
+  wins.
+
+**Student side** (the new *Live CBT* tab):
+
+* Join by code — no signup, no password: the activation slip already IS the
+  identity (name + masked slip + device id ride along on the attempt row).
+* Waiting room until the teacher starts (device count ticks up live).
+* Runner: one question at a time, big countdown, select → **Save & next**.
+  Every answer hits the database the instant it is given; the connection can
+  drop mid-question and nothing is lost. No going back — enforced by the
+  answers **primary key**, not just hidden buttons.
+* Refresh/reopen cannot reset anything: the deadline lives in the server row
+  (`ends_at`, stamped by a Postgres trigger), and rejoining resumes at exactly
+  the saved question with the running clock.
+* Timeout → automatic submission of everything saved; teacher "End now" →
+  same, immediately, room-wide.
+* Instant results + explanations (if the teacher allows), otherwise
+  "submitted — your teacher will release the results". Recent sessions list
+  on the hall home for re-entry.
+
+**Anti-cheat** (forgiving by design, per the school's ask):
+
+* Leaving the exam window (tab switch, app switch, blur) is logged — with a
+  **1.2 s grace** so an accidental bounce doesn't count. Escalation: soft note
+  → warning ("recorded, your teacher sees it live") → final warning →
+  **auto-submit at 5** logged events. Every event increments the server row
+  (visible on the teacher roster in real time) and flags the question that was
+  on screen.
+* Copy / cut / right-click suppressed on the question card (`user-select:none`
+  too) — automatically lifted when the student uses the site's **Readable**
+  accessibility mode; a11y wins over anti-cheat, documented here honestly.
+
+### 16.2 School setup — ONE TIME, ~2 minutes
+
+1. **Run the SQL.** Supabase dashboard (the same project as the roll-call
+   ledger) → SQL editor → paste `tools/cbt_schema.sql` → Run. It creates three
+   tables, two timing triggers, RLS policies and the realtime publication.
+   Until this is run the Live CBT tab simply says *"being set up by the
+   school"* — nothing else on the site is affected (tested).
+2. **Hand out teacher slips.** 10 `TEACHER-1` slips were generated on
+   2026-09-26 and live ONLY in `tools/private/codes-TEACHER-1-2026-09-26.html`
+   (print & cut) + `.csv` — git-ignored, never uploaded, same discipline as
+   the student slips. A teacher activates exactly like a student; the console
+   appears by itself. More teachers later:
+   `python3 tools/issue_codes.py --count N --batch TEACHER-2` (ranges update
+   automatically; any batch named `TEACHER-*` grants the role).
+
+### 16.3 How the teacher role works (and its honest edges)
+
+`codes.js` now carries `batchRanges:[[0,120],[120,500],[500,510]]` — the index
+slice of each batch inside the 510-hash list. On redemption, `upgrade.js`
+resolves the **true** batch by hash position (this also fixes the old cosmetic
+bug where every activation was labelled with the last batch) and stamps
+`role:"teacher"` when the batch matches `/^teacher/i`. `MAMSS_ACT.teacher()`
+reads the stamp. Edges, stated plainly:
+
+* Devices activated BEFORE v54 keep their old stamp (batch = last-batch label,
+  no role). They are students — which is correct, since teacher slips did not
+  exist yet. A re-activation is never needed for students.
+* The gate itself is untouched: fail-closed, slip-or-bound-device only. The
+  teacher console adds a capability ON TOP of activation, never a way around
+  it. `nssc_act` still never syncs anywhere (roadmap #2 constraint respected).
+* Role trust is client-side (the public key could post a session). Same trust
+  posture as the whole static-site gate — abuse means attacking your own
+  school's exam; the upgrade path is Supabase Auth, folded into roadmap #2.
+
+### 16.4 Backend architecture
+
+| Table | Primary key = business rule |
+|---|---|
+| `cbt_sessions` | `code` — one paper per 6-char code; questions embedded as JSONB (self-contained: bank version drift can't break a live sitting) |
+| `cbt_attempts` | `(session_code, device_id)` — **one attempt per device per session**, at database level |
+| `cbt_answers` | `(session_code, device_id, q_idx)` — **each answer saved once, the instant it is given; no going back**, at database level |
+
+* **Timing is server-authoritative**: a `BEFORE UPDATE` trigger stamps
+  `live_at`/`ends_at` (start), recomputes `ends_at` (extend), stamps
+  `ended_at` (end) and `last_seen_at` (every attempt heartbeat) with the
+  database clock — phones never write timestamps that matter.
+* **Realtime**: Supabase Realtime **broadcast** channel per session
+  (`realtime:cbt-XXXXXX`, raw Phoenix-protocol WebSocket, no client library —
+  the site stays dependency-free). Broadcasts only say "something changed";
+  listeners re-fetch via REST because **Postgres is the single source of
+  truth**. A 2.5 s poll runs alongside as the correctness backbone and full
+  fallback (6 s when the tab is hidden) — if the socket never connects,
+  everything still works at poll latency. `window.__CBT_FORCE_POLL=1` forces
+  poll-only (used by the test suite).
+* **Trust model**: RLS lets the publishable key select/insert/update these
+  rows; **deletes are blocked entirely** (no delete policy) so sittings stay
+  auditable. The key can therefore write rows it shouldn't — same honest
+  public-key posture as the activation ledger, documented not hidden.
+* **Clock skew**: `ends_at` is server truth, but a phone whose clock is wrong
+  by a minute displays a minute off and auto-submits a minute off. Accepted
+  for school sittings; the teacher's End/Extend controls are the human
+  backstop. (True skew-proofing needs an authenticated round-trip — noted for
+  the roadmap #2 backend.)
+
+### 16.5 Delivery & tests
+
+`V = 54`, `NAME = "Live CBT Hall"`, whats-new entry, sw cache key `-v59`,
+`docs/cbt.js` precached. New files: `docs/cbt.js` (~35 KB),
+`tools/cbt_schema.sql`, `tools/cbttest.js` + `tools/cbtmock.js` (mirrored in
+`testrig/`). Wired as a natural fifth tab: `titles.cbt`, lazy `load("cbt.js")`
+in `navigate()`, `#viewCbt`/`#cbtRoot` section, sidebar + dock links (dock
+widened to 5 columns).
+
+New suite `cbttest.js` — **60/60**: teacher/student two-context end-to-end
+against an in-memory mock with the exact primary-key + trigger semantics of
+the schema (all `/rest/v1/*` traffic rewritten by Playwright route; polling
+backbone exercised via `__CBT_FORCE_POLL`). Covers: role gating both ways,
+nav on desktop+mobile, bank draw (5 unique from SS2 Mathematics), custom
+question add/duplicate-block/malformed-block + WAEC mechanics verdict, go-live
+code format + persisted session row, waiting room with live device count,
+server-stamped start (~1800 s deadline), auto-transition to runner, mm:ss
+timer, select-then-save flow, instant answer persistence, 409 on re-answer,
+no-back audit, copy/context-menu suppression, blur→grace→server-logged
+integrity + teacher-side live flag, refresh-resume at the exact question with
+the running clock, 409 on second attempt, auto-submit on completion, X/6 score
++ ✅/❌ breakdown, ranking + medals + per-question distribution bars, CSV
+download, +5 min extension moving the server deadline exactly 300 s, expired
+deadline → immediate auto-submit, teacher end-early, pre-SQL degraded mode
+("being set up" + rest of app untouched), zero page errors.
+
+Full regression: adaptive 18/18, bank 20/20, studio ALL, arena ALL, prestige
+ALL, command ALL, prospectus ALL, roll-call 33/33 (:8101 ledger-free),
+real-ledger e2e 19/19 against the LIVE Supabase (slips #17–19 rotated in and
+burned — §6.2 cleanup list updated; ledger now 14 rows).
+`verify.py` §[19] → **214 checks · 0 failures**.

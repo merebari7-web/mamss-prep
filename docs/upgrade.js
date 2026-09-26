@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 53, NAME = "Adaptive Engine";
+  var V = 54, NAME = "Live CBT Hall";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -637,7 +637,8 @@
       ["🧭", "Exam Command Center", "Set your exam date: a mastery heatmap shows every subject at a glance, and one tap builds a printable day-by-day study plan — weak and untouched topics first, every studied topic re-reviewed at +1, +3 and +7 days. Computed on your device from your own results."],
       ["✦", "Why MAMSS PREP — shareable page", "A prestige prospectus you can share in any parents' group or WhatsApp status: the five world-first tools, the honest global audit, and one tap to request an activation key from the school office. Find it on the lock screen and in the App Centre."],
       ["📝", "WAEC-standard question bank", "Every question in the bank has been audited to WAEC standard: command-word phrasing, sentence punctuation, ordinal and article grammar — and every machine-worded stem and explanation rewritten into clean examination English. Same questions, same answers; now phrased the way WAEC phrases them."],
-      ["🧠", "Adaptive Engine", "The app now remembers how you answer every topic — accuracy, speed and a Leitner-style memory box with spaced due dates. The Daily Challenge weights six of its ten questions toward your three weakest topics, and the AI Coach shows each weak topic's memory box and offers speed drills when you are correct but slow. On-device, offline, no account — as always."]
+      ["🧠", "Adaptive Engine", "The app now remembers how you answer every topic — accuracy, speed and a Leitner-style memory box with spaced due dates. The Daily Challenge weights six of its ten questions toward your three weakest topics, and the AI Coach shows each weak topic's memory box and offers speed drills when you are correct but slow. On-device, offline, no account — as always."],
+      ["🏫", "Live CBT Hall", "Teachers can now run a real live examination: build the paper from the question bank (or add fresh questions), go live with a 6-character session code, watch every device join and answer in real time, extend or end the sitting, and get the ranking with per-question breakdown immediately after. Students join from the new Live CBT tab with the activation they already have — one device per session, every answer saved the instant it is given, and the clock lives on the school server so a refresh cannot reset it."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
@@ -1091,13 +1092,31 @@
     if (!d) { d = (window.uid ? uid() : String(Math.random()).slice(2)) + "-" + String(Date.now().toString(36)); st.set("nssc_devid", d); }
     return d;
   }
+  /* v54: true batch resolution by position in the public list (batchRanges),
+     with the legacy last-batch label as fallback. A batch named TEACHER-*
+     grants the teacher role used by the Live CBT Hall. */
+  function batchOf(h) {
+    try {
+      var i = CODES && CODES.list ? CODES.list.indexOf(h) : -1;
+      var rs = CODES && CODES.batchRanges;
+      if (i > -1 && rs && rs.length) {
+        for (var k = 0; k < rs.length; k++) {
+          if (i >= rs[k][0] && i < rs[k][1]) return (CODES.batches && CODES.batches[k]) || "";
+        }
+      }
+    } catch (e) {}
+    return ((CODES && CODES.batches) || []).slice(-1)[0] || "";
+  }
+  function roleOf(batch) { return /^teacher/i.test(batch || "") ? "teacher" : "student"; }
+  function roleOfHash(h) { return roleOf(batchOf(h)); }
+
   function ledgerHeaders(cfg) {
     return { "apikey": cfg.key, "Authorization": "Bearer " + cfg.key, "Content-Type": "application/json", "Prefer": "return=representation" };
   }
   function ledgerClaim(cfg, h) {
     return fetch(cfg.url + "/rest/v1/code_redemptions", {
       method: "POST", headers: ledgerHeaders(cfg),
-      body: JSON.stringify([{ code_hash: h, device_id: deviceId(), device_label: (function () { try { return (st.get("nssc_user", null) || {}).name || ""; } catch (e) { return ""; } })(), batch: (CODES && CODES.batches && CODES.batches[CODES.batches.length - 1]) || "" }])
+      body: JSON.stringify([{ code_hash: h, device_id: deviceId(), device_label: (function () { try { return (st.get("nssc_user", null) || {}).name || ""; } catch (e) { return ""; } })(), batch: batchOf(h) }])
     }).then(function (r) {
       if (r.ok) return { r: "ok" };
       if (r.status === 409 || r.status === 400) return ledgerWho(cfg, h);
@@ -1122,20 +1141,20 @@
       if (used.indexOf(h) > -1) return { r: "used", h: h };
       if (!cfg) {                                   /* no ledger: per-device rule */
         used.push(h); st.set("nssc_act_used", used);
-        st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: (CODES.batches || []).slice(-1)[0] || "" });
+        st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: batchOf(h), role: roleOfHash(h) });
         return { r: "ok", h: h };
       }
       return ledgerClaim(cfg, h).then(function (res) {
         if (res.r === "ok" || res.r === "mine") {
           used.push(h); st.set("nssc_act_used", used);
-          st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: (CODES.batches || []).slice(-1)[0] || "", ledger: true });
+          st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: batchOf(h), role: roleOfHash(h), ledger: true });
           return { r: "ok", h: h };
         }
         if (res.r === "elsewhere") return { r: "elsewhere", h: h, at: res.at };
         return { r: "used", h: h };
       }).catch(function () {                       /* offline classroom */
         used.push(h); st.set("nssc_act_used", used);
-        st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: (CODES.batches || []).slice(-1)[0] || "", pending: true, fh: h });
+        st.set("nssc_act", { h: h.slice(0, 16), mask: maskCode(code), at: Date.now(), batch: batchOf(h), role: roleOfHash(h), pending: true, fh: h });
         return { r: "provisional", h: h };
       });
     });
@@ -1286,6 +1305,9 @@
       ledger: ledgerCfg,
       sync: syncPendingLedger,
       studio: openStudio,
+      teacher: function () { var a = actInfo(); return !!(a && (a.role === "teacher" || /^teacher/i.test(a.batch || ""))); },
+      device: deviceId,
+      batchOf: batchOf,
       norm: normCode,
       count: function () { return (CODES && CODES.list && CODES.list.length) || 0; }
     };

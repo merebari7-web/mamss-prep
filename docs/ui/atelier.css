@@ -2155,7 +2155,7 @@
     position: fixed;
     inset: auto 0 0;
     z-index: 105;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     background: var(--s-card);
     border-top: 1px solid var(--s-line);
     padding: 5px 9px calc(5px + env(safe-area-inset-bottom));
