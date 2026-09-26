@@ -434,11 +434,11 @@
       show("practice", true, false);
     }
     const map = {
-      class: "1. Choose your class",
-      subject: "2. Choose a subject",
-      length: "3. Make this session yours",
-      quiz: "Your practice session",
-      result: "Session complete",
+      class: "The paper path · class → subject → topics",
+      subject: "The paper path · your subject",
+      length: "The paper path · your session",
+      quiz: "The paper path · in session",
+      result: "The paper path · complete",
       review: "Review & understand",
     };
     $("practiceCrumb").textContent = map[type] || "Your practice session";
@@ -802,6 +802,12 @@
         " " +
         (matches.length === 1 ? "tool" : "tools") +
         (group === "all" ? " available" : " for " + group.toLowerCase());
+    if ($("toolCount") && !$("toolLegend")) {
+      const lg = document.createElement("p");
+      lg.id = "toolLegend"; lg.className = "tool-legend";
+      lg.textContent = "☆ Pin your favourites — pinned tools jump to the top of your essentials.";
+      $("toolCount").parentNode.insertBefore(lg, $("toolCount").nextSibling);
+    }
     if (window.ATELIER) ATELIER.syncPins();
     $("toolsEmpty").hidden = !!matches.length;
   }

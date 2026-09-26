@@ -1291,6 +1291,45 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 23 · v61 "The Finishing Pass" — design execution (2026-09-26)
+
+The five-step design review (`design-review.md`, delivered separately) ranked nine
+seams where the v59 studio shell and the older utility views still disagreed. v61
+closes all nine. Presentation and copy only — the activation gate, the hash-locked
+question bank, the Supabase ledger and every engine behaviour are untouched.
+
+1. **Emoji headings → engraved icon set.** Two inline SVG symbols (`#i-crest`,
+   `#i-key`) plus seven stroke icons live in a hidden sprite; every emoji that sat
+   in a heading (Live CBT Hall, toolkit, sync, progress, library, teacher console)
+   is now a `currentColor` icon that survives any font stack.
+2. **CBT Hall zero-state.** A live board (`#cbtBoard`) reads `cbt_sessions`: live
+   papers become join cards; otherwise the hall shows "The hall is quiet." with the
+   BOARD / SEAT / BELL ritual explained — the dead air is now a designed moment.
+3. **why.html joins the brand.** Caslon wordmark, ink-green WhatsApp CTA with the
+   number unbroken, block kicker, and the four scattered "limited" badges replaced
+   by one footnote under the button.
+4. **Practice stepper + level chips.** A 5 px stepbar tracks the three paper steps;
+   PRELIMINARY / INTERMEDIATE / ADVANCED are gold-outlined chips; the crumb reads
+   "The paper path · class → subject → topics" in markup and at runtime.
+5. **Gate card set.** Engraved shield crest, single-line eyebrow, centred label +
+   full-width input axis, key icons on the activate button and contact link, and
+   the helper lines grouped under one hairline as a footnote.
+6. **Sidebar school name** wraps to two capped lines instead of one clipped line.
+7. **Toolkit shelf** keeps a level row of tool cards from collapsing to a lonely
+   strip; subject icons get a gold tint.
+8. **Motion tokens.** A 250 ms rise on view changes and 1 px hover lifts, all
+   disabled under `prefers-reduced-motion`.
+9. **Night variants** for every new surface (chips, board, crest, footnote).
+
+Filler copy ("Four thousand WAEC-standard questions…") now says what the app
+actually is; prospectus and gate agree on one scarcity footnote.
+
+**Grid:** verify.py 363 pins + responsetest 51 · a11y 38 · cbt 80 · dash 37 ·
+pipeline 57 · sync 60 · code 33 · bank 20 · adaptive 18 · exclusive 15 · arena 16 ·
+prestige 11 · cmd 14 · why 13 = 926 checks, 0 failures. Service worker cache bumped
+to -v66; stylesheet to atelier.css?v=48.
+
+
 ## 22 · v60 "Any Screen" — the responsive pass (2026-09-26)
 
 ### 22.1 Why

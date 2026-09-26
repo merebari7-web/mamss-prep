@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "60";
+  var VERSION = "61";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -268,6 +268,22 @@
       ".cbt-warn.soft{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.5);color:#8a6d1f}" +
       ".cbt-noselect{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}" +
       ".cbt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}" +
+      ".cbt-quiet{border:1px dashed rgba(0,33,71,.28);border-radius:14px;padding:26px 22px;text-align:center;background:rgba(0,33,71,.025);margin-top:14px}" +
+      ".cbt-quiet-ico{width:34px;height:34px;color:#002147}" +
+      ".cbt-quiet h3{font:400 1.5rem/1.2 Georgia,'Times New Roman',serif;margin:10px 0 6px;color:#002147}" +
+      ".cbt-quiet p{color:#5b6b84;font-size:.9rem;max-width:46ch;margin:0 auto}" +
+      ".cbt-quiet-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;list-style:none;margin:18px 0 0;padding:0;text-align:left}" +
+      ".cbt-quiet-steps li{border-top:2px solid #c9a227;padding:8px 2px 0}" +
+      ".cbt-quiet-steps b{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:#002147}" +
+      ".cbt-quiet-steps span{font-size:.8rem;color:#5b6b84}" +
+      ".cbt-quiet-next{margin:14px 0 0;font-size:.85rem;color:#002147;text-align:center}" +
+      ".cbt-board-live-wrap{display:grid;gap:8px;margin-top:14px}" +
+      ".cbt-board-live{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid #14783c;background:#f2f9f4;border-radius:12px;padding:12px 14px;cursor:pointer;font:inherit}" +
+      ".cbt-board-live b{color:#0b5c33;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      ".cbt-board-live small{color:#5b6b84}" +
+      ".cbt-board-cta{color:#0b5c33;font-weight:800;white-space:nowrap}" +
+      "@media(max-width:600px){.cbt-quiet-steps{grid-template-columns:1fr}.cbt-board-live{flex-wrap:wrap}}" +
+      
       ".cbt-row input[type=file]{min-height:32px}" +
       "@media(max-width:720px){.cbt-grid2{grid-template-columns:1fr}" +
       ".cbt-table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;contain:layout style}" +
@@ -452,40 +468,86 @@
     return '<div class="cbt-err">' + esc(msg) + "</div>";
   }
 
+
+  /* v61 — the hall board: live now / next on the board / the quiet hall */
+  function fmtWhen(s) {
+    try { return new Date(s).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return String(s || ""); }
+  }
+  function fillBoard() {
+    var box = $("cbtBoard"); if (!box) return;
+    var c = cfg(); if (!c) return;
+    try {
+      fetch(c.url + "/rest/v1/cbt_sessions?select=code,title,status,scheduled_at,cls,subject&order=scheduled_at.asc&limit=8", { headers: { "apikey": c.key } })
+        .then(function (r) { return r.ok ? r.json() : []; })
+        .then(function (rows) {
+          rows = rows || [];
+          var live = rows.filter(function (x) { return x.status === "live"; });
+          var sched = rows.filter(function (x) { return x.status === "scheduled" && x.scheduled_at; });
+          var out = "";
+          if (live.length) {
+            out += '<div class="cbt-board-live-wrap">' + live.map(function (x) {
+              return '<button class="cbt-board-live" data-joincode="' + esc(x.code) + '"><span class="cbt-live-dot"></span><b>' + esc(x.title || x.code) + '</b><small>' + esc((x.cls || "") + (x.subject ? " · " + x.subject : "")) + '</small><span class="cbt-board-cta">Join now →</span></button>';
+            }).join("") + '</div>';
+          }
+          if (sched.length) {
+            out += '<p class="cbt-quiet-next">Next on the board: ' + sched.slice(0, 2).map(function (x) {
+              return '<b>' + esc(x.title || x.code) + '</b> · ' + esc(fmtWhen(x.scheduled_at));
+            }).join(" &nbsp;·&nbsp; ") + '</p>';
+          }
+          if (!live.length && !sched.length) {
+            out += '<div class="cbt-quiet"><svg class="mp-ico cbt-quiet-ico" aria-hidden="true"><use href="#i-bolt"></use></svg>' +
+              '<h3>The hall is quiet.</h3>' +
+              '<p>No paper is live right now. When your teacher presses <b>Go live</b>, the session appears here and on your class board — join with the 6-character code, or tap the session itself.</p>' +
+              '<ol class="cbt-quiet-steps"><li><b>Board</b><span>The teacher posts the paper; the code goes on the class board.</span></li>' +
+              '<li><b>Seat</b><span>You join with your activation — one device, one sitting.</span></li>' +
+              '<li><b>Bell</b><span>The clock starts for everyone at once; answers save as you give them.</span></li></ol></div>';
+          }
+          box.innerHTML = out;
+          Array.prototype.forEach.call(box.querySelectorAll("[data-joincode]"), function (b) {
+            b.onclick = function () {
+              var i2 = $("cbtJoinCode"); if (i2) { i2.value = b.getAttribute("data-joincode"); var j2 = $("cbtJoinBtn"); if (j2) j2.click(); }
+            };
+          });
+        }).catch(function () {});
+    } catch (e) {}
+  }
+
   /* ----------------------------------------------------------------- home */
   function renderHome() {
     var id = me();
     var recent = st.get("nssc_cbt_recent", []) || [];
     var mine = st.get("nssc_cbt_mine", []) || [];
     var h = "";
-    h += '<div class="cbt-card"><h2>🏫 Live CBT Hall</h2><p class="cbt-sub">Real-time examinations posted by your teachers. Join with the session code from the board — your activation is your identity; no signup.</p>';
+    h += '<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2><p class="cbt-sub">Real-time examinations posted by your teachers. Join with the session code from the board — your activation is your identity; no signup.</p>';
     if (!cfg()) {
       h += '<div class="cbt-note">This installation has no school server configured — Live CBT needs the school\'s Supabase ledger config in codes.js.</div>';
     } else {
       h += '<div class="cbt-row"><input id="cbtJoinCode" class="cbt-inp cbt-code-inp" placeholder="ABC-123" maxlength="9" autocapitalize="characters" spellcheck="false" aria-label="Live session code"><button class="cbt-btn gold" id="cbtJoinBtn">Join live session</button></div>';
       h += '<div id="cbtJoinFb" role="status"></div>';
+      h += '<div id="cbtBoard" role="status"></div>';
     }
     h += "</div>";
     if (id.teacher) {
-      h += '<div class="cbt-card"><h3>🎓 Teacher console</h3><p class="cbt-sub">Your slip carries the teacher role. Build a paper from the question bank, go live with a session code, monitor every device, release results.</p><button class="cbt-btn" id="cbtConsoleBtn">Open teacher console</button></div>';
+      h += '<div class="cbt-card"><h3><svg class="mp-ico" aria-hidden="true"><use href="#i-grid"></use></svg> Teacher console</h3><p class="cbt-sub">Your slip carries the teacher role. Build a paper from the question bank, go live with a session code, monitor every device, release results.</p><button class="cbt-btn" id="cbtConsoleBtn">Open teacher console</button></div>';
     } else {
-      h += '<div class="cbt-card"><h3>🎓 Are you a teacher?</h3><p class="cbt-sub">The console unlocks automatically on devices activated with a <b>TEACHER</b> slip from the school office.</p></div>';
+      h += '<div class="cbt-card"><h3><svg class="mp-ico" aria-hidden="true"><use href="#i-shield"></use></svg> Are you a teacher?</h3><p class="cbt-sub">The console unlocks automatically on devices activated with a <b>TEACHER</b> slip from the school office.</p></div>';
     }
     if (recent.length) {
-      h += '<div class="cbt-card"><h3>🕘 Your recent sessions</h3><table class="cbt-table"><tr><th>Session</th><th>When</th><th>Result</th><th><span class="cbt-vh">Actions</span></th></tr>';
+      h += '<div class="cbt-card"><h3><svg class="mp-ico" aria-hidden="true"><use href="#i-clock"></use></svg> Your recent sessions</h3><table class="cbt-table"><tr><th>Session</th><th>When</th><th>Result</th><th><span class="cbt-vh">Actions</span></th></tr>';
       recent.slice(0, 6).forEach(function (r) {
         h += "<tr><td><b>" + esc(r.title || prettyCode(r.code)) + "</b><br><small class='cbt-muted'>" + esc(prettyCode(r.code)) + "</small></td><td>" + esc(r.at || "") + "</td><td>" + esc(r.score != null ? r.score + "/" + r.total + (r.pct != null ? " · " + r.pct + "%" : "") : r.status || "—") + "</td><td><button class='cbt-btn ghost' data-reopen='" + esc(r.code) + "'>Open</button></td></tr>";
       });
       h += "</table></div>";
     }
     if (id.teacher && mine.length) {
-      h += '<div class="cbt-card"><h3>📋 Sessions you posted</h3><table class="cbt-table"><tr><th>Session</th><th>Code</th><th>Created</th><th><span class="cbt-vh">Actions</span></th></tr>';
+      h += '<div class="cbt-card"><h3><svg class="mp-ico" aria-hidden="true"><use href="#i-calendar"></use></svg> Sessions you posted</h3><table class="cbt-table"><tr><th>Session</th><th>Code</th><th>Created</th><th><span class="cbt-vh">Actions</span></th></tr>';
       mine.slice(0, 8).forEach(function (m) {
         h += "<tr><td><b>" + esc(m.title) + "</b></td><td class='cbt-muted'>" + esc(prettyCode(m.code)) + "</td><td>" + esc(m.at || "") + "</td><td><button class='cbt-btn ghost' data-reopen='" + esc(m.code) + "'>Console</button></td></tr>";
       });
       h += "</table></div>";
     }
     root.innerHTML = wrap(h);
+    fillBoard();
     var jb = $("cbtJoinBtn"), ji = $("cbtJoinCode");
     if (jb) jb.onclick = function () { doJoin(ji ? ji.value : ""); };
     if (ji) ji.addEventListener("keydown", function (e) { if (e.key === "Enter") doJoin(ji.value); });
@@ -510,8 +572,8 @@
     root.innerHTML = wrap('<div class="cbt-card"><h2>' + esc(msg || "Talking to the school server…") + '</h2><p class="cbt-sub cbt-muted">One moment.</p></div>');
   }
   function renderFailure(e) {
-    if (e && e.setup) { root.innerHTML = wrap('<div class="cbt-card"><h2>🏫 Live CBT Hall</h2>' + errBox(null, true) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
-    root.innerHTML = wrap('<div class="cbt-card"><h2>🏫 Live CBT Hall</h2>' + errBox("Could not reach the school server (" + esc(e && e.message || e) + "). Live CBT needs a connection — your practice progress is untouched." ) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>');
+    if (e && e.setup) { root.innerHTML = wrap('<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2>' + errBox(null, true) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
+    root.innerHTML = wrap('<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2>' + errBox("Could not reach the school server (" + esc(e && e.message || e) + "). Live CBT needs a connection — your practice progress is untouched." ) + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>');
     var b2 = $("cbtBackHome"); if (b2) b2.onclick = function () { go("home"); };
   }
 
@@ -523,7 +585,7 @@
     if (!cfg()) return;
     showBusy("Checking session " + prettyCode(code) + "…");
     getSession(code).then(function (s) {
-      if (!s) { go("home"); var f = $("cbtJoinFb"); root.innerHTML = wrap('<div class="cbt-card"><h2>🏫 Live CBT Hall</h2>' + errBox("No live session with code " + esc(prettyCode(code)) + ". Check the board and try again.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
+      if (!s) { go("home"); var f = $("cbtJoinFb"); root.innerHTML = wrap('<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2>' + errBox("No live session with code " + esc(prettyCode(code)) + ". Check the board and try again.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
       enterStudent(s);
     }).catch(renderFailure);
   }
@@ -944,7 +1006,7 @@
   }
   function renderConsole() {
     if (!me().teacher) { go("home"); return; }
-    var h = '<div class="cbt-card"><h2>🎓 Teacher console</h2><p class="cbt-sub">Live CBT Hall · signed in as <b>' + esc(me().name) + "</b> (" + esc(me().slip || "teacher slip") + ")</p>" +
+    var h = '<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-grid"></use></svg> Teacher console</h2><p class="cbt-sub">Live CBT Hall · signed in as <b>' + esc(me().name) + "</b> (" + esc(me().slip || "teacher slip") + ")</p>" +
       '<div class="cbt-tabs">' +
       '<button class="cbt-tab' + (cons.tab === "create" ? " on" : "") + '" data-ctab="create">1 · Build paper</button>' +
       '<button class="cbt-tab' + (cons.tab === "monitor" ? " on" : "") + '" data-ctab="monitor">2 · Monitor</button>' +
