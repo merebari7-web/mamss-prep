@@ -1498,6 +1498,135 @@
       return { sessions: sessions, attempts: attempts, ledger: ledger, at: Date.now() };
     });
   }
+  /* ------------------------------------- class progress panel (v62) */
+  /* One row per activated device in public.class_progress: a summary the
+     school asked to see. Answer-level detail and Cloud Sync blobs are not
+     in this table and never render here. */
+  var dashProg = { rows: null, sel: null };
+  function progFetch() {
+    return rest("class_progress?select=owner,student,cls,slip,role,blob,updated_at&order=updated_at.desc&limit=400")
+      .catch(function () { return { ok: false, status: 0, json: null }; });
+  }
+  function progAcc(b) {
+    var subs = (b && b.subjects) || {}, ask = 0, cor = 0;
+    for (var k in subs) { ask += +subs[k].ask || 0; cor += +subs[k].cor || 0; }
+    return ask ? Math.round(cor / ask * 100) : null;
+  }
+  /* pure aggregator — exported for tests */
+  function progStats(rows) {
+    var i, k, n = rows.length, week = 0, sessions = 0, ask = 0, cor = 0, top = 0, byCls = {};
+    var cutoff = Date.now() - 7 * 86400000;
+    for (i = 0; i < n; i++) {
+      var b = rows[i].blob || {};
+      if (Date.parse(rows[i].updated_at) >= cutoff) week++;
+      sessions += +b.sessions || 0;
+      var subs = b.subjects || {};
+      for (k in subs) { ask += +subs[k].ask || 0; cor += +subs[k].cor || 0; }
+      if ((+b.streak || 0) > top) top = +b.streak || 0;
+      var c = rows[i].cls || "?";
+      byCls[c] = (byCls[c] || 0) + 1;
+    }
+    return { n: n, week: week, sessions: sessions, acc: ask ? Math.round(cor / ask * 100) : null, top: top, byCls: byCls };
+  }
+  function fillProgPanel() {
+    var host = $("cbtProgPanel"); if (!host) return;
+    host.innerHTML = "<p class='cbt-muted'>Loading class progress…</p>";
+    progFetch().then(function (res) {
+      var h2 = $("cbtProgPanel"); if (!h2) return;
+      if (!res || !res.ok || !Array.isArray(res.json)) {
+        dashProg.rows = null;
+        var missing = res && (res.status === 404 || (res.json && res.json.code === "42P01"));
+        h2.innerHTML = missing
+          ? "<h3 style=\"margin:16px 0 6px\">Class progress</h3><div class='cbt-note cbt-setup'>📚 <b>Class progress is waiting for its one-time setup.</b> Paste <code>tools/progress_schema.sql</code> into the Supabase SQL editor; the panel starts filling on its own afterwards.</div>"
+          : "<h3 style=\"margin:16px 0 6px\">Class progress</h3><p class='cbt-muted'>Class progress is not reachable from this copy of the site.</p>";
+        return;
+      }
+      dashProg.rows = res.json; dashProg.sel = null;
+      renderProgPanel();
+    });
+  }
+  function prgChip(v, lbl) {
+    return "<div class='prg-chip'><b>" + v + "</b><span>" + lbl + "</span></div>";
+  }
+  function renderProgPanel() {
+    var host = $("cbtProgPanel"); if (!host || !dashProg.rows) return;
+    var rows = dashProg.rows, h;
+    if (dashProg.sel) { renderProgDrill(host); return; }
+    var s = progStats(rows);
+    h = "<h3 style=\"margin:16px 0 6px\">Class progress</h3>";
+    h += "<div class='prg-strip'>" +
+      prgChip(s.n, "students reporting") + prgChip(s.week, "active this week") +
+      prgChip(s.sessions, "sessions logged") + prgChip(s.acc == null ? "—" : s.acc + "%", "practice accuracy") +
+      prgChip(s.top, "longest streak now") + "</div>";
+    if (!rows.length) {
+      h += "<p class='cbt-sub'>No reports yet — each activated device files its first report the next time it opens the app.</p>";
+    }
+    rows.forEach(function (r) {
+      var b = r.blob || {}, acc = progAcc(b);
+      h += "<div class='cbt-row prg-row'><button class='cbt-btn prg-open' data-prog-open='" + esc(r.owner) + "'>" +
+        "<b>" + esc(r.student || "Student") + "</b>" +
+        "<span class='cbt-muted prg-cls'>" + esc(r.cls || "") + (r.role === "teacher" ? " · teacher" : "") + "</span>" +
+        "<span class='prg-nums'>" + (+b.sessions || 0) + " sessions · " + (acc == null ? "—" : acc + "%") + " · streak " + (+b.streak || 0) + "</span>" +
+        "<span class='cbt-muted prg-seen'>updated " + fmtDay(r.updated_at) + "</span></button></div>";
+    });
+    h += "<button class='cbt-btn' id='cbtDashProgCsv' style='margin-top:8px'>Download progress CSV</button>";
+    host.innerHTML = h;
+    host.querySelectorAll("[data-prog-open]").forEach(function (btn) {
+      btn.onclick = function () { dashProg.sel = btn.getAttribute("data-prog-open"); renderProgPanel(); };
+    });
+    var cv = $("cbtDashProgCsv"); if (cv) cv.onclick = progCsv;
+  }
+  function renderProgDrill(host) {
+    var row = null;
+    for (var i = 0; i < dashProg.rows.length; i++) if (dashProg.rows[i].owner === dashProg.sel) row = dashProg.rows[i];
+    if (!row) { dashProg.sel = null; renderProgPanel(); return; }
+    var b = row.blob || {};
+    var h = "<h3 style=\"margin:16px 0 6px\"><button class='cbt-btn prg-back' id='prgBack'>← All students</button> " +
+      esc(row.student || "Student") + " <span class='cbt-muted'>" + esc(row.cls || "") + "</span></h3>";
+    h += "<div class='prg-strip'>" +
+      prgChip(+b.sessions || 0, "sessions") + prgChip(progAcc(b) == null ? "—" : progAcc(b) + "%", "accuracy") +
+      prgChip(+b.streak || 0, "day streak") + prgChip(+b.badges || 0, "badges") +
+      prgChip(+b.xp || 0, "xp") + "</div>";
+    var subs = b.subjects || {}, keys = Object.keys(subs).sort(function (x, y) {
+      return (subs[y].last || 0) - (subs[x].last || 0);
+    });
+    if (keys.length) {
+      h += "<div class='prg-drill'>";
+      keys.slice(0, 12).forEach(function (k) {
+        var s = subs[k], acc = s.ask ? Math.round(s.cor / s.ask * 100) : null;
+        h += "<div class='prg-subj'><b>" + esc(k) + "</b><span>" + s.cor + "/" + s.ask + " · " + (acc == null ? "—" : acc + "%") + "</span>" +
+          "<div class='cbt-hbar'><i style='width:" + (acc || 0) + "%'></i></div></div>";
+      });
+      h += "</div>";
+    } else {
+      h += "<p class='cbt-sub'>No subject totals reported yet.</p>";
+    }
+    var rec = b.recent || [];
+    if (rec.length) {
+      h += "<p class='cbt-sub' style='margin-top:10px'>" + (rec.length === 1 ? "Last session" : "Last " + rec.length + " sessions") + "</p>";
+      rec.forEach(function (x) {
+        h += "<div class='cbt-row'><span class='cbt-muted' style='min-width:86px'>" + fmtDay(new Date(x.t).toISOString()) + "</span>" +
+          "<span class='cbt-flex1'>" + esc(x.subj || x.cls || "session") + (x.daily ? " · daily" : x.rev ? " · revision" : x.mock ? " · mock" : "") + "</span>" +
+          "<b>" + (x.pct == null ? "—" : x.pct + "%") + "</b></div>";
+      });
+    }
+    h += "<p class='cbt-note'>Report filed by the student's own device; answer-level detail stays on that device.</p>";
+    host.innerHTML = h;
+    var bk = $("prgBack"); if (bk) bk.onclick = function () { dashProg.sel = null; renderProgPanel(); };
+  }
+  function progCsv() {
+    var lines = ["student,class,slip,role,sessions,accuracy_pct,streak,badges,xp,coins,mistakes_open,updated"];
+    (dashProg.rows || []).forEach(function (r) {
+      var b = r.blob || {};
+      lines.push(['"' + String(r.student || "").replace(/"/g, "'") + '"', r.cls || "", r.slip || "", r.role || "",
+        +b.sessions || 0, progAcc(b) == null ? "" : progAcc(b), +b.streak || 0, +b.badges || 0, +b.xp || 0,
+        +b.coins || 0, +b.mistakes || 0, r.updated_at || ""].join(","));
+    });
+    var uri = "data:text/csv;charset=utf-8," + encodeURIComponent(lines.join("\n"));
+    var a2 = el("a", { href: uri, download: "mamss-class-progress.csv" });
+    document.body.appendChild(a2); a2.click(); a2.remove();
+  }
+
   /* pure aggregator — exported for tests */
   function schoolStats(sessions, attempts, ledger) {
     var graded = [], i;
@@ -1672,8 +1801,10 @@
       });
       h += "<p class='cbt-sub'>" + used + " of " + (total || st.act.total) + " slips activated · <b>" + st.act.week + "</b> in the last 7 days</p>";
     }
-    h += "<p class='cbt-note'>🔒 Practice progress (Cloud Sync) is private to each student and never appears here — the dashboard aggregates live exams and slip activation only.</p>";
+    h += "<div id=\"cbtProgPanel\"></div>";
+      h += "<p class='cbt-note'>🔓 Since v62 every activated device publishes a progress report (scores, subjects, streaks) to this dashboard. Answer-level detail and the private Cloud Sync blob never leave the student's device.</p>";
     host.innerHTML = h;
+    fillProgPanel();
     var rf = $("cbtDashRefresh"); if (rf) rf.onclick = function () { renderSchool(); };
     host.querySelectorAll("[data-dash-open]").forEach(function (b) {
       b.onclick = function () {
@@ -2070,6 +2201,7 @@
       cam: function () { return { on: camState.on, tracks: camState.stream ? camState.stream.getTracks().map(function (t) { return t.readyState; }) : [] }; },
       cams: function () { return camFrames; },
       schoolStats: schoolStats, schoolFetch: schoolFetch,
+      progStats: progStats, progAcc: progAcc, prog: function () { return { rows: dashProg.rows, sel: dashProg.sel }; },
       dash: function () { return { data: dash.data, stats: dash.stats || null, err: dash.err }; },
       plParseDelim: plParseDelim, plRowsFromText: plRowsFromText, plValidate: plValidate, plAnswerIdx: plAnswerIdx,
       pipeline: function () { return { data: pl.data, err: pl.err ? String(pl.err.message || pl.err) : null, setup: !!(pl.err && pl.err.setup), preview: pl.preview, sub: pl.sub }; }

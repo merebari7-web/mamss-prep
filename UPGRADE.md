@@ -1291,6 +1291,48 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 24 · v62 "The Open Book" — progress goes online for the school (2026-09-26)
+
+Until v61, practice progress lived only on the student's device (with an
+optional, Google-gated Cloud Sync blob that even the school could not read).
+v62 adds the channel the school asked for: **every activated device files a
+small progress report** to a new Supabase table, and the teacher dashboard
+grows a **Class progress** panel that reads it.
+
+What a report contains: session totals, per-subject asked/correct/accuracy,
+current streak, badges, XP/coins, open-mistake count, and the last 15 sessions
+(date, subject, score, mode). What it deliberately does NOT contain: individual
+questions, chosen options, or the Cloud Sync blob — answer-level detail stays
+on the device, and the student's progress screen says exactly that in one line.
+
+How it behaves:
+  * Fail-closed like everything else: a locked device reads nothing and sends
+    nothing (`progress-up.js` never starts without a valid slip).
+  * Reports are keyed by an unguessable owner token = SHA-256(salt + slip hash
+    + device id); a device can only write its own row. No delete policy —
+    history is append-only.
+  * Pushes once at boot, then only when the local fingerprint changes (30 s
+    cadence, plus on tab-hide). Table missing or network down → quiet retry;
+    practice never notices.
+  * Teacher dashboard: school pulse chips (reporting / active this week /
+    sessions logged / practice accuracy / longest streak), a roster that
+    drills into per-subject bars and recent sessions, a progress CSV beside
+    the exam CSV, and a "waiting for its one-time setup" card until
+    `tools/progress_schema.sql` is pasted once in the Supabase SQL editor.
+  * The old dashboard sentence "practice progress is private and never
+    appears here" is replaced by the honest v62 note, and the whats-new
+    tagline now says what leaves the device.
+
+**One-time setup (paste in Supabase → SQL editor):** `tools/progress_schema.sql`
+(`class_progress` table + stamp trigger + RLS, no delete policy). The earlier
+`tools/pipeline_schema.sql` paste is still outstanding too.
+
+**Grid:** verify.py 375 pins + progresstest 32 · dash 37 · cbt 80 · sync 60 ·
+code 33 · a11y 38 · response 51 · pipeline 57 · exclusive 15 · arena 16 ·
+prestige 11 · cmd 14 · adaptive 18 · bank 20 · why 13 = 950 checks, 0 failures.
+Service worker cache -v67.
+
+
 ## 23 · v61 "The Finishing Pass" — design execution (2026-09-26)
 
 The five-step design review (`design-review.md`, delivered separately) ranked nine

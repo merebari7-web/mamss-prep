@@ -2669,3 +2669,26 @@ html.ao-night .mp-lock-crest{color:#e3c76b}
   .study-app .tool-card,.study-app .subject-card,.study-app .chip{transition:none}
   .study-app .tool-card:hover,.study-app .subject-card:hover{transform:none;box-shadow:none}
 }
+
+/* ── v62 "The Open Book" — class progress panel + student transparency ── */
+.prg-school-line{display:flex;align-items:flex-start;gap:7px;margin-top:6px;font-size:.82rem;color:var(--s-muted,#5c6672)}
+.prg-school-line .ico{width:14px;height:14px;flex:none;margin-top:2px;color:rgba(201,162,39,.85)}
+.prg-strip{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 12px}
+.prg-chip{display:flex;flex-direction:column;gap:1px;min-width:96px;padding:8px 12px;border:1px solid rgba(201,162,39,.5);border-radius:10px;background:rgba(201,162,39,.07)}
+.prg-chip b{font:600 17px/1.2 var(--studio-serif,Georgia,serif);color:var(--s-ink,#002147)}
+.prg-chip span{font-size:.68rem;letter-spacing:.07em;text-transform:uppercase;color:var(--s-muted,#5c6672)}
+.prg-row{margin:4px 0}
+.prg-row .prg-open{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px;width:100%;border:1px solid var(--s-line,#e1e0d9);border-radius:10px;background:var(--studio-panel,#fbfaf7);padding:9px 12px;cursor:pointer;font:inherit;color:inherit;text-align:left}
+.prg-row .prg-open:hover{border-color:rgba(201,162,39,.6);transform:translateY(-1px)}
+.prg-row .prg-nums{margin-left:auto;font-size:.8rem;color:var(--s-body,#39424e)}
+.prg-row .prg-seen{font-size:.72rem;width:100%;margin-left:0}
+.prg-drill{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:8px}
+.prg-subj{border:1px solid var(--s-line,#e1e0d9);border-radius:10px;background:var(--studio-panel,#fbfaf7);padding:8px 10px}
+.prg-subj b{display:block;font-size:.82rem}
+.prg-subj span{font-size:.72rem;color:var(--s-muted,#5c6672)}
+.prg-subj .cbt-hbar{margin-top:6px}
+.prg-back{margin-right:6px}
+html.ao-night .prg-chip{background:rgba(227,199,107,.08);border-color:rgba(227,199,107,.4)}
+html.ao-night .prg-chip b{color:var(--s-ink,#e8e4da)}
+html.ao-night .prg-row .prg-open,html.ao-night .prg-subj{background:var(--studio-panel,#171a1f)}
+@media(max-width:600px){.prg-chip{min-width:calc(50% - 6px)}.prg-row .prg-nums{margin-left:0;width:100%}}

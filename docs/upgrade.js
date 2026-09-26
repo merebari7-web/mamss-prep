@@ -24,7 +24,7 @@
 (function () {
   "use strict";
 
-  var V = 61, NAME = "The Finishing Pass";
+  var V = 62, NAME = "The Open Book";
   var api = (window.MAMSS_UPGRADE = { v: V, name: NAME, at: Date.now(), features: {} });
 
   /* ---------------------------------------------------------- helpers */
@@ -645,13 +645,14 @@
       ["🧪", "Question Pipeline", "Teachers can now feed the school's own questions in bulk: paste CSV or JSON (or drop in a file), and every row is checked with the WAEC mechanics rules before it enters a shared review queue. Teachers approve or reject each other's submissions, and approved questions land in a school pool that drops straight into any live paper. The national bank stays hash-locked and untouched — the pipeline feeds your papers, not the bank."],
       ["\u26a1", "Access & Speed", "The whole app just got more usable for everyone. Screen readers now hear proper names on every teacher-console control and polite announcements when feedback appears; headings follow a clean order for keyboard and reader navigation; a \"Skip to main content\" link jumps straight past the chrome; What's-new closes with the Escape key and returns focus where you were; the floating school-help button lives in a named landmark; the 404 page text is darker for sunlight readability; and the app pre-connects to the school server so your first live test or sync handshake starts faster. Same look, better for more people."],
       ["📱", "Any Screen — every phone, every tablet", "The whole app now fits any screen. Wide tables in the teacher console and on the Why page scroll sideways inside their own cards instead of stretching the page; date pickers, file choosers and every form field shrink to the phone they are on; pins, search fields and edit boxes grow to comfortable thumb targets; checkboxes are bigger and easier to tick; long codes and CSV snippets wrap instead of poking off the edge. Audited from small 360 px phones through tablets — home, practice, the live hall, the console and every page between."],
+      ["\U0001f4d6", "The Open Book", "Progress goes online for the school. Every activated device now files a small progress report — session totals, per-subject accuracy, streaks, badges — to the school dashboard, so a teacher can see how each student is doing without touching the student's private Cloud Sync blob or any answer-level detail. The dashboard grows a Class Progress panel: a school pulse (reporting, active this week, sessions logged, practice accuracy, longest streak), a per-student roster that drills into subjects and recent sessions, and a progress CSV beside the existing exam CSV. Students see one honest line on their progress screen: the school sees the summary, the answers stay on the device. Reports wait politely until the one-time table setup is pasted; nothing else about practice changes."],
       ["\U0001f58b", "The Finishing Pass", "The last utility leftovers now speak the studio's language. The gate's crest and every console heading wear the app's own engraved icons instead of platform emoji; the Live CBT Hall grows a board — who is live right now, what is scheduled next, and a calm three-step explainer for when the hall is quiet; the prospectus wordmark returns to Caslon and its WhatsApp slab becomes designed ink-green with the number unbreakable; difficulty levels wear gold chips; the toolkit shelf sits level with a pin legend; the activation card sets its labels on the centred axis and groups its footnotes; and every view change eases in with a quarter-second rise. Same app, finally one voice."]
     ];
     var ov = el("div", "overlay hidden"); ov.id = "mpNewOverlay";
     ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true");
     var h = '<div class="modal"><button class="x icon-btn" type="button" aria-label="Close">✕</button>' +
       '<h3>✨ What is new in v' + V + '</h3>' +
-      '<p style="color:var(--mut);font-size:.85rem;margin:2px 0 12px">Everything below is stored on your device. Nothing is uploaded — unless you connect Cloud Sync yourself.</p>' +
+      '<p style="color:var(--mut);font-size:.85rem;margin:2px 0 12px">Everything below is stored on your device. What leaves it: a progress summary your school&#39;s dashboard can read (since v62), and your private Cloud Sync blob — only if you connect Cloud Sync yourself.</p>' +
       '<ul class="mp-new">';
     items.forEach(function (it) { h += '<li><span class="mp-ni">' + it[0] + '</span><span><b>' + it[1] + "</b><small>" + it[2] + "</small></span></li>"; });
     h += '</ul><div class="row" style="margin-top:14px;justify-content:center">' +
@@ -1017,6 +1018,7 @@
     var l = $("mpLock"); if (l) l.hidden = true;
     try { document.documentElement.classList.add("mp-code-ok"); } catch (e) {}
     releaseLock();
+    try { if (typeof window.MAMSS_PROGRESS_WAKE === "function") window.MAMSS_PROGRESS_WAKE(); } catch (e) {}
   }
   function lockFeedback(msg, kind) {
     var f = $("mpLockFb"); if (!f) return;
