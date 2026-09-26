@@ -1291,6 +1291,28 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 26 · v64 "The Habit Loop" — gamification (2026-09-26)
+
+Roadmap item #8, built on the Duolingo mechanics research: persistent state
+displays do the notification work, failure is designed safe, and something
+always advances.
+
+  * **Today board** on the overview: streak flame, three daily quests + one
+    weekly quest (effort-based, coin rewards that claim themselves), and the
+    class league — computed from the school's live `class_progress` reports,
+    first names only, ranked by questions answered this week, with a calm
+    empty state until reports exist.
+  * **Streak shields**: every 7-day run banks a freeze; a single missed day is
+    bridged by a freeze instead of burning the streak (display layer only —
+    the engine's authoritative streak maths and badges are untouched).
+  * **Celebrations**: quest clears, freeze milestones and podium finishes get
+    an ink-green crest card with a gold burst — animation disabled under
+    `prefers-reduced-motion`, once per kind per day.
+  * Additive module `ui/habits.js`; no engine rewrite, no new backend table.
+
+**Grid:** habitstest (new) + standing suites, all green; cache -v69.
+
+
 ## 25 · v63 "Anywhere" — the offline pass (2026-09-26)
 
 Roadmap item #7. The app already ran from the device; v63 makes offline a

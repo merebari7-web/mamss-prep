@@ -821,8 +821,17 @@ def main():
     (ok if "table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;contain:layout style}" in whysrc and "footer a,.note a{display:inline-block;padding:8px 0}" in whysrc else fail)("why.html: ≤700px contained table scroll + link tap padding")
     (ok if os.path.exists(os.path.join(ROOT, "tools", "responsetest.js")) else fail)("tools/responsetest.js: the v60 suite is mirrored")
 
+    # ── §29 · v64 "The Habit Loop" — gamification ───────────────────────
+    hab = open(ROOT + '/docs/ui/habits.js', encoding='utf-8').read()
+    (ok if 'window.MAMSS_HABITS' in hab and 'leagueRows' in hab and 'streak shield' in hab.lower() or 'Streak shield' in hab else fail)("habits.js: habit-loop module (board, freezes, league, celebrations)")
+    (ok if 'role="progressbar"' in hab and 'aria-label' in hab else fail)("habits.js: quest bars are real progressbars")
+    (ok if 'ui/habits.js' in idxsrc else fail)("index.html: habits module wired")
+    (ok if '-v69' in swsrc and '"./ui/habits.js"' in swsrc else fail)("sw.js: precache habits + cache -v69")
+    (ok if VP >= 64 and "The Habit Loop" in usrc else fail)("upgrade.js: V=64 \"The Habit Loop\" entry")
+    (ok if '.hab-panel{' in atsrc and '.hab-celebrate{' in atsrc and '@media(prefers-reduced-motion:reduce){.hab-cel-card' in atsrc else fail)("atelier.css: habit board + celebration with reduced-motion guard")
+
     # ── §28 · v63 "Anywhere" — offline excellence ────────────────────
-    (ok if '-v68' in swsrc and 'NAV_TIMEOUT_MS' in swsrc and 'stale-while-revalidate' in swsrc else fail)("sw.js: v68 SWR assets + raced navigations with timeout")
+    (ok if '-v69' in swsrc and 'NAV_TIMEOUT_MS' in swsrc and 'stale-while-revalidate' in swsrc else fail)("sw.js: v69 SWR assets + raced navigations with timeout")
     at2 = open(ROOT + '/docs/ui/atelier.js', encoding='utf-8').read()
     (ok if 'mpNetStrip' in at2 and 'updatefound' in at2 and 'navigator.storage.persist' in at2 else fail)("atelier.js: offline strip, SW update notice, storage persistence")
     prg2 = open(ROOT + '/docs/ui/progress-up.js', encoding='utf-8').read()
@@ -843,7 +852,7 @@ def main():
     (ok if 'ui/progress-up.js' in idxsrc and 'prg-school-line' in idxsrc else fail)("index.html: reporter script tag + student transparency line")
     (ok if VP >= 62 and "The Open Book" in usrc and "The Finishing Pass" in usrc else fail)("upgrade.js: V=62 \"The Open Book\" entry (v61 entry retained)")
     (ok if 'MAMSS_PROGRESS_WAKE' in usrc else fail)("upgrade.js: wake hook starts the reporter after unlock")
-    (ok if '"./ui/progress-up.js"' in swsrc and '-v68' in swsrc else fail)("sw.js: precache reporter + cache -v68")
+    (ok if '"./ui/progress-up.js"' in swsrc and '-v69' in swsrc else fail)("sw.js: precache reporter + cache -v69")
     (ok if '.prg-chip{' in atsrc and '.prg-drill{' in atsrc else fail)("atelier.css: v62 panel styles")
 
     # ── §26 · v61 "The Finishing Pass" ───────────────────────────────────────
