@@ -5,13 +5,13 @@
    Usage: node adaptivetest.js [baseURL] */
 let chromium;
 try { ({ chromium } = require('playwright')); }
-catch (e) { ({ chromium } = require(require('path').join(__dirname, '..', '..', 'testrig', 'node_modules', 'playwright'))); }
+catch (e) { ({ chromium } = require('/home/user/testrig/node_modules/playwright')); }
 
 const BASE = process.argv[2] || 'http://localhost:8100/';
 const seed = () => {
   try {
     localStorage.setItem('nssc_act', JSON.stringify({ h: 'testsuite0000000', mask: 'MAMSS··TEST··', at: Date.now(), batch: 'test' }));
-    localStorage.setItem('nssc_mp_seen', '57');
+    localStorage.setItem('nssc_mp_seen', '60');
     localStorage.setItem('nssc_topics_guest', JSON.stringify({
       'Mathematics||Number & Algebra': { s: 'Mathematics', t: 'Number & Algebra', c: 2, n: 10 },
       'Mathematics||Geometry & Trigonometry': { s: 'Mathematics', t: 'Geometry & Trigonometry', c: 9, n: 10 },

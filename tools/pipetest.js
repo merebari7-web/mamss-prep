@@ -33,7 +33,7 @@ function seedFor(role, opts) {
     : { h: 'testsuite0000001', mask: 'MAMSS··STUDE··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada Student' };
   return `
     window.__CBT_FORCE_POLL = 1;
-    localStorage.setItem('nssc_mp_seen', '58');
+    localStorage.setItem('nssc_mp_seen', '60');
     localStorage.setItem('nssc_devid', JSON.stringify('${role}-pipe-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
   `;

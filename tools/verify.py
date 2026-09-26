@@ -588,7 +588,7 @@ def main():
         (ok if needle in isrc else fail)("index.html: " + label)
     (ok if isrc.count("adaptRank(") >= 4 else fail)("adaptRank is wired into daily + coach (>=4 call sites)")
     (ok if "nssc_adaptive_" in isrc else fail)("adaptive data keyed per profile (nssc_adaptive_<uid>)")
-    (ok if re.search(r"var V = 5[3-9]", usrc) else fail)("upgrade.js V=53+ (Adaptive Engine)")
+    (ok if re.search(r"var V = (5[3-9]|[6-9]\d|\d{3,})", usrc) else fail)("upgrade.js V=53+ (Adaptive Engine)")
     (ok if "Adaptive Engine" in usrc else fail)("whats-new announces the Adaptive Engine")
 
     print("\n[19] v54 Live CBT Hall (teacher-posted real-time exams)")
@@ -802,6 +802,24 @@ def main():
     whysrc = open(os.path.join(DOCS, "why.html"), encoding="utf-8").read()
     (ok if "</header>\n<main>" in whysrc and "</main>\n<footer>" in whysrc else fail)("why.html: content wrapped in <main> between header and footer")
     (ok if os.path.exists(os.path.join(ROOT, "tools", "a11ytest.js")) else fail)("tools/a11ytest.js: the v59 suite is mirrored")
+
+    # ── §25 · v60 "Any Screen" — responsive pass ──────────────────────────────
+    (ok if VP >= 60 and "Any Screen" in usrc else fail)("upgrade.js: V=60+ \"Any Screen\" whats-new entry")
+    (ok if SWV >= 65 else fail)("sw.js: cache bumped to -v65+")
+    (ok if CBTVER >= 60 else fail)("cbt.js: VERSION 60+")
+    (ok if ".cbt-table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;contain:layout style}" in cbtsrc else fail)("cbt.js: ≤720 tables scroll in-card with layout containment (Chrome leaks inner-table overflow into document scrollWidth)")
+    (ok if ".cbt-row input[type=file]{flex:1 1 100%;min-width:0;max-width:100%;min-height:38px}" in cbtsrc else fail)("cbt.js: file inputs own the row and shrink below intrinsic minimum")
+    (ok if '".cbt-row input[type=file]{min-height:32px}"' in cbtsrc else fail)("cbt.js: base 32px floor for file inputs (tablet range)")
+    (ok if ".cbt-inp,select.cbt-inp{min-width:0;width:100%}" in cbtsrc else fail)("cbt.js: ≤720 inputs fill block wrappers (datetime-local min-content no longer forces overflow)")
+    (ok if "flex:1;min-width:0;max-width:100%" in cbtsrc else fail)("cbt.js: base .cbt-inp flex-shrink guards")
+    (ok if ".cbt-card code{overflow-wrap:anywhere;word-break:break-word}" in cbtsrc else fail)("cbt.js: long code/CSV snippets wrap anywhere")
+    (ok if ".cbt-row input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:#002147}" in cbtsrc else fail)("cbt.js: 20px brand-accent checkboxes")
+    atsrc = open(os.path.join(DOCS, "ui", "atelier.css"), encoding="utf-8").read()
+    (ok if ".goal-edit{min-height:34px;padding:6px 2px}" in atsrc and ".pin-tool{width:38px;height:38px}" in atsrc and ".tool-search input{min-height:32px}" in atsrc else fail)("atelier.css: ≤600px thumb-target floor (goal edit, pin tools, tool search)")
+    (ok if "atelier.css?v=47" in idxsrc else fail)("index.html: atelier.css cache-busted to v47")
+    (ok if "#closeSidebar{min-width:32px;min-height:32px}" in atsrc and "#quickQuery{min-height:32px}" in atsrc else fail)("atelier.css: tablet-range tap floor (drawer close 32px, quick search 32px)")
+    (ok if "table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;contain:layout style}" in whysrc and "footer a,.note a{display:inline-block;padding:8px 0}" in whysrc else fail)("why.html: ≤700px contained table scroll + link tap padding")
+    (ok if os.path.exists(os.path.join(ROOT, "tools", "responsetest.js")) else fail)("tools/responsetest.js: the v60 suite is mirrored")
 
     print("\n" + "=" * 46)
     print("  %d passed · %d warnings · %d failures" % (OK, WARN, FAIL))

@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "59";
+  var VERSION = "60";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -233,7 +233,7 @@
       ".cbt-vh{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}" +
       ".cbt-sub{color:var(--mut,#5b6b84);font-size:.85rem;margin:0 0 12px}" +
       ".cbt-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}" +
-      ".cbt-inp,select.cbt-inp{flex:1;min-width:150px;padding:11px 13px;border:1.5px solid var(--line,rgba(0,33,71,.2));border-radius:10px;font:inherit;background:var(--card,#fff);color:var(--ink,#002147)}" +
+      ".cbt-inp,select.cbt-inp{flex:1;min-width:0;max-width:100%;padding:11px 13px;border:1.5px solid var(--line,rgba(0,33,71,.2));border-radius:10px;font:inherit;background:var(--card,#fff);color:var(--ink,#002147)}" +
       ".cbt-code-inp{text-transform:uppercase;letter-spacing:.22em;font-weight:800;text-align:center;max-width:190px}" +
       ".cbt-btn{border:0;border-radius:10px;padding:11px 18px;font:700 .92rem inherit;cursor:pointer;background:#002147;color:#fff}" +
       ".cbt-btn.gold{background:linear-gradient(135deg,#c9a227,#a67c1e);color:#fff}" +
@@ -268,7 +268,13 @@
       ".cbt-warn.soft{background:rgba(201,162,39,.12);border-color:rgba(201,162,39,.5);color:#8a6d1f}" +
       ".cbt-noselect{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}" +
       ".cbt-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}" +
-      "@media(max-width:720px){.cbt-grid2{grid-template-columns:1fr}}" +
+      ".cbt-row input[type=file]{min-height:32px}" +
+      "@media(max-width:720px){.cbt-grid2{grid-template-columns:1fr}" +
+      ".cbt-table{display:block;width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;contain:layout style}" +
+      ".cbt-row input[type=file]{flex:1 1 100%;min-width:0;max-width:100%;min-height:38px}" +
+      ".cbt-inp,select.cbt-inp{min-width:0;width:100%}}" +
+      ".cbt-card code{overflow-wrap:anywhere;word-break:break-word}" +
+      ".cbt-row input[type=checkbox]{width:20px;height:20px;flex:none;accent-color:#002147}" +
       ".cbt-tabs{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}" +
       ".cbt-tab{border:1.5px solid rgba(0,33,71,.2);background:transparent;border-radius:99px;padding:8px 16px;font:700 .85rem inherit;cursor:pointer;color:#3c4a63}" +
       ".cbt-tab.on{background:#002147;border-color:#002147;color:#fff}" +

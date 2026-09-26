@@ -5,9 +5,7 @@
    WS disabled via window.__CBT_FORCE_POLL=1 → the polling backbone is what
    gets tested (the correctness path). Two browser contexts: teacher + student.
    Run: node cbttest.js [BASE]        (default http://localhost:8100/)        */
-let chromium;
-try { ({ chromium } = require('playwright')); }
-catch (e) { ({ chromium } = require(require('path').join(__dirname, '..', '..', 'testrig', 'node_modules', 'playwright'))); }
+const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 
 const BASE = process.argv[2] || 'http://localhost:8100/';
@@ -42,7 +40,7 @@ function seedFor(role, opts) {
     : "";
   return `
     ${head}
-    localStorage.setItem('nssc_mp_seen', '57');
+    localStorage.setItem('nssc_mp_seen', '60');
     localStorage.setItem('nssc_devid', JSON.stringify('${role}-test-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
     ${noCam}

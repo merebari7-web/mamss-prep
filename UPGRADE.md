@@ -1288,3 +1288,83 @@ the studio/arena/prestige modals keep their existing (button-driven) close
 paths and were left untouched to avoid destabilizing five suites; axe scans
 run the light theme (the 404 dark-theme `--mut` was not flagged and was left
 as-is); the audit scans primary view states, not every transient modal.
+
+---
+
+## 22 · v60 "Any Screen" — the responsive pass (2026-09-26)
+
+### 22.1 Why
+
+Most students use the site on phones. A Pixel-5 audit (393 px) of every
+view — home, the four studio views, the CBT hall, the join flow, all five
+teacher-console tabs, why.html and 404.html — found the core app already
+fluid, but four real overflow bugs and a set of sub-32 px tap targets, all
+in the v54–v59 feature surfaces:
+
+1. **console:create (409 > 393).** The builder's `datetime-local` input
+   sits in a plain block `<div>`, not a flex row: its intrinsic
+   min-content width (~369 px) ignores `max-width:100%` and pushed the
+   page wide.
+2. **console:school (465 > 393).** The whole-school leaderboard table was
+   already blockified with `overflow-x:auto`, but Chrome still leaks the
+   inner table-wrapper's overflow into `documentElement.scrollWidth` —
+   hiding any single row dropped the document back to 393, and a wrapper
+   div did NOT fix it. **`contain:layout style` on the scroller does**,
+   while the table stays swipeable (internal scrollWidth 507 intact).
+3. **console:pipeline (399 > 393).** `input[type=file]` has a large
+   intrinsic min-content; `flex:1 1 100%` alone cannot shrink it — flex
+   items need `min-width:0`.
+4. **why.html (597 > 393).** The comparison table had no mobile strategy.
+
+Tap targets below the 32 px thumb floor: goal-edit box (24 px), pin tools
+(31×31), tool-search input, why.html footer/note links, default ~13 px
+checkboxes — and, caught only by the tablet viewport, the drawer close
+button (28×28), the sidebar quick-search input (h 21) and the pipeline
+file input (h 24) in the 721–800 px range.
+
+### 22.2 What shipped
+
+- **cbt.js** — base `.cbt-inp` gained `flex:1;min-width:0;max-width:100%`;
+  base `.cbt-row input[type=file]{min-height:32px}`. The ≤720 px block
+  gained: `.cbt-table{display:block;width:100%;overflow-x:auto;
+  -webkit-overflow-scrolling:touch;contain:layout style}` (in-card
+  sideways scroll + containment), file inputs `flex:1 1 100%;min-width:0;
+  max-width:100%;min-height:38px` (own row, thumb height),
+  `.cbt-inp{min-width:0;width:100%}` (block-wrapper fill),
+  `.cbt-card code{overflow-wrap:anywhere}` (CSV snippets wrap) and 20×20
+  brand-accent checkboxes. VERSION 60.
+- **atelier.css → v47** — appended ≤600 px floor (goal-edit 34 px, pin
+  tools 38×38, tool-search 32 px) plus width-independent id rules for the
+  tablet range (`#closeSidebar` 32×32, `#quickQuery` 32 px).
+- **why.html** — ≤700 px: contained block-scroll table, nowrap cells,
+  8 px vertical link padding.
+- **upgrade.js** — V 60 "Any Screen" + 📱 whats-new entry.
+- **sw.js** — cache `-v65`.
+
+Desktop layouts are untouched: every new rule lives inside a max-width
+media block, is a min-* floor, or is flex-inert at wide sizes; the
+whats-new gate (`nssc_mp_seen === V`) is unchanged — still fail-closed.
+
+### 22.3 Tests
+
+New `testrig/responsetest.js` (mirrored in tools/) → **51 passed · 0
+failed**: 3 viewports (393 phone / 360 small phone / 768 tablet) ×
+[14 fit probes + 2 tap-target sweeps + 1 page-error sweep]. Fit =
+`scrollWidth ≤ clientWidth + 2` AND zero unexempted offenders (exempt:
+fixed subtrees — headless classic-scrollbar ICB artifacts that never
+extend document scrollWidth — and descendants of genuinely scrollable
+ancestors, i.e. the in-card table scrollers). Taps = visible interactive
+elements ≥ 32×32 (exempt: checkbox/radio by design, scroller descendants,
+inline prose links carried by their line box).
+
+Full regression re-run, all green: cbt 80, dash 37, pipe 57, sync 60,
+a11y 38, adaptive 18, bank 20, roll-call 33 (:8101), studio 15, arena 16,
+prestige 11, command 14, prospectus 13. `verify.py` §[25] (15 static
+checks; also repaired the V=53+ pin regex that could not see two-digit
+versions) → **349 · 0**. `realtest` not re-run (redeem path untouched).
+
+Honest edges: the audit covers primary view states at three widths, not
+every transient modal at every width; the wide tables scroll sideways in
+their cards by design (a card-stack redesign of the leaderboard was out
+of scope for a safe pass); `contain:layout style` is scoped to the
+mobile/tablet rules only.

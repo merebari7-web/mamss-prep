@@ -2621,3 +2621,15 @@
     font-size: calc(27px * var(--reading-scale, 1));
   }
 }
+
+
+/* v60 "Any Screen" — phone tap-target floor (appended; safe cascade winner) */
+@media(max-width:600px){
+  .goal-edit{min-height:34px;padding:6px 2px}
+  .pin-tool{width:38px;height:38px}
+  .tool-search input{min-height:32px}
+}
+
+/* v60 "Any Screen" — tablet-range tap floor (drawer close + quick search; id rules win, inert where hidden) */
+#closeSidebar{min-width:32px;min-height:32px}
+#quickQuery{min-height:32px}

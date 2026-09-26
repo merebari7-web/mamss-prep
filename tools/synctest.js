@@ -10,9 +10,7 @@
  *        also exercises :8101 (ledger-stripped) for the degraded card.
  */
 "use strict";
-let chromium;
-try { ({ chromium } = require("playwright")); }
-catch (e) { ({ chromium } = require(require("path").join(__dirname, "..", "..", "testrig", "node_modules", "playwright"))); }
+const { chromium } = require("playwright");
 const { spawn } = require("child_process");
 
 const BASE = (process.argv[2] || "http://localhost:8100/").replace(/\/$/, "") + "/";
@@ -59,7 +57,7 @@ window.__SYNC_URL = '${MOCK}';
 window.__SYNC_TICK = ${opts.tick || 1200};
 window.__SYNC_GCRED_MS = ${opts.gcredMs || 3600000};
 ${opts.promptFail ? "window.__PROMPT_FAIL = 1;" : ""}
-localStorage.setItem('nssc_mp_seen', '57');
+localStorage.setItem('nssc_mp_seen', '60');
 localStorage.setItem('nssc_devid', JSON.stringify('synctest-device'));
 localStorage.setItem('nssc_act', JSON.stringify(JSON.stringify({ h: 'synctesthash00000', mask: 'MAMSS··TEST··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Sync Tester' })));
 localStorage.setItem('nssc_theme', JSON.stringify('dark'));
