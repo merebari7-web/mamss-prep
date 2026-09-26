@@ -1291,6 +1291,29 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 25 · v63 "Anywhere" — the offline pass (2026-09-26)
+
+Roadmap item #7. The app already ran from the device; v63 makes offline a
+first-class, designed state instead of a survival mode:
+
+  * **Service worker v68**: static assets now serve stale-while-revalidate
+    (instant paint, background refresh), navigations race the network against
+    the cached shell with a 2.5 s timeout — a half-dead 3G line gets the cached
+    app instead of a spinner, and a fully offline open is indistinguishable
+    from an online one after first visit.
+  * **Offline strip**: a calm ink-green status pill (role=status) tells the
+    student their work stays on-device and reports file on reconnect; it
+    clears itself when connectivity returns.
+  * **Update notice**: when a new edition installs in the background, a navy
+    pill offers "Reload now" instead of silently swapping code mid-session.
+  * **Storage persistence**: the app asks for persistent storage once, so a
+    full phone cannot silently evict the offline cache or a term of progress.
+  * **Reporter reconnect**: progress-up listens for `online` and files the
+    queued report immediately, not on the next 30 s tick.
+
+**Grid:** offlinetest (new) + the standing suites, all green; cache -v68.
+
+
 ## 24 · v62 "The Open Book" — progress goes online for the school (2026-09-26)
 
 Until v61, practice progress lived only on the student's device (with an

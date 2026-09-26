@@ -2692,3 +2692,12 @@ html.ao-night .prg-chip{background:rgba(227,199,107,.08);border-color:rgba(227,1
 html.ao-night .prg-chip b{color:var(--s-ink,#e8e4da)}
 html.ao-night .prg-row .prg-open,html.ao-night .prg-subj{background:var(--studio-panel,#171a1f)}
 @media(max-width:600px){.prg-chip{min-width:calc(50% - 6px)}.prg-row .prg-nums{margin-left:0;width:100%}}
+
+/* ── v63 "Anywhere" — network status strip ── */
+.mp-net-strip{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:97;display:flex;align-items:center;gap:9px;max-width:min(560px,calc(100vw - 24px));padding:9px 16px;border-radius:999px;background:#0e3b2e;color:#f4efe3;font-size:.8rem;line-height:1.35;box-shadow:0 12px 28px -12px rgba(0,0,0,.5);text-align:left}
+.mp-net-strip .ico{width:15px;height:15px;flex:none;color:#e3c76b}
+.mp-net-strip[hidden]{display:none}
+.mp-net-strip button{flex:none;border:1px solid rgba(227,199,107,.7);border-radius:999px;background:transparent;color:#e3c76b;font:600 .74rem/1 inherit;font-family:inherit;padding:6px 12px;cursor:pointer;letter-spacing:.04em}
+.mp-net-strip button:hover{background:rgba(227,199,107,.12)}
+.mp-net-update{background:#002147}
+@media(max-width:600px){.mp-net-strip{bottom:calc(74px + env(safe-area-inset-bottom));border-radius:16px}}

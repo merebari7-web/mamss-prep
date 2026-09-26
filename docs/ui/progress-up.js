@@ -29,7 +29,16 @@
     catch (e) { return d; }
   }
   function uid() { var u = ls("nssc_user", null); return u && u.id ? u.id : "guest"; }
+  /* Test-hygiene: automation browsers (Playwright, Selenium…) never file
+     reports unless a suite explicitly opts in — keeps seeded test devices
+     out of the school's real table. Real phones report as always. */
+  function automated() {
+    try {
+      return !!navigator.webdriver && !window.__MP_TEST_REPORT_OK__;
+    } catch (e) { return false; }
+  }
   function act() {
+    if (automated()) return null;
     try {
       if (!window.MAMSS_ACT || !MAMSS_ACT.activated || !MAMSS_ACT.activated()) return null;
       return MAMSS_ACT.info() || null;
@@ -181,6 +190,7 @@
     document.addEventListener("visibilitychange", function () {
       if (document.visibilityState === "hidden") tick(false);
     });
+    window.addEventListener("online", function () { tick(false); });
   }
 
   /* wait for the gate module, then start only for activated devices; a locked

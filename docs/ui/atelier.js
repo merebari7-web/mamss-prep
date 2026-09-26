@@ -521,3 +521,81 @@
     document.addEventListener("DOMContentLoaded", init);
   else init();
 })();
+
+/* ── v63 "Anywhere" — offline awareness, update notice, storage persistence ──
+   The app has always worked from the device; v63 makes that visible and
+   keeps the offline cache from being evicted by a full phone.            */
+(() => {
+  "use strict";
+  var strip = null;
+  function ensureStrip() {
+    if (strip && strip.isConnected) return strip;
+    strip = document.createElement("div");
+    strip.id = "mpNetStrip";
+    strip.setAttribute("role", "status");
+    strip.hidden = true;
+    (document.body || document.documentElement).appendChild(strip);
+    return strip;
+  }
+  function paint() {
+    var s = ensureStrip();
+    if (window.__mpSwUpdate) {
+      s.hidden = false;
+      s.className = "mp-net-strip mp-net-update";
+      s.innerHTML = '<svg class="ico" aria-hidden="true"><use href="#i-bolt"></use></svg>' +
+        "<span>A fresh edition of MAMSS PREP is ready.</span>" +
+        '<button type="button" id="mpNetReload">Reload now</button>';
+      var b = document.getElementById("mpNetReload");
+      if (b) b.onclick = function () { window.location.reload(); };
+      return;
+    }
+    if (navigator.onLine === false) {
+      s.hidden = false;
+      s.className = "mp-net-strip mp-net-off";
+      s.innerHTML = '<svg class="ico" aria-hidden="true"><use href="#i-cloud"></use></svg>' +
+        "<span>Offline — everything you have studied stays on this device; new progress reports file themselves when you reconnect.</span>";
+      return;
+    }
+    s.hidden = true;
+    s.innerHTML = "";
+  }
+  function init() {
+    window.addEventListener("online", paint);
+    window.addEventListener("offline", paint);
+    if ("serviceWorker" in navigator) {
+      if (navigator.serviceWorker.controller) window.__mpSwHadController = true;
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (window.__mpSwHadController) { window.__mpSwUpdate = true; }
+        paint();
+      });
+      navigator.serviceWorker.getRegistration().then(function (reg) {
+        if (!reg) return;
+        reg.addEventListener("updatefound", function () {
+          var nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener("statechange", function () {
+            if (nw.state === "installed" && navigator.serviceWorker.controller) {
+              window.__mpSwUpdate = true;
+              paint();
+            }
+          });
+        });
+      }).catch(function () {});
+    }
+    try {
+      if (navigator.storage && navigator.storage.persist && !localStorage.getItem("nssc_persist")) {
+        navigator.storage.persist().then(function (ok) {
+          try { localStorage.setItem("nssc_persist", ok ? "1" : "0"); } catch (e) {}
+        }).catch(function () {});
+      }
+    } catch (e) {}
+    paint();
+  }
+  window.MAMSS_NET = {
+    paint: paint,
+    showUpdate: function () { window.__mpSwUpdate = true; paint(); },
+    clearUpdate: function () { window.__mpSwUpdate = false; paint(); }
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
+  else setTimeout(init, 0);
+})();
