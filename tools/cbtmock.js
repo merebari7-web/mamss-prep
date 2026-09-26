@@ -10,6 +10,7 @@ const sessions = new Map();  // code -> row
 const attempts = new Map();  // code|did -> row
 const answers = new Map();   // code|did|qidx -> row
 const redemptions = new Map(); // code_hash -> row (v57 school dashboard: activation roll-out)
+const qq = new Map();          // id -> row (v58 question pipeline)
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -70,7 +71,7 @@ http.createServer((req, res) => {
     if (raw) { try { body = JSON.parse(raw); } catch (e) { return send(res, 400, { message: 'bad json' }); } }
 
     /* ---- test helpers ---- */
-    if (u === '/_reset' && req.method === 'POST') { sessions.clear(); attempts.clear(); answers.clear(); redemptions.clear(); return send(res, 200, { reset: true }); }
+    if (u === '/_reset' && req.method === 'POST') { sessions.clear(); attempts.clear(); answers.clear(); redemptions.clear(); qq.clear(); return send(res, 200, { reset: true }); }
     if (u === '/_dump') {
       const t = parseFilters(search).table || search.match(/table=([a-z]+)/);
       const table = typeof t === 'string' ? t : (t && t[1]) || 'sessions';
@@ -180,6 +181,34 @@ http.createServer((req, res) => {
           }, it));
         }
         return send(res, 201, undefined);
+      }
+    }
+
+    /* ---- question_queue (v58 teacher pipeline) ---- */
+    if (u === '/rest/v1/question_queue') {
+      const f = parseFilters(search);
+      if (req.method === 'GET') {
+        const rows = [...qq.values()].filter(r => matches(r, f));
+        rows.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+        return send(res, 200, rows);
+      }
+      if (req.method === 'POST') {
+        const items = Array.isArray(body) ? body : [body];
+        let n = 0;
+        for (const it of items) {
+          const id = it.id || ('q' + Date.now().toString(36) + '-' + (++n) + '-' + Math.random().toString(36).slice(2, 8));
+          if (qq.has(id)) return conflict(res);
+          qq.set(id, Object.assign({
+            created_at: now(), status: 'pending', topic: '', e: '', source: 'csv',
+            submitter: '', review_note: null, reviewed_at: null, reviewed_by: null,
+          }, it, { id }));
+        }
+        return send(res, 201, undefined);
+      }
+      if (req.method === 'PATCH') {
+        const rows = [...qq.values()].filter(r => matches(r, f));
+        rows.forEach(r => qq.set(r.id, Object.assign(r, body)));
+        return send(res, 204, undefined);
       }
     }
 

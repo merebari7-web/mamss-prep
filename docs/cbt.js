@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "57";
+  var VERSION = "58";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -943,6 +943,7 @@
       '<button class="cbt-tab' + (cons.tab === "monitor" ? " on" : "") + '" data-ctab="monitor">2 · Monitor</button>' +
       '<button class="cbt-tab' + (cons.tab === "results" ? " on" : "") + '" data-ctab="results">3 · Results</button>' +
       '<button class="cbt-tab' + (cons.tab === "school" ? " on" : "") + '" data-ctab="school">4 · School</button>' +
+      '<button class="cbt-tab' + (cons.tab === "pipeline" ? " on" : "") + '" data-ctab="pipeline">5 · Pipeline</button>' +
       "</div><div id='cbtConsBody'></div></div>";
     root.innerHTML = wrap(h);
     root.querySelectorAll("[data-ctab]").forEach(function (b) {
@@ -952,6 +953,7 @@
     if (cons.tab === "create") renderBuilder();
     else if (cons.tab === "monitor") renderMonitor();
     else if (cons.tab === "school") renderSchool();
+    else if (cons.tab === "pipeline") renderPipeline();
     else renderResults();
   }
 
@@ -1064,7 +1066,7 @@
     return d.questions.map(function (q, i) {
       return '<div class="cbt-draft-q"><span>' + (i + 1) + '.</span><div class="cbt-flex1"><b>' + esc(q.q) + '</b><small>' +
         esc((q.o || []).map(function (o, k) { return letters[k] + ". " + o; }).join(" · ")) + "</small><small>✔ " + esc(letters[q.a] || "?") +
-        (q.e ? " · 💡 " + esc(q.e) : "") + ' · <i>' + esc(q.src === "new" ? "new question" : "bank") + "</i></small></div>" +
+        (q.e ? " · 💡 " + esc(q.e) : "") + ' · <i>' + esc(q.src === "new" ? "new question" : q.src === "school" ? "school pool" : "bank") + "</i></small></div>" +
         '<button class="cbt-btn ghost" data-delq="' + i + '" title="Remove">✕</button></div>';
     }).join("");
   }
@@ -1645,6 +1647,349 @@
     try { return new Date(ms).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); } catch (e) { return ""; }
   }
 
+  /* ------------------------------------------ v58 teacher question pipeline */
+  var pl = { data: [], err: null, sub: "submit", preview: null, fb: "", text: "" };
+
+  function plParseDelim(text) {
+    var s2 = String(text == null ? "" : text);
+    var firstLine = s2.split(/\r?\n/)[0] || "";
+    var delim = (firstLine.indexOf("\t") > -1 && firstLine.indexOf(",") === -1) ? "\t" : ",";
+    var rows = [], row = [], cell = "", inQ = false;
+    for (var i = 0; i < s2.length; i++) {
+      var ch = s2.charAt(i);
+      if (inQ) {
+        if (ch === '"') { if (s2.charAt(i + 1) === '"') { cell += '"'; i++; } else inQ = false; }
+        else cell += ch;
+      } else if (ch === '"') inQ = true;
+      else if (ch === delim) { row.push(cell); cell = ""; }
+      else if (ch === "\n" || ch === "\r") {
+        if (ch === "\r" && s2.charAt(i + 1) === "\n") i++;
+        row.push(cell); cell = "";
+        if (row.some(function (c) { return c.trim() !== ""; })) rows.push(row.map(function (c) { return c.trim(); }));
+        row = [];
+      } else cell += ch;
+    }
+    row.push(cell);
+    if (row.some(function (c) { return c.trim() !== ""; })) rows.push(row.map(function (c) { return c.trim(); }));
+    return rows;
+  }
+  function plRowsFromText(text) {
+    var t = String(text == null ? "" : text).trim();
+    if (!t) return [];
+    if (t.charAt(0) === "[" || t.charAt(0) === "{") {
+      var j = null;
+      try { j = JSON.parse(t); } catch (e) { return [{ __bad: "JSON parse error: " + e.message, __src: "json" }]; }
+      var arr = Array.isArray(j) ? j : (j && Array.isArray(j.questions) ? j.questions : null);
+      if (!arr) return [{ __bad: "JSON must be an array of questions, or an object with a \"questions\" array", __src: "json" }];
+      return arr.map(function (o0) {
+        o0 = o0 || {};
+        var pick = function () {
+          for (var k = 0; k < arguments.length; k++) {
+            var v = o0[arguments[k]];
+            if (v !== undefined && v !== null && String(v).trim() !== "") return String(v).trim();
+          }
+          return "";
+        };
+        var opts = o0.options || o0.opts || o0.o;
+        return {
+          __src: "json",
+          subject: pick("subject", "subj", "s"),
+          cls: pick("class", "cls", "level"),
+          topic: pick("topic", "t"),
+          q: pick("question", "stem", "q"),
+          o: Array.isArray(opts) ? [0, 1, 2, 3].map(function (k) { return String(opts[k] == null ? "" : opts[k]).trim(); })
+            : [pick("optionA", "optA", "optiona", "A"), pick("optionB", "optB", "optionb", "B"), pick("optionC", "optC", "optionc", "C"), pick("optionD", "optD", "optiond", "D")],
+          a: pick("answer", "ans", "correct"),
+          e: pick("explanation", "expl", "e", "note")
+        };
+      });
+    }
+    var rows = plParseDelim(t);
+    if (!rows.length) return [];
+    var head = rows[0].map(function (c) { return c.toLowerCase().replace(/[^a-z0-9]/g, ""); });
+    var hasHeader = head.some(function (c) { return c === "question" || c === "stem"; });
+    var idx = { subject: 0, cls: 1, topic: 2, q: 3, o0: 4, o1: 5, o2: 6, o3: 7, a: 8, e: 9 };
+    if (hasHeader) {
+      rows = rows.slice(1);
+      var find = function () {
+        for (var k = 0; k < arguments.length; k++) { var p = head.indexOf(arguments[k]); if (p > -1) return p; }
+        return -1;
+      };
+      idx = {
+        subject: find("subject", "subj", "s"), cls: find("class", "cls", "level"), topic: find("topic", "t"),
+        q: find("question", "stem", "q"),
+        o0: find("optiona", "opta", "option1"), o1: find("optionb", "optb", "option2"),
+        o2: find("optionc", "optc", "option3"), o3: find("optiond", "optd", "option4"),
+        a: find("answer", "ans", "correct"), e: find("explanation", "expl", "note")
+      };
+    }
+    return rows.map(function (r) {
+      var g = function (p) { return p > -1 && p < r.length ? String(r[p] == null ? "" : r[p]).trim() : ""; };
+      return { __src: "csv", subject: g(idx.subject), cls: g(idx.cls), topic: g(idx.topic), q: g(idx.q), o: [g(idx.o0), g(idx.o1), g(idx.o2), g(idx.o3)], a: g(idx.a), e: g(idx.e) };
+    });
+  }
+  function plAnswerIdx(v) {
+    var s2 = String(v == null ? "" : v).trim();
+    if (/^[A-Da-d]$/.test(s2)) return "ABCD".indexOf(s2.toUpperCase());
+    if (/^[0-3]$/.test(s2)) return +s2;
+    return -1;
+  }
+  /* pure validator — same rules as the single-question form (v54) + taxonomy */
+  function plValidate(entry, ctx) {
+    ctx = ctx || {};
+    var errs = [], warns = [];
+    if (entry && entry.__bad) return { ok: false, errs: [entry.__bad], warns: warns, q: null };
+    var q = String((entry && entry.q) || "").trim();
+    var subject = String((entry && entry.subject) || "").trim();
+    var cls = String((entry && entry.cls) || "").trim().toUpperCase().replace(/\s+/g, "");
+    var topic = String((entry && entry.topic) || "").trim();
+    var e = String((entry && entry.e) || "").trim();
+    var o = ((entry && entry.o) || []).map(function (x) { return String(x == null ? "" : x).trim(); });
+    while (o.length < 4) o.push("");
+    o = o.slice(0, 4);
+    var a = plAnswerIdx(entry && entry.a);
+    if (q.length < 10) errs.push("the stem is too short (10+ characters)");
+    if (q.length > 1000) errs.push("the stem is too long (1000 characters max)");
+    if (!subject) errs.push("subject is required");
+    else if (subject.length > 80) errs.push("subject is too long (80 characters max)");
+    if (!/^SS[123]$/.test(cls)) errs.push("class must be SS1, SS2 or SS3");
+    if (o.some(function (x) { return !x; })) errs.push("all four options are required");
+    if (o.some(function (x) { return x.length > 300; })) errs.push("an option is too long (300 characters max)");
+    if (o.every(function (x) { return x; }) && new Set(o.map(function (x) { return normCode(x); })).size < 4) errs.push("options must be distinct");
+    if (a < 0) errs.push("answer must be A-D or 0-3");
+    if (e.length > 600) errs.push("explanation is too long (600 characters max)");
+    if (!topic) warns.push("no topic — fine, but topics keep the pool tidy");
+    if (!errs.length && /[.?]$/.test(q) === false) q = q + (/^(which|what|who|how|when|where|why|find|calculate|determine|state|list|define)/i.test(q) ? "?" : ".");
+    var key = normCode(q).slice(0, 60);
+    if (!errs.length) {
+      if (ctx.draftKeys && ctx.draftKeys[key]) errs.push("this question is already on your draft paper");
+      if (ctx.queueKeys && ctx.queueKeys[key]) errs.push("already in the school queue (pending or approved)");
+      if (ctx.bankKeys && ctx.bankKeys[key]) warns.push("the WAEC bank already contains this stem");
+    }
+    MECH_WARN.forEach(function (w) { if (w[0].test(q + " " + e)) warns.push(w[1]); });
+    return { ok: !errs.length, errs: errs, warns: warns, q: { q: q, o: o, a: a, e: e, subject: subject, cls: cls, topic: topic } };
+  }
+  function plCtx() {
+    var ctx = { draftKeys: {}, queueKeys: {}, bankKeys: null };
+    try {
+      ((ui.draft && ui.draft.questions) || []).forEach(function (q2) { ctx.draftKeys[normCode(q2.q).slice(0, 60)] = 1; });
+    } catch (e) {}
+    (pl.data || []).forEach(function (r) { if (r.status !== "rejected") ctx.queueKeys[normCode(r.q).slice(0, 60)] = 1; });
+    try {
+      if (typeof CLASSES !== "undefined" && CLASSES && CLASSES.length) {
+        ctx.bankKeys = {};
+        CLASSES.forEach(function (c) { (c.questions || []).forEach(function (q2) { ctx.bankKeys[normCode(q2.q).slice(0, 60)] = 1; }); });
+      }
+    } catch (e) {}
+    return ctx;
+  }
+  function fetchQueue() {
+    return rest("question_queue?select=*&order=created_at.asc&limit=500").then(function (r) {
+      if (isMissingTables(r)) throw setupError();
+      if (!r.ok) throw new Error("queue fetch failed (" + r.status + ")");
+      pl.data = r.json || []; pl.err = null;
+    }).catch(function (e) { pl.err = e; pl.data = []; });
+  }
+  function plSay(html) { pl.fb = html || ""; drawPipeline($("cbtConsBody")); }
+  function plSubTabs() {
+    var pend = (pl.data || []).filter(function (r) { return r.status === "pending"; }).length;
+    var appr = (pl.data || []).filter(function (r) { return r.status === "approved"; }).length;
+    return '<div class="cbt-tabs" style="margin-bottom:10px">' +
+      [["submit", "\u2795 Submit questions"], ["review", "\ud83e\uddfe Review (" + pend + ")"], ["pool", "\ud83d\udcda Pool (" + appr + ")"]].map(function (t) {
+        return '<button class="cbt-tab' + (pl.sub === t[0] ? " on" : "") + '" data-plsub="' + t[0] + '">' + t[1] + "</button>";
+      }).join("") + "</div>";
+  }
+  function renderPipeline() {
+    var host = $("cbtConsBody"); if (!host) return;
+    if (!ui.draft) { try { ui.draft = st.get("nssc_cbt_draft", null) || newDraft(); } catch (e) { ui.draft = newDraft(); } }
+    if (!cfg()) { host.innerHTML = "<p class='cbt-muted'>The question pipeline needs the school ledger \u2014 this copy of the site has none configured.</p>"; return; }
+    host.innerHTML = "<p class='cbt-muted'>Loading the school queue\u2026</p>";
+    fetchQueue().then(function () {
+      if (ui.tab !== "console" || cons.tab !== "pipeline") return;
+      drawPipeline($("cbtConsBody"));
+    });
+  }
+  function drawPipeline(host) {
+    if (!host) return;
+    if (pl.err) {
+      if (pl.err.setup) { host.innerHTML = "<div class='cbt-note'>The question pipeline is <b>being set up</b> \u2014 the queue table is not on the school server yet. Ask the school office to run the one-time setup (tools/pipeline_schema.sql) in the school's Supabase dashboard; everything else works exactly as before.</div>"; return; }
+      host.innerHTML = errBox("Could not reach the school queue: " + esc(pl.err.message || String(pl.err)));
+      return;
+    }
+    var h = '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">' +
+      "<div><h3 style='margin:0'>\ud83e\uddea Question pipeline</h3><p class='cbt-sub' style='margin:4px 0 0'>Feed the school's own questions in bulk \u2014 paste CSV or JSON, every row is checked with the WAEC mechanics rules, approved questions join the paper builder. The national bank stays hash-locked and untouched.</p></div>" +
+      '<button class="cbt-btn ghost" id="plRefresh">\u21bb Refresh</button></div>' +
+      plSubTabs() + '<div id="plFb">' + (pl.fb || "") + "</div>";
+    if (pl.sub === "submit") h += plSubmitHtml();
+    else if (pl.sub === "review") h += plReviewHtml();
+    else h += plPoolHtml();
+    host.innerHTML = h;
+    plWire(host);
+  }
+  function plSubmitHtml() {
+    var pv = pl.preview;
+    var h = '<div class="cbt-card" style="margin-top:4px"><b>Paste CSV or JSON</b>' +
+      '<p class="cbt-muted" style="margin:4px 0 8px">CSV columns: <code>subject,class,topic,question,optionA,optionB,optionC,optionD,answer,explanation</code> \u2014 answer is A\u2013D (or 0\u20133), the header row is optional, and a JSON array of objects works too. You can also drop in a .csv or .json file.</p>' +
+      '<textarea class="cbt-inp" id="plText" rows="7" style="width:100%;font-family:ui-monospace,monospace" placeholder="Mathematics,SS1,Sequences,&quot;What is the next term of 2, 4, 8, ...?&quot;,10,12,16,18,C,Each term doubles">' + esc(pl.text) + "</textarea>" +
+      '<div class="cbt-row" style="margin-top:8px"><input type="file" id="plFile" accept=".csv,.json,.txt"><button class="cbt-btn" id="plCheck">Check questions</button></div></div>';
+    if (pv && pv.length) {
+      var okN = pv.filter(function (r) { return r.v.ok; }).length;
+      h += '<div class="cbt-card"><b>Preview \u2014 ' + okN + " of " + pv.length + " row" + (pv.length === 1 ? "" : "s") + ' ready</b>' +
+        pv.map(function (r, i) {
+          var stem = String((r.entry && r.entry.q) || "");
+          return '<div class="cbt-draft-q"><span>' + (i + 1) + '.</span><div class="cbt-flex1"><b>' + esc(stem.slice(0, 90)) + (stem.length > 90 ? "\u2026" : "") + "</b>" +
+            "<small>" + esc(String((r.entry && r.entry.cls) || "") + ((r.entry && r.entry.subject) ? " \u00b7 " + r.entry.subject : "")) + "</small>" +
+            (r.v.ok ? '<small style="color:#1a7f37">\u2714 passes' + (r.v.warns.length ? " \u2014 \u26a0 " + esc(r.v.warns.join("; ")) : "") + "</small>"
+              : '<small style="color:#b42318">\u2718 ' + esc(r.v.errs.join("; ")) + "</small>") + "</div></div>";
+        }).join("") +
+        '<div class="cbt-row" style="margin-top:8px"><button class="cbt-btn"' + (okN ? "" : " disabled") + ' id="plSend">Send ' + okN + " question" + (okN === 1 ? "" : "s") + ' to the review queue</button></div></div>';
+    }
+    return h;
+  }
+  function plReviewHtml() {
+    var pend = (pl.data || []).filter(function (r) { return r.status === "pending"; });
+    var rej = (pl.data || []).filter(function (r) { return r.status === "rejected"; }).slice(-5).reverse();
+    var letters = ["A", "B", "C", "D"];
+    var h = '<div class="cbt-card">';
+    if (!pend.length) h += "<p class='cbt-muted'>Nothing waiting for review \u2014 the queue is clear.</p>";
+    else h += "<b>" + pend.length + " pending</b>" + pend.map(function (r) {
+      var o = r.o || [];
+      return '<div class="cbt-draft-q"><span>\u2022</span><div class="cbt-flex1"><b>' + esc(r.q) + "</b><small>" +
+        esc(o.map(function (x, k) { return letters[k] + ". " + x; }).join(" \u00b7 ")) + "</small><small>\u2714 " + esc(letters[r.a] || "?") +
+        " \u00b7 <i>" + esc(String(r.cls || "") + " \u00b7 " + String(r.subject || "") + (r.topic ? " \u00b7 " + r.topic : "")) + "</i>" +
+        (r.submitter ? ' \u00b7 <i>from ' + esc(r.submitter) + "</i>" : "") + "</small></div>" +
+        '<button class="cbt-btn ghost" data-plrej="' + esc(String(r.id)) + '" title="Reject">\u2718</button>' +
+        '<button class="cbt-btn" data-plapp="' + esc(String(r.id)) + '" title="Approve">\u2714</button></div>';
+    }).join("");
+    if (rej.length) h += '<p class="cbt-muted" style="margin-top:10px">Recently rejected:</p>' + rej.map(function (r) {
+      return '<div class="cbt-muted" style="font-size:13px">\u2718 ' + esc(String(r.q || "").slice(0, 70)) + (r.review_note ? " \u2014 " + esc(r.review_note) : "") + "</div>";
+    }).join("");
+    return h + "</div>";
+  }
+  function plPoolHtml() {
+    var appr = (pl.data || []).filter(function (r) { return r.status === "approved"; });
+    var letters = ["A", "B", "C", "D"];
+    var h = '<div class="cbt-card">';
+    if (!appr.length) h += "<p class='cbt-muted'>No approved questions yet \u2014 approve something under Review and it lands here, ready to drop into any paper.</p>";
+    else {
+      h += "<b>" + appr.length + " approved \u2014 the school pool</b><p class='cbt-muted'>\u201c\uff0b Add to paper\u201d puts a question on your current draft (Build paper tab). The pool is shared by every teacher.</p>" +
+        appr.map(function (r) {
+          return '<div class="cbt-draft-q"><span>\u2022</span><div class="cbt-flex1"><b>' + esc(r.q) + "</b><small>" +
+            esc((r.o || []).map(function (x, k) { return letters[k] + ". " + x; }).join(" \u00b7 ")) + "</small><small>\u2714 " + esc(letters[r.a] || "?") +
+            " \u00b7 <i>" + esc(String(r.cls || "") + " \u00b7 " + String(r.subject || "")) + "</i></small></div>" +
+            '<button class="cbt-btn" data-pladd="' + esc(String(r.id)) + '">\uff0b Add to paper</button></div>';
+        }).join("") +
+        '<div class="cbt-row" style="margin-top:8px"><button class="cbt-btn ghost" id="plAddAll">\uff0b Add all ' + appr.length + " to paper</button></div>";
+    }
+    return h + "</div>";
+  }
+  function plWire(host) {
+    var rf = $("plRefresh"); if (rf) rf.onclick = function () { pl.fb = ""; renderPipeline(); };
+    host.querySelectorAll("[data-plsub]").forEach(function (b) {
+      b.onclick = function () { pl.sub = b.getAttribute("data-plsub"); pl.fb = ""; drawPipeline($("cbtConsBody")); };
+    });
+    var tx = $("plText");
+    if (tx) tx.oninput = function () { pl.text = tx.value; };
+    var fl = $("plFile");
+    if (fl) fl.onchange = function () {
+      var f = fl.files && fl.files[0]; if (!f) return;
+      try {
+        var rd = new FileReader();
+        rd.onload = function () { pl.text = String(rd.result || ""); var t2 = $("plText"); if (t2) t2.value = pl.text; plCheckRun(); };
+        rd.onerror = function () { plSay(errBox("Could not read that file.")); };
+        rd.readAsText(f);
+      } catch (e) { plSay(errBox("File reading is not available in this browser \u2014 paste the text instead.")); }
+    };
+    var ck = $("plCheck"); if (ck) ck.onclick = plCheckRun;
+    var sd = $("plSend"); if (sd) sd.onclick = plSendRun;
+    host.querySelectorAll("[data-plapp]").forEach(function (b) {
+      b.onclick = function () { plReview(b.getAttribute("data-plapp"), "approved", ""); };
+    });
+    host.querySelectorAll("[data-plrej]").forEach(function (b) {
+      b.onclick = function () {
+        var note = "";
+        try { note = window.prompt("Why is this being rejected? (optional \u2014 shown to the other teachers)", "") || ""; } catch (e) {}
+        plReview(b.getAttribute("data-plrej"), "rejected", note);
+      };
+    });
+    host.querySelectorAll("[data-pladd]").forEach(function (b) {
+      b.onclick = function () { plAddToDraft([b.getAttribute("data-pladd")]); };
+    });
+    var aa = $("plAddAll");
+    if (aa) aa.onclick = function () {
+      plAddToDraft((pl.data || []).filter(function (r) { return r.status === "approved"; }).map(function (r) { return r.id; }));
+    };
+  }
+  function plCheckRun() {
+    var tx = $("plText");
+    pl.text = tx ? tx.value : pl.text;
+    var entries = plRowsFromText(pl.text);
+    if (!entries.length) { pl.preview = null; plSay(errBox("Nothing to check \u2014 paste CSV/JSON rows or choose a file first.")); return; }
+    var ctx = plCtx();
+    pl.preview = entries.map(function (en) { return { entry: en, v: plValidate(en, ctx) }; });
+    var okN = pl.preview.filter(function (r) { return r.v.ok; }).length;
+    plSay('<div class="cbt-note">' + okN + " of " + entries.length + " row" + (entries.length === 1 ? "" : "s") + " pass the checker" + (okN < entries.length ? " \u2014 fix the \u2718 rows and re-check, or send only the valid ones." : ".") + "</div>");
+  }
+  function plSendRun() {
+    if (!pl.preview) return;
+    var ctx = plCtx();
+    var valid = [];
+    pl.preview.forEach(function (r) {
+      var v = plValidate(r.entry, ctx);   /* re-validate at send time */
+      if (!v.ok) return;
+      valid.push({
+        subject: v.q.subject, cls: v.q.cls, topic: v.q.topic, q: v.q.q, o: v.q.o, a: v.q.a, e: v.q.e,
+        source: (r.entry && r.entry.__src) || "csv", status: "pending",
+        submitter: (me().name || "teacher") + (me().slip ? " \u00b7 " + me().slip : "")
+      });
+      ctx.queueKeys[normCode(v.q.q).slice(0, 60)] = 1;
+    });
+    if (!valid.length) { plSay(errBox("No valid rows to send \u2014 fix the \u2718 rows first.")); return; }
+    var n = valid.length;
+    rest("question_queue", { method: "POST", body: valid, prefer: "return=minimal" }).then(function (r2) {
+      if (isMissingTables(r2)) throw setupError();
+      if (!r2.ok) throw new Error("send failed (" + r2.status + ")");
+      pl.preview = null; pl.text = "";
+      return fetchQueue();
+    }).then(function () {
+      pl.sub = "review";
+      plSay('<div class="cbt-note">Sent ' + n + " question" + (n === 1 ? "" : "s") + " to the review queue \u2714 \u2014 any teacher can approve them under Review.</div>");
+    }).catch(function (e2) {
+      plSay(errBox(e2 && e2.setup ? "The queue table is not on the school server yet \u2014 run the one-time setup (tools/pipeline_schema.sql)." : "Could not send: " + ((e2 && e2.message) || e2)));
+    });
+  }
+  function plReview(id, status, note) {
+    var row = (pl.data || []).filter(function (r) { return String(r.id) === String(id); })[0];
+    if (!row) return;
+    rest("question_queue?id=eq." + encodeURIComponent(id), {
+      method: "PATCH",
+      body: { status: status, review_note: note || null, reviewed_at: new Date().toISOString(), reviewed_by: me().name || "teacher" },
+      prefer: "return=minimal"
+    }).then(function (r2) {
+      if (!r2.ok) throw new Error("review save failed (" + r2.status + ")");
+      row.status = status; row.review_note = note || null; row.reviewed_by = me().name || "teacher";
+      plSay('<div class="cbt-note">' + (status === "approved" ? "Approved \u2714 \u2014 it is now in the school pool." : "Rejected \u2718" + (note ? " (\u201c" + esc(note) + "\u201d)" : "") + ".") + "</div>");
+    }).catch(function (e2) { plSay(errBox("Could not save the review: " + ((e2 && e2.message) || e2))); });
+  }
+  function plAddToDraft(ids) {
+    if (!ui.draft) ui.draft = newDraft();
+    var idset = {};
+    (ids || []).forEach(function (x) { idset[String(x)] = 1; });
+    var have = {};
+    (ui.draft.questions || []).forEach(function (q2) { have[normCode(q2.q).slice(0, 60)] = 1; });
+    var added = 0, skipped = 0;
+    (pl.data || []).forEach(function (r) {
+      if (!idset[String(r.id)] || r.status !== "approved") return;
+      var key = normCode(r.q).slice(0, 60);
+      if (have[key]) { skipped++; return; }
+      have[key] = 1;
+      ui.draft.questions.push({ q: r.q, o: (r.o || []).slice(0, 4), a: +r.a || 0, e: r.e || "", src: "school" });
+      added++;
+    });
+    saveDraft();
+    plSay('<div class="cbt-note">' + (added ? "Added " + added + " question" + (added === 1 ? "" : "s") + " to your draft paper \u2714" : "Nothing added") + (skipped ? " (" + skipped + " already on the paper)" : "") + " \u2014 open \u201c1 \u00b7 Build paper\u201d to see them.</div>");
+  }
+
   /* ---------------------------------------------------------------- api */
   window.MAMSS_CBT = {
     version: VERSION,
@@ -1656,7 +2001,9 @@
       cam: function () { return { on: camState.on, tracks: camState.stream ? camState.stream.getTracks().map(function (t) { return t.readyState; }) : [] }; },
       cams: function () { return camFrames; },
       schoolStats: schoolStats, schoolFetch: schoolFetch,
-      dash: function () { return { data: dash.data, stats: dash.stats || null, err: dash.err }; }
+      dash: function () { return { data: dash.data, stats: dash.stats || null, err: dash.err }; },
+      plParseDelim: plParseDelim, plRowsFromText: plRowsFromText, plValidate: plValidate, plAnswerIdx: plAnswerIdx,
+      pipeline: function () { return { data: pl.data, err: pl.err ? String(pl.err.message || pl.err) : null, setup: !!(pl.err && pl.err.setup), preview: pl.preview, sub: pl.sub }; }
     }
   };
   try {

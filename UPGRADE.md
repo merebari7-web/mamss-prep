@@ -632,7 +632,7 @@ full, item order, with **Firebase** chosen for the cloud items. Ledger:
 | 1 | Adaptive learning engine (Leitner/SM-2 + weak-topic weighting) | **shipped — v53 (this section)** |
 | 2 | Real backend / sync (Google sign-in, cross-device progress) | **shipped — v56 "Cloud Sync" (this section below)**. Originally approved with Firebase; on 2026-09-26 the owner re-chose **Supabase** when offered: the project was already live (ledger + CBT), the site's existing Google button works unchanged via Supabase's official ID-token flow (no secret, no new SDK, no new keys), and the SQL workflow was proven the same day. Firebase stays approved but unused. The hard constraint held: `nssc_act` never syncs, and sync grants no access. |
 | 3 | Teacher/admin dashboard (aggregate class performance) | **shipped — v57 "School Dashboard" (whole-school aggregates: every paper, class bars, score spread, activation roll-out, CSV + WhatsApp summary, one-click drill-down to v54 results) on top of the v54 live-session slice** (real-time roster, integrity flags, ranking + per-question breakdown) |
-| 4 | Teacher content pipeline (CSV/JSON → bank, validated) | queued |
+| 4 | Teacher content pipeline (CSV/JSON → validated intake) | **shipped — v58 "Question Pipeline"** (bulk CSV/JSON intake with the WAEC-rules validator, shared review queue with approve/reject audit trail, school pool feeding the paper builder; the hash-locked bank is never touched) |
 | 5 | Accessibility & performance audit | queued (a11y scaffolding — `a11yApply`/`a11yOpen` — already exists and gets audited, not rebuilt) |
 | 6 | Exam-mode integrity | **shipped for live sessions — v54** (blur/visibility logging with 1.2 s accidental-bounce grace, escalating warnings, forgiving auto-submit at 5, copy/paste block with a Readable-a11y exemption, server-enforced no-going-back; **webcam monitoring — v55**: off/optional/required per paper, ephemeral live snapshots, explicit consent gate); practice-mode exam integrity polish remains queued |
 | 7 | Offline-first PWA polish | queued (≈90 % live since v46: installable, offline SW, safe-update Reload prompt; remaining: explicit "new questions" update copy + zero-connectivity cold-start proof) |
@@ -1138,3 +1138,81 @@ design; the CSV covers what is fetched); any teacher sees every session
 (same open-console posture as v54 — the CBT tables are school-public by
 design, and rows carry no practice data); the 30 s auto-refresh polls only
 while the School tab is visible.
+
+---
+
+## 20. v58 "Question Pipeline" — roadmap item 4 of 8 (one-time school setup)
+
+The teacher console grows a **fifth tab: "5 · Pipeline"** — the school's own
+questions, in bulk, without ever touching the national bank. The bank stays
+hash-locked and offline-built; the pipeline feeds **papers**, not the bank.
+
+### 20.1 The three panels
+
+* **＋ Submit** — paste CSV or JSON (or drop in a .csv/.json/.txt file).
+  CSV columns: `subject,class,topic,question,optionA,optionB,optionC,optionD,answer,explanation`
+  (header row optional; answer = A–D or 0–3; tabs auto-detected; quoted cells
+  keep their commas). JSON: an array of objects — or `{"questions":[…]}` —
+  with generous aliases (`question|stem|q`, `options|opts|o`, `answer|ans`,
+  `class|cls|level`, `explanation|expl|e`…). **Check** renders a per-row
+  preview (✔ passes / ✘ reason / ⚠ warnings); **Send** posts only the valid
+  rows to the shared queue — bad rows never leave the browser.
+* **🧾 Review** — every teacher sees every pending submission and approves
+  (✔) or rejects (✘) with an optional reason (prompt → stored as
+  `review_note`, shown under "Recently rejected" as an audit trail — there is
+  deliberately **no delete policy** on the table). Approvals stamp
+  `reviewed_by` + `reviewed_at`.
+* **📚 Pool** — approved questions: "＋ Add to paper" (or "Add all") drops
+  them into the current draft with `src: "school"`, rendered as
+  *school pool* in the Build-paper list. From there they ride the existing
+  v54 machinery unchanged: sessions, attempts, answer rows, grading, results,
+  dashboard aggregates.
+
+### 20.2 The validator (pure function, unit-tested)
+
+Same rules as the v54 single-question form, applied in bulk: stem ≥ 10 chars,
+four non-empty **distinct** options (after normalization), answer A–D/0–3,
+auto-punctuation ("What…" gains "?", statements gain "."), and the v52
+**WAEC mechanics checker** (`MECH_WARN`: ordinal typos, template phrasing,
+article agreement) as warnings. Plus pipeline-specific rules: class must
+normalize to SS1/SS2/SS3 ("ss 2" → SS2; JSS1 rejected), subject required
+(≤ 80), caps (stem 1000, option 300, explanation 600), and a **triple
+duplicate guard** — on your draft paper (error), already in the queue
+pending/approved (error), already in the WAEC bank (warning only — a variant
+may be deliberate). Empty topic is a warning, never an error.
+
+### 20.3 One-time school setup (the only v58 step)
+
+Run `tools/pipeline_schema.sql` once in the school's Supabase dashboard
+(SQL editor) — creates `question_queue` with RLS, read/insert/update
+policies (school-open posture, identical to the CBT tables: questions are
+school property, no student data), DB-level constraints mirroring the client
+validator (status enum, class enum, exactly 4 options, answer 0–3, length
+caps), a `(status, created_at)` index, and grants. Safe to re-run. Until it
+is run the tab degrades to the honest **"being set up"** note — nothing
+crashes, nothing else on the site is affected (tested).
+
+### 20.4 Tests
+
+New `testrig/pipetest.js` (mirrored in tools/) → **57 passed · 0 failed**:
+parser units (quoted commas, escaped quotes, TSV, blank rows, header mapping,
+JSON aliases, broken JSON → friendly `__bad` row), 17 validator units (every
+rule + all three duplicate guards + mechanics warnings), then the full flow
+on cbtmock's new `question_queue` table: mixed paste (2 good + 2 bad) →
+preview counts → send (bad rows never leave the browser) → approve with
+reviewer stamp → reject with prompt-note audit trail → pool → add-to-draft
+(`src "school"`) → re-add dedupes → Build-paper tag → JSON send → file
+upload → queue-duplicate catch → ↻ Refresh picks up another teacher's row →
+dead-table degrade → student gating → zero page errors across all three
+contexts. Full regression: cbt 80/80, dash 37/37, sync 60/60, adaptive
+18/18, bank 20/20, roll-call ALL PASS (:8101), studio/arena/prestige/
+command/prospectus ALL PASS. `verify.py` §[23] (20 checks incl. the SQL
+file) → **316 · 0**; the stale §22 `V=57` hard pin was made bump-proof
+(`VP ≥ 57`). `realtest` not re-run (redeem path untouched).
+
+Honest edges: the queue fetch caps at 500 rows (school-scale); the bank
+duplicate check only runs once the bank has decoded in that tab (whenBank —
+until then it silently skips, the other guards still work); rejection notes
+use `window.prompt` (fine on every target browser); RLS is school-open like
+the CBT tables — anyone with the publishable key can read the queue, which
+contains only questions teachers wrote for the whole school.
