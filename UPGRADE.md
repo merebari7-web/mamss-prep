@@ -1014,6 +1014,21 @@ does anything at all only for users who connect.
    ID-token flow needs neither). Until both steps are done, sync sign-in
    fails gracefully with an honest error; the rest of the site is unaffected.
 
+   **Status (2026-09-26): DONE — both steps executed by the agent through a
+   one-time Supabase access token (owner-authorized, revoked immediately
+   after).** Management API: `database/query` ran the schema; `config/auth`
+   PATCH enabled Google. Note: the API field for the authorized-ID list is
+   `external_google_additional_client_ids` (a comma-separated STRING, not an
+   array); the single Web client ID ended up stored as
+   `external_google_client_id` — the canonical arrangement for the ID-token
+   flow (gotrue accepts an audience matching either field), secret
+   deliberately null. Verified live: table exists, RLS on, 3 owner-scoped
+   policies, **0 delete policies**, rev trigger, 3 MB check constraint, FK to
+   `auth.users`, realtime publication, 0 rows; public-key probe returns
+   `200 []` (anon sees nothing); fake-token probe returns `400 Bad ID token`
+   (provider enabled — signature path reached). The remaining proof can only
+   happen in a real browser: Connect with Google on the live site.
+
 ### 18.5 Honest edges
 
 * Merge granularity is one blob per user: a key's scalar conflict resolves by
