@@ -1291,6 +1291,100 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 29 · v67 "The Friday Waecathon" + live room audio (2026-09-27)
+
+Two things the school asked for, shipped together because they touch the same
+file. Design-review §5.3 was the last bar-raiser: a whole-school exam event
+with a life of its own. Live room audio was the teacher's request — the sound
+of the exam hall, heard from the console, on the same ephemeral contract as
+the cameras. Nothing here edits the question bank, the engine's maths, or the
+activation gate.
+
+### 29.1 The Friday Waecathon
+
+One tap drafts a whole-school sitting; one banner counts it down; one table
+settles it.
+
+  * **The template** (`docs/cbt.js`, `waecTemplate()`): a gold button in the
+    paper builder — **🏆 Schedule the Friday Waecathon** — writes the draft
+    for you: class **ALL** (a new fourth chip in the class row), 40 questions
+    drawn across the *entire* bank, 60 minutes, instant results and ranking
+    on, and the sitting pinned to the **next Friday at 16:00** local
+    (`nextFriday16()` — today included, unless it is already past four).
+    The title arrives pre-written: *Friday Waecathon · 3 Oct*. The teacher
+    still reviews every field and still presses **Go live** — the template
+    drafts, it never publishes.
+  * **ALL is a real class option**: the bank draw skips the class filter when
+    the draft says ALL, so SS1–SS3 sit the *same* paper. Session settings
+    carry `waecathon: true` and ride the existing `settings` jsonb — no
+    schema change for the session table.
+  * **Houses**: every attempt now stamps the student's class at join time
+    (`cls`, read from the same `study_grade` key the progress reporter uses).
+    The teacher console's Results grows a **🏆 House table** for waecathon
+    sessions: each class ranked by average score, sitters counted, top scorer
+    named. The WhatsApp summary posts the same table under the ranking.
+  * **The countdown** (`docs/ui/habits.js`, `waecFetch`/`waecHtml`): the
+    Today board grows a wide navy banner — but *only* when the school really
+    has a waecathon waiting. It reads one row from `cbt_sessions`
+    (`settings->>waecathon=eq.true`, status waiting or live), caches ten
+    minutes like the league, and fails closed on a locked device or offline:
+    no banner, no error, no noise. Before the day: *"Friday Waecathon in 3
+    days — 40 questions · every class · the winning house keeps the table."*
+    On the day, when the paper goes live, the banner becomes the door:
+    **Enter the CBT hall →** clicks straight through to the live tab.
+
+### 29.2 Live room audio
+
+The camera system's twin, on the camera system's privacy contract. **Off by
+default**; a paper that doesn't ask for it behaves exactly as before.
+
+  * **Teacher side** (`docs/cbt.js`): the builder grows a *Live room audio*
+    select (off / optional / required). The console grows an **audio wall**
+    under the camera wall — one tile per mic: name, a live level bar fed by
+    level heartbeats, chunk count, and a **▶ Listen live** button that plays
+    the rolling in-memory buffer through a Blob URL. The roster grows a
+    conditional **🎙** column showing the status word only
+    (`on · denied · no mic · skipped`) — never audio.
+  * **Student side**: a waiting-room card, a chip inside the paper, and —
+    when required — the gate becomes a **MICROPHONE CHECK** (or both checks
+    at once, with a shared *Start the exam* button). Audio is captured with
+    `MediaRecorder` in ~15-second chunks (opus/webm, mime-sniffed), base64'd
+    and broadcast over the existing realtime channel. A chunk over 900 KB is
+    dropped rather than sent.
+  * **The contract, stated plainly to the student before anything switches
+    on**: audio is sent live and is **never recorded and never stored** — the
+    teacher's console keeps a rolling ~40 chunks (≈10 minutes) *in memory
+    only*; when the paper ends, the sound is gone. The database keeps the
+    status word, nothing else. Every path that stops the camera also stops
+    the mic (submit, auto-submit, leave hall, re-mount).
+
+### 29.3 The one-time SQL paste (houses + status word)
+
+`tools/waecathon_alter.sql` — two idempotent `add column if not exists`
+statements on `public.cbt_attempts` (`cls text`, `voice text`, both
+`not null default ''`) plus an index for the house table. **Until it is
+pasted the site still works**: joins detect the missing columns (400 →
+remembered in `nssc_cbt_nocols`), retry without them, the house table falls
+back to "—", and the roster mic column shows "—". Paste it in
+Supabase → SQL Editor → Run, once.
+
+### 29.4 Version plumbing + verification
+
+  * `docs/sw.js` cache `-v71` → **`-v72`**; `docs/upgrade.js` **V = 67**
+    "The Friday Waecathon" with a two-part whats-new entry; `docs/cbt.js`
+    internal **VERSION 62**.
+  * `tools/verify.py` grows **§32** (27 checks: template, ALL draw, house
+    table, wa summary, voice engine, chunk ceiling, privacy copy, stop-paths,
+    buffer cap, audio wall, gate trio, banner fail-closed, SQL idempotence)
+    and every `-vNN` pin moves to `-v72`. **429 passed · 0 failures.**
+  * New suites: `tools/waectest.js` (template → draft → 40q → house table →
+    banner) and `tools/audiotest.js` (fake-media mic through the WS echo
+    server: gate, chunk broadcast, teacher tile, Listen playback, status
+    word). Full existing grid re-run green — including the 80-check CBT suite
+    on a camera-required paper, which must be *unchanged* by the gate rewrite.
+
+---
+
 ## 28 · v66 "Examiner's Marginalia" — explanation craft as brand voice (2026-09-26)
 
 Design-review §5.2, the second bar-raiser: UWorld wins trust with explanation

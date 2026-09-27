@@ -10,7 +10,10 @@
        reports — effort-based (questions answered this week), first names
        only, and it degrades to a calm empty state until reports exist;
      • celebration moments (quest complete, streak milestone, league top
-       three) with a reduced-motion guard.
+       three) with a reduced-motion guard;
+     • v67 — the FRIDAY WAECATHON banner: when the school schedules its
+       whole-school paper, the board shows the countdown; on the day it
+       becomes the door to the CBT hall. Silent when there is none.
    Everything here is additive: the engine's own streak/XP/badge maths is
    untouched and remains authoritative for badges; this module only
    displays, bridges and rewards. */
@@ -23,6 +26,7 @@
   var MSTART = "nssc_hab_mstart";    /* {d:'YYYY-MM-DD', n:mistakesCount}          */
   var LEAG = "nssc_hab_league";      /* {at:ms, rows:[...]}                        */
   var CEL = "nssc_hab_cel";          /* {'kind:YYYY-MM-DD':1}                      */
+  var WAEC = "nssc_hab_waec";        /* {at:ms, rows:[...]}                        */
 
   function ls(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } }
   function sv(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -149,6 +153,52 @@
     return out;
   }
 
+  /* ---------------------------------------------------------- waecathon */
+  function nextFriday16(from) {
+    var d = from ? new Date(from) : new Date();
+    var add = (5 - d.getDay() + 7) % 7;              /* 5 = Friday */
+    if (add === 0 && d.getHours() >= 16) add = 7;
+    d.setDate(d.getDate() + add); d.setHours(16, 0, 0, 0);
+    return d;
+  }
+  function waecFetch() {
+    /* fail-closed like the reporter: a locked device makes zero requests */
+    try { if (!window.MAMSS_ACT || !MAMSS_ACT.activated || !MAMSS_ACT.activated()) return Promise.resolve(null); } catch (e) { return Promise.resolve(null); }
+    var cached = ls(WAEC, null);
+    if (cached && Date.now() - cached.at < 600000) return Promise.resolve(cached.rows);
+    var c = null;
+    try { c = (window.MAMSS_ACT && MAMSS_ACT.ledger && MAMSS_ACT.ledger()) || (window.MAMSS_CODES && MAMSS_CODES.ledger) || null; } catch (e) {}
+    if (!c) return Promise.resolve(cached ? cached.rows : null);
+    var qs = "/rest/v1/cbt_sessions?select=code,title,status,scheduled_at&settings->>waecathon=eq.true&status=in.(waiting,live)&order=scheduled_at.asc&limit=1";
+    return fetch(c.url + qs, { headers: { "apikey": c.key, "Authorization": "Bearer " + c.key } })
+      .then(function (r) {
+        if (!r.ok) return cached ? cached.rows : null;
+        return r.json().then(function (rows) { sv(WAEC, { at: Date.now(), rows: rows }); return rows; });
+      }).catch(function () { return cached ? cached.rows : null; });
+  }
+  function waecHtml(rows) {
+    if (!rows || !rows.length) return "";            /* no waecathon: the banner stays quiet */
+    var r = rows[0], now = Date.now();
+    var when = r.scheduled_at ? new Date(r.scheduled_at) : nextFriday16();
+    if (isNaN(when.getTime())) when = nextFriday16();
+    var head, sub, go = false;
+    if (r.status === "live" || (r.status === "waiting" && when.getTime() <= now)) {
+      head = r.status === "live" ? "The Waecathon is LIVE" : "The Waecathon doors are open";
+      sub = "40 questions · every class · one house table. Walk in — your class is waiting on you.";
+      go = true;
+    } else {
+      var ms = when.getTime() - now;
+      var dd = Math.floor(ms / DAY), hh = Math.floor(ms % DAY / 3600000), mm = Math.floor(ms % 3600000 / 60000);
+      head = "Friday Waecathon in " + (dd > 0 ? dd + " day" + (dd === 1 ? "" : "s") : hh > 0 ? hh + " h " + mm + " min" : mm + " min");
+      sub = "40 questions · every class · the winning house keeps the table. " +
+        when.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }) + " at " +
+        String(when.getHours()).padStart(2, "0") + ":" + String(when.getMinutes()).padStart(2, "0") + ".";
+    }
+    return '<div class="hab-waec-in"><span class="hab-waec-cup" aria-hidden="true">🏆</span>' +
+      "<div><h3>" + esc(head) + '</h3><p class="hab-muted">' + esc(sub) + "</p></div>" +
+      (go ? '<button type="button" class="hab-waec-go" data-goto-cbt>Enter the CBT hall →</button>' : "") + "</div>";
+  }
+
   /* -------------------------------------------------------- celebration */
   function celebrate(kind, title, sub) {
     var key = kind + ":" + dayKey();
@@ -215,6 +265,8 @@
     h += "</article>";
     /* league card */
     h += '<article class="hab-card hab-league"><h3>This week’s league</h3><div class="hab-league-body" id="habLeagueBody"><p class="hab-muted">Reading the class board…</p></div></article>';
+    /* waecathon banner (v67) — only appears when the school has scheduled one */
+    h += '<article class="hab-card hab-waec" id="habWaec" hidden aria-label="Friday Waecathon"></article>';
     h += "</div>";
     host.innerHTML = h;
     leagueFetch().then(function (rows) {
@@ -237,6 +289,19 @@
       body.innerHTML = top + meLine || '<p class="hab-muted">No questions logged this week yet — set the pace.</p>';
       if (mine != null && mine < 3) celebrate("league", "Podium finish", "You sit in the top three of this week’s league — the board remembers.");
     });
+    waecFetch().then(function (rows) {
+      var host2 = document.getElementById("habWaec");
+      if (!host2) return;
+      var html = waecHtml(rows);
+      if (!html) return;
+      host2.innerHTML = html;
+      host2.hidden = false;
+      var go2 = host2.querySelector("[data-goto-cbt]");
+      if (go2) go2.onclick = function () {
+        var a = document.querySelector('a[data-view="cbt"], button[data-view="cbt"]');
+        if (a) a.click();
+      };
+    });
   }
   function esc(s) {
     return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
@@ -258,7 +323,7 @@
   }
   window.MAMSS_HABITS = {
     render: render, streak: streak, quests: questState, league: leagueRows, celebrate: celebrate,
-    _test: { dayKey: dayKey, weekStart: weekStart, weekKey: weekKey, rawStreak: rawStreak, studyDays: studyDays, CLAIM: CLAIM, FREEZ: FREEZ, MSTART: MSTART, LEAG: LEAG, CEL: CEL }
+    _test: { dayKey: dayKey, weekStart: weekStart, weekKey: weekKey, rawStreak: rawStreak, studyDays: studyDays, CLAIM: CLAIM, FREEZ: FREEZ, MSTART: MSTART, LEAG: LEAG, CEL: CEL, WAEC: WAEC, waecHtml: waecHtml, nextFriday16: nextFriday16 }
   };
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init);
   else setTimeout(init, 0);
