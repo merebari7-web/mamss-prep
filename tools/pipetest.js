@@ -33,7 +33,7 @@ function seedFor(role, opts) {
     : { h: 'testsuite0000001', mask: 'MAMSS··STUDE··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada Student' };
   return `
     window.__CBT_FORCE_POLL = 1;
-    localStorage.setItem('nssc_mp_seen', '60');
+    localStorage.setItem('nssc_mp_seen', '70');
     localStorage.setItem('nssc_devid', JSON.stringify('${role}-pipe-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
   `;
@@ -161,7 +161,7 @@ const BAD_DUP = 'English Language,SS3,Comprehension,"Choose the option nearest i
     ok('validate: short stem rejected', !A.short.ok && A.short.errs.some(e => /too short/.test(e)), A.short.errs);
     ok('validate: missing option rejected', !A.missingOpt.ok && A.missingOpt.errs.some(e => /four options/.test(e)));
     ok('validate: duplicate options rejected after normalization', !A.dupOpts.ok && A.dupOpts.errs.some(e => /distinct/.test(e)), A.dupOpts.errs);
-    ok('validate: JSS1 rejected — SS1/SS2/SS3 only', !A.badClass.ok && A.badClass.errs.some(e => /SS1, SS2 or SS3/.test(e)));
+    ok('validate: JSS1 sits with the seniors now (v70 whole school)', A.badClass.ok && A.badClass.q.cls === 'JSS1', A.badClass.errs);
     ok('validate: "ss 2" normalizes to SS2', A.looseClass.ok && A.looseClass.q.cls === 'SS2');
     ok('validate: answer "E" rejected', !A.badAns.ok && A.badAns.errs.some(e => /A-D or 0-3/.test(e)));
     ok('validate: length caps (stem 1000, explanation 600)', !A.tooLong.ok && A.tooLong.errs.length >= 2, A.tooLong.errs);

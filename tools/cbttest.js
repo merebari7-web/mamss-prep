@@ -8,6 +8,19 @@
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 
+async function enterExam(p, ms) {
+  await p.waitForFunction(() => document.getElementById('cbtGateGo') || document.getElementById('cbtBriefGo') || document.getElementById('cbtRunTimer'), null, { timeout: ms || 20000 });
+  if (await p.locator('#cbtGateGo').count()) {
+    await p.click('#cbtGateCamEnable');
+    await p.click('#cbtGateVoxEnable');
+    await p.waitForFunction(() => { const g = document.getElementById('cbtGateGo'); return g && !g.disabled; }, null, { timeout: 15000 });
+    await p.click('#cbtGateGo');
+  }
+  await p.waitForFunction(() => document.getElementById('cbtBriefGo') || document.getElementById('cbtRunTimer'), null, { timeout: 8000 });
+  if (await p.locator('#cbtBriefGo').count()) { await p.check('#cbtBriefOk'); await p.click('#cbtBriefGo'); }
+  await p.waitForSelector('#cbtRunTimer', { timeout: 8000 });
+}
+
 const BASE = process.argv[2] || 'http://localhost:8100/';
 const MOCK_PORT = 8124;
 const MOCK = 'http://127.0.0.1:' + MOCK_PORT;
@@ -35,12 +48,15 @@ function seedFor(role, opts) {
   const head = opts.ws
     ? "window.__CBT_WS_URL = 'ws://127.0.0.1:8127/realtime/v1/websocket'; window.__CBT_CAM_MS = 2000;"
     : "window.__CBT_FORCE_POLL = 1;";
+  const grade = opts.grade != null ? "localStorage.setItem('study_grade', JSON.stringify(" + opts.grade + "));" : '';
   const noCam = opts.noCam
     ? "Object.defineProperty(navigator, 'mediaDevices', { configurable: true, value: { getUserMedia: function () { return Promise.reject(Object.assign(new Error('no camera'), { name: 'NotFoundError' })); } } });"
     : "";
   return `
     ${head}
-    localStorage.setItem('nssc_mp_seen', '60');
+    localStorage.setItem('nssc_mp_seen', '70');
+      localStorage.setItem('nssc_cbt_who', '1');
+    ${grade}
     localStorage.setItem('nssc_devid', JSON.stringify('${role}-test-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
     ${noCam}
@@ -105,7 +121,7 @@ async function openCbt(p) {
   try {
     /* ---------- 1. identity & role ---------- */
     const T = await mkCtx(browser, 'teacher');
-    const S = await mkCtx(browser, 'student');
+    const S = await mkCtx(browser, 'student', { grade: 1 });
     ok('gate unlocked for planted teacher activation', await T.p.evaluate(() => !document.getElementById('gateOverlay') || getComputedStyle(document.getElementById('gateOverlay')).display === 'none' || document.body.dataset.view !== undefined));
     ok('MAMSS_ACT.teacher() true on TEACHER-1 batch', await T.p.evaluate(() => MAMSS_ACT.teacher() === true));
     ok('MAMSS_ACT.teacher() false on student batch', await S.p.evaluate(() => MAMSS_ACT.teacher() === false));
@@ -194,7 +210,7 @@ async function openCbt(p) {
     ok('monitor countdown running', true);
 
     /* ---------- 7. student transitions to runner ---------- */
-    await S.p.waitForSelector('#cbtRunTimer', { timeout: 8000 });
+    await enterExam(S.p, 8000);
     ok('runner opened automatically when teacher started', true);
     ok('timer ticking mm:ss', await S.p.waitForFunction(() => /^\d+:\d{2}$/.test(document.getElementById('cbtRunTimer').textContent), null, { timeout: 4000 }).then(() => true));
     ok('question 1 of 6, four options', await S.p.locator('.cbt-card').first().innerText().then(t => /Question 1 of 6/.test(t)) && await S.p.locator('.cbt-opt').count() === 4);
@@ -246,7 +262,7 @@ async function openCbt(p) {
     await openCbt(S.p);
     await S.p.fill('#cbtJoinCode', code);
     await S.p.click('#cbtJoinBtn');
-    await S.p.waitForSelector('#cbtRunTimer', { timeout: 15000 });
+    await enterExam(S.p, 15000);
     ok('after refresh: resumed at question 3 (no reset)', await S.p.locator('#viewCbt').innerText().then(t => /Question 3 of 6/.test(t)));
     await S.p.waitForFunction(() => /^\d+:\d{2}$/.test(document.getElementById('cbtRunTimer').textContent), null, { timeout: 5000 });
     const tTxt = await S.p.locator('#cbtRunTimer').innerText();
@@ -267,8 +283,12 @@ async function openCbt(p) {
       await S.p.click('#cbtNextBtn');
       if (i < 6) await S.p.waitForFunction(n => new RegExp('Question ' + n + ' of 6').test(document.querySelector('#viewCbt').textContent), i + 1, { timeout: 8000 });
     }
+    await S.p.waitForSelector('#cbtRevSubmit', { timeout: 12000 });
+    ok('the review page counts the whole paper first', /6 of 6 answered/.test(await S.p.locator('#viewCbt').innerText()));
+    ok('review pad shows every question settled', await S.p.locator('#cbtPalHost .done').count() === 6);
+    await S.p.click('#cbtRevSubmit');
     await S.p.waitForSelector('.cbt-chip', { timeout: 12000 });
-    ok('auto-submit on last question → SUBMITTED', await S.p.locator('#viewCbt').innerText().then(t => /SUBMITTED/.test(t) && !/AUTO-SUBMITTED/.test(t)));
+    ok('confirm on the review page → SUBMITTED', await S.p.locator('#viewCbt').innerText().then(t => /SUBMITTED/.test(t) && !/AUTO-SUBMITTED/.test(t)));
     ok('score shown as X / 6', await S.p.locator('.cbt-big-code').innerText().then(t => /^\d+ \/ 6$/.test(t.trim())));
     ok('instant breakdown lists all 6 with ✅/❌', await S.p.locator('.cbt-draft-q').count() === 6 && await S.p.locator('#viewCbt').innerText().then(t => /[✅❌⬜]/.test(t)));
     atts = await dump('attempts'); ans = await dump('answers');
@@ -288,6 +308,7 @@ async function openCbt(p) {
     await T.p.click('[data-ctab="create"]');
     await T.p.fill('#cbtDraftTitle', 'Timeout Drill');
     await T.p.fill('#cbtCount', '2');
+    await T.p.click('[data-cls="SS2"]');
     await T.p.click('#cbtDraw');
     await T.p.waitForFunction(() => document.querySelectorAll('.cbt-draft-q').length === 2, null, { timeout: 15000 });
     await T.p.click('#cbtGoLive');
@@ -344,7 +365,6 @@ async function openCbt(p) {
     await T3.p.waitForFunction(() => typeof CLASSES !== 'undefined' && CLASSES.length === 3, null, { timeout: 45000 });
     await T3.p.fill('#cbtDraftTitle', 'Camera Paper');
     await T3.p.fill('#cbtCount', '2');
-    await T3.p.selectOption('#cbtWebcam', 'required');
     await T3.p.click('#cbtDraw');
     await T3.p.waitForFunction(() => document.querySelectorAll('.cbt-draft-q').length === 2, null, { timeout: 15000 });
     await T3.p.click('#cbtGoLive');
@@ -360,14 +380,18 @@ async function openCbt(p) {
     await S3.p.fill('#cbtJoinCode', codeC);
     await S3.p.click('#cbtJoinBtn');
     await S3.p.waitForSelector('#cbtGateCamEnable', { timeout: 15000 });
-    ok('required mode opens the CAMERA CHECK gate', await S3.p.locator('#viewCbt').innerText().then(t => /requires webcam monitoring/i.test(t)));
-    ok('gate states the privacy promise plainly', await S3.p.locator('#viewCbt').innerText().then(t => /never recorded/i.test(t) && /never stored/i.test(t)));
+    ok('policy gate opens on CAMERA & MICROPHONE CHECK', await S3.p.locator('#viewCbt').innerText().then(t => /every paper proctored/i.test(t)));
+    ok('gate states the privacy promise plainly', await S3.p.locator('#viewCbt').innerText().then(t => /Nothing is recorded and nothing is stored/i.test(t) && /the video and the sound are gone/i.test(t)));
+    ok('the door stays shut until both are live', await S3.p.locator('#cbtGateGo').isDisabled());
     await S3.p.click('#cbtGateCamEnable');
     await S3.p.waitForFunction(() => { const w = document.getElementById('cbtGateCamWrap'); return w && !w.hidden; }, null, { timeout: 10000 });
     ok('self-preview appears once permission is granted', true);
-    await S3.p.waitForFunction(() => /Looks good/.test(document.getElementById('cbtGateCamEnable').textContent), null, { timeout: 5000 });
-    await S3.p.click('#cbtGateCamEnable');
-    await S3.p.waitForSelector('#cbtRunTimer', { timeout: 10000 });
+    await S3.p.waitForFunction(() => /Camera looks good/.test(document.getElementById('cbtGateCamEnable').textContent), null, { timeout: 5000 });
+    await S3.p.click('#cbtGateVoxEnable');
+    await S3.p.waitForFunction(() => { const g = document.getElementById('cbtGateGo'); return g && !g.disabled; }, null, { timeout: 15000 });
+    ok('both live → the door opens', true);
+    await S3.p.click('#cbtGateGo');
+    await enterExam(S3.p, 10000);
     ok('runner opens after confirm, with corner pin + 📹 On chip', await S3.p.locator('#cbtCamPin:not([hidden])').count() === 1 && await S3.p.locator('#cbtCamChip').innerText().then(t => /On/.test(t)));
     const attC = (await dump('attempts')).filter(a => a.session_code === codeC);
     ok('attempt row stamped webcam=on', attC.length === 1 && attC[0].webcam === 'on');
@@ -386,6 +410,8 @@ async function openCbt(p) {
       await S3.p.click('#cbtNextBtn');
       if (i < 2) await S3.p.waitForFunction(n => new RegExp('Question ' + n + ' of 2').test(document.querySelector('#viewCbt').textContent), 2, { timeout: 8000 });
     }
+    await S3.p.waitForSelector('#cbtRevSubmit', { timeout: 10000 });
+    await S3.p.click('#cbtRevSubmit');
     await S3.p.waitForFunction(() => /SUBMITTED/.test(document.querySelector('#viewCbt').textContent), null, { timeout: 12000 });
     const camAfter = await S3.p.evaluate(() => MAMSS_CBT._test.cam());
     ok('camera fully stops at submit (all tracks ended — light off)', camAfter.on === false && camAfter.tracks.length === 0);
@@ -396,11 +422,8 @@ async function openCbt(p) {
     await S4.p.click('#cbtJoinBtn');
     await S4.p.waitForSelector('#cbtGateCamEnable', { timeout: 15000 });
     await S4.p.click('#cbtGateCamEnable');
-    await S4.p.waitForFunction(() => /continue without camera/i.test(document.getElementById('cbtGateCamFb').textContent), null, { timeout: 8000 });
-    ok('broken camera → honest error + continue option', true);
-    await S4.p.click('#cbtGateCamSkip');
-    await S4.p.waitForSelector('#cbtRunTimer', { timeout: 10000 });
-    ok('exam still runs without a camera (teacher decides what to do)', true);
+    await S4.p.waitForFunction(() => /cannot start without the camera/i.test(document.getElementById('cbtGateCamFb').textContent), null, { timeout: 8000 });
+    ok('broken camera → honest error and no way past the door', await S4.p.locator('#cbtGateGo').isDisabled() && await S4.p.locator('#cbtGateCamSkip').count() === 0);
     const attC2 = (await dump('attempts')).filter(a => a.session_code === codeC);
     ok('unavailable camera stamped on the attempt row', attC2.some(a => a.webcam === 'unavailable'));
     /* optional mode never blocks */
@@ -418,11 +441,12 @@ async function openCbt(p) {
     await openCbt(S3.p);
     await S3.p.fill('#cbtJoinCode', codeD);
     await S3.p.click('#cbtJoinBtn');
-    await S3.p.waitForSelector('#cbtRunTimer', { timeout: 15000 });
-    ok('optional mode: runner opens with no gate', await S3.p.locator('#cbtGateCamEnable').count() === 0);
-    ok('optional mode: chip offers Enable camera', await S3.p.locator('#cbtCamRunEnable').count() === 1);
+    ok('policy mode: every paper opens at the gate, even old optional settings', await S3.p.waitForSelector('#cbtGateCamEnable', { timeout: 10000 }).then(() => true));
+    await enterExam(S3.p, 15000);
+    await enterExam(S3.p, 15000);
+    ok('policy mode: chip shows On once the gate is passed', await S3.p.locator('#cbtCamChip').innerText().then(t => /On/.test(t)));
     const attD = (await dump('attempts')).filter(a => a.session_code === codeD);
-    ok('no stamp until the student actually enables (webcam stays empty)', attD.length === 1 && !attD[0].webcam);
+    ok('attempt stamped webcam=on after the gate', attD.length === 1 && attD[0].webcam === 'on');
     ok('no page errors (teacher cam ctx)', T3.errs.length === 0, T3.errs.slice(0, 2).join(' | '));
     ok('no page errors (student cam ctx)', S3.errs.length === 0, S3.errs.slice(0, 2).join(' | '));
 

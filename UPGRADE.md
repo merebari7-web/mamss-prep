@@ -1291,6 +1291,154 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 32 · v70 "The Whole School" — JSS joins the hall, the sitting door, the calculator, the locked proctoring door (2026-09-27)
+
+The user's brief, items 1–5: *add JSS 1–3 to the live CBT; ask name and class
+before entering; give the hall a calculator; make webcam AND voice compulsory
+and advancedly improved; polish the teacher console and student section.* v70
+ships all five, plus the bugs the grid found on the way.
+
+1. **Six classes, one bank.** `SCHOOL_CLASSES = SS1…SS3 + JSS1…JSS3`.
+   `clsOf(study_grade)` maps grades 0–2 → SS1–3 and 3–5 → JSS1–3, so the
+   existing grade seed doubles as the class seed. The teacher's builder class
+   buttons run SS1 → ALL; every session carries a `cls`. **The bug that cost
+   the most time:** the first patch declared `var CLASSES` at module level,
+   which *shadowed the quiz-bank's global `CLASSES`* (the `{class, questions}`
+   array that `whenBank`/`bankQuestions` read) — the bank silently never
+   loaded and every draw produced 0 questions. Renamed to `SCHOOL_CLASSES`
+   with a "do not shadow" comment; verify.py §35 pins the name.
+2. **The sitting door.** A student without `nssc_cbt_who` never reaches the
+   hall: `renderWho` asks *Who sits today?* — full name, then one of the six
+   class tabs. It refuses an empty name honestly. On success the home card
+   wears the sitter ("Sitting as Ada Chukwuma · JSS2" + a Change button), and
+   **the join guard matches the paper's class to the sitter's** — a JSS2 code
+   handed to an SS1 sitter is refused at the door, not mid-exam. Teachers skip
+   the door (their console is not class-bound). Two wiring bugs fixed here:
+   the door handler never reset `ui.tab` (render re-entered the door) and the
+   Change-button wire landed in `renderWaiting` instead of `renderHome`.
+3. **The calculator.** `quiz/calc.js` is a self-contained WAEC/JAMB-style
+   scientific calculator (RPN engine, Ans, memory, deg/rad, x², 1/x). It lazy-
+   loads on first press: `openCalc()` injects the script once, then
+   `__calcApi.open()`. Buttons sit beside *Review & submit* on the runner (the
+   camera pin overlays the header, so the first placement was unclickable) and
+   on the review page. Nothing about the calculator touches the answer stream.
+4. **Proctoring is now school policy, not a teacher's choice.** `camMode` and
+   `voiceMode` are hard-`"required"`: the builder's cam/voice selects are
+   hidden behind a policy note (ids kept for state), the sitting gate demands
+   **both** — camera enable + microphone enable — and `Go` stays disabled
+   until both are live, with retry-on-fail and a "no hardware?" help line.
+   There is **no skip**. Privacy promises were rewritten to match ("Nothing is
+   recorded and nothing is stored… the video and the sound are gone") because
+   ephemeral broadcast-only streaming is the law of the house even when the
+   check is compulsory.
+5. **Console + student polish.** The board filters to *my classes* (`mine()`),
+   attempt rows prefer the sitting-door name over the activation name, the
+   gate stamp records both columns (webcam=on, voice=on), and `ui/atelier.css`
+   gained the v70 block: sitting-door tabs, the gate's two-column check panel,
+   the calculator overlay chrome.
+6. **Grid.** cbttest 83 · waectest 53 · audiotest 53 · proftest 52 · cuptest
+   28 · pipe 57 · a11y 38 · dash 37 · sync 60 · progress 35 · code 33 ·
+   slip 21 · offline 16 · marginalia 21 · response 51 · exclusive 15 · arena
+   16 · prestige 11 · cmd 14 · adaptive 18 · bank 20 · why 13 · habits 14 —
+   **845 checks, 0 failures**; verify.py "Clear to deploy" (sw `-v75`,
+   upgrade V=70, cbt VERSION 65). Suites moved with the product: who-seeds
+   everywhere, fake-media launch args for every student, class-aligned paper
+   fixtures, gate asserts *before* `enterExam` clears it, and
+   `__calcApi.compute("12+8")` takes the expression as its argument.
+
+Honest edges: the sitting door trusts the sitter's own class choice — the
+guard stops a wrong-class *code*, not a wrong-class *tab pick* (that is the
+invigilator's eye, by design); JSS classes share the SS question bank until a
+JSS bank exists (the builder can set any paper to any class); the calculator
+has no history tape.
+
+## 31 · v69 "The Gold Standard" — the ProProfs-grade candidate desk (2026-09-27)
+
+The user's bar: *make the live CBT the best in the world, like ProProfs Quiz
+Maker.* So the hall took the world table's candidate rituals — and kept its
+own soul: **a saved answer is final, like ink on paper.** Where ProProfs logs
+answer-changes, MAMSS forbids them and says so plainly.
+
+  * **The briefing ritual**: before the paper opens, every candidate reads
+    the rules of the hall — move freely, answer once; the pad; the review;
+    the integrity log; the shuffle — and pledges with a checkbox. Once per
+    device per session; a rejoin walks straight in.
+  * **The number pad** (JAMB-style, under the paper): answered cells navy,
+    starred cells amber, the open question ringed gold, the rest waiting.
+    Tap any cell to jump. A live count reads "3 answered · 1 marked · 3 to
+    go", and a **Review & submit** door stands beside it.
+  * **Mark for review**: a star per question, kept per device+session, amber
+    on the pad until the question is settled.
+  * **Review-and-confirm**: the pad becomes a page — answered, marked,
+    unanswered named by number, every question listed with its saved letter
+    or its silence, the clock still ticking — then one gold confirm. Nobody
+    submits a paper they have not seen whole; the last save lands here,
+    never on a blind submit.
+  * **Seeded shuffle**: a teacher switch (on by default for the Waecathon)
+    permutes question *and* option order per device — FNV-seeded from
+    device+session, so a rejoin keeps the same paper and grading always
+    speaks in the paper's own indices. Reading over a shoulder gains nothing.
+  * **The copy/print lock**: Ctrl/Cmd + C·X·P·U die while the paper runs,
+    with a toast that says why.
+  * **The certificate**: a passing score (teacher `passPct`, default 50)
+    mints a printable certificate — crest, name, class, paper, date, score,
+    band (Pass · Merit · Distinction), verify code — isolated for print so
+    the school's printer sees only the sheet.
+  * **Personalised results**: the finish page now speaks — distinction work,
+    a pass with its revisit list, or a study line naming the exact questions
+    to start from.
+  * **Teacher dwell-time**: the per-question analysis keeps its option bars
+    and adds "⏱ avg 14s on this question" from the `ms` rows the hall already
+    writes — ProProfs' action-log insight without a byte of new schema.
+  * **Version plumbing + verification**: `sw.js` `-v73` → **`-v74`**;
+    `upgrade.js` **V = 69** "The Gold Standard"; `cbt.js` internal
+    **VERSION 64**; `tools/verify.py` §34 (16 checks), every pin at `-v74` —
+    **456 passed · 0 failures**; new suite `tools/proftest.js` (**43
+    checks**: seeded maths, briefing pledge, pad order vs seed, locked ink,
+    marks, review counts, copy-lock, certificate + verify line, dwell-time,
+    rejoin determinism, fail-path honesty); full 24-suite regression grid
+    green — **822 checks**, including the rebuilt runner suites that now
+    pledge, review and confirm like real candidates.
+
+---
+
+## 30 · v68 "The House Cup" — the persistent class-vs-class board (2026-09-27)
+
+Design-review §5.3's last line, closed: *"results feed a persistent
+class-vs-class board … (the tables already exist)."* v67 shipped the
+per-sitting house table; v68 makes the houses compete across a season.
+
+  * **The settling rule**: every *ended* Friday Waecathon pays 3 points to
+    the leading house (by average score), 2 to the second, 1 to the third.
+    Ties on average break to the house that fielded more sitters — showing
+    up matters.
+  * **The Cup panel** (teacher console → School tab, `drawCupPanel`): a
+    permanent table — house, cup points, wins, Waecathons, sitters, average,
+    best single score — leader medalled, the rule stated beneath, and a
+    **💬 House Cup summary** button that writes the season to the staff
+    WhatsApp group. Before the first Waecathon ends the panel explains the
+    ritual and points at the one-tap template; it never shows an error state.
+  * **The gold strip** (hall board, `cupStrip`): one line under the live
+    board for every student and teacher — *"🏆 House Cup — SS2 lead on 8 pts
+    after 3 Waecathons · SS2 8 · SS3 6 · SS1 3"* — so the standings are
+    visible exactly where papers are joined.
+  * **The house table now states what it paid**: each Waecathon results page
+    ends its house table with "Cup points this sitting: SS2 +3 · SS1 +2 …".
+  * **Zero schema**: `cupStandings()` aggregates rows the exams already
+    write (`cbt_attempts.cls`, the session's `waecathon` flag, submitted
+    scores) through one guarded fetch (`cupFetch`, 10-minute cache in
+    `nssc_cbt_cup`). No ledger, offline, or a server that predates the v67
+    columns all mean *no cup line* — never an error, never a blocked render.
+  * **Version plumbing + verification**: `sw.js` `-v72` → **`-v73`**;
+    `upgrade.js` **V = 68** "The House Cup"; `cbt.js` internal **VERSION 63**;
+    `tools/verify.py` §33 (12 checks) with every pin at `-v73` — **441 passed
+    · 0 failures**; new suite `tools/cuptest.js` (**28 checks**: the 3·2·1
+    maths, tie-breaks, unsubmitted rows ignored, panel order and columns,
+    WhatsApp season text, strip content and placement, cache, pre-ALTER
+    silence); full 23-suite regression grid green (767 checks).
+
+---
+
 ## 29 · v67 "The Friday Waecathon" + live room audio (2026-09-27)
 
 Two things the school asked for, shipped together because they touch the same

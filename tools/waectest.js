@@ -10,6 +10,19 @@
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 
+async function enterExam(p, ms) {
+  await p.waitForFunction(() => document.getElementById('cbtGateGo') || document.getElementById('cbtBriefGo') || document.getElementById('cbtRunTimer'), null, { timeout: ms || 20000 });
+  if (await p.locator('#cbtGateGo').count()) {
+    await p.click('#cbtGateCamEnable');
+    await p.click('#cbtGateVoxEnable');
+    await p.waitForFunction(() => { const g = document.getElementById('cbtGateGo'); return g && !g.disabled; }, null, { timeout: 15000 });
+    await p.click('#cbtGateGo');
+  }
+  await p.waitForFunction(() => document.getElementById('cbtBriefGo') || document.getElementById('cbtRunTimer'), null, { timeout: 8000 });
+  if (await p.locator('#cbtBriefGo').count()) { await p.check('#cbtBriefOk'); await p.click('#cbtBriefGo'); }
+  await p.waitForSelector('#cbtRunTimer', { timeout: 8000 });
+}
+
 const BASE = process.argv[2] || 'http://localhost:8100/';
 const MOCK_PORT = 8125;
 const MOCK = 'http://127.0.0.1:' + MOCK_PORT;
@@ -40,7 +53,8 @@ function seedFor(role, opts) {
     : { h: 'waectest000000' + (opts.tag || '1'), mask: 'MAMSS··STUDE··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: opts.name || 'Ada Student' };
   return `
     window.__CBT_FORCE_POLL = 1;
-    localStorage.setItem('nssc_mp_seen', '67');
+    localStorage.setItem('nssc_mp_seen', '70');
+      localStorage.setItem('nssc_cbt_who', '1');
     localStorage.setItem('nssc_devid', JSON.stringify('${role}-waec-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
     ${opts.grade != null ? "localStorage.setItem('study_grade', JSON.stringify(" + opts.grade + "));" : ''}
@@ -93,7 +107,7 @@ async function openOverview(p) {
   const mock = spawn('node', [__dirname + '/cbtmock.js', String(MOCK_PORT)], { stdio: 'ignore' });
   await sleep(500);
   await fetch(MOCK + '/_reset', { method: 'POST' }).catch(() => {});
-  const browser = await chromium.launch();
+  const browser = await chromium.launch({ args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'] });
   console.log('\n=== v67 The Friday Waecathon ===\nBASE ' + BASE + ' → mock :' + MOCK_PORT + '\n');
 
   try {
@@ -114,7 +128,7 @@ async function openOverview(p) {
     ok('title names the festival + its Friday', await T.p.inputValue('#cbtDraftTitle').then(t => /Friday Waecathon · \d/.test(t)), await T.p.inputValue('#cbtDraftTitle'));
     ok('count = 40, duration = 60', (await T.p.inputValue('#cbtCount')) === '40' && (await T.p.inputValue('#cbtDuration')) === '60');
     ok('waecathon checkbox ticked', await T.p.isChecked('#cbtWaec'));
-    ok('voice defaults to off', (await T.p.inputValue('#cbtVoice')) === 'off');
+    ok('the Waecathon template requires live room audio', (await T.p.inputValue('#cbtVoice')) === 'required');
     /* the scheduled sitting must be the NEXT Friday at 16:00 local */
     const sched = await T.p.inputValue('#cbtSched');
     const when = new Date(sched);
@@ -131,7 +145,8 @@ async function openOverview(p) {
     const sess = (await dump('sessions')).find(x => x.code === code);
     ok('session stored with cls=ALL', !!sess && sess.cls === 'ALL');
     ok('settings carry waecathon=true', !!sess && sess.settings && sess.settings.waecathon === true);
-    ok('settings carry voice=off', !!sess && sess.settings.voice === 'off');
+    ok('settings carry voice=required (school policy)', !!sess && sess.settings.voice === 'required');
+    ok('the Waecathon ships shuffled per device', !!sess && sess.settings.shuffle === true);
     ok('settings kept scheduled_at', !!sess && !!sess.settings.scheduledAt);
     await T.p.click('#cbtStart');
     await T.p.waitForSelector('.cbt-chip.live', { timeout: 10000 });
@@ -143,11 +158,11 @@ async function openOverview(p) {
     await openCbt(S1.p);
     await S1.p.fill('#cbtJoinCode', code);
     await S1.p.click('#cbtJoinBtn');
-    await S1.p.waitForSelector('#cbtRunTimer', { timeout: 25000 });
+    await enterExam(S1.p, 25000);
     await openCbt(S3.p);
     await S3.p.fill('#cbtJoinCode', code);
     await S3.p.click('#cbtJoinBtn');
-    await S3.p.waitForSelector('#cbtRunTimer', { timeout: 25000 });
+    await enterExam(S3.p, 25000);
     const atts = (await dump('attempts')).filter(a => a.session_code === code);
     ok('both students joined the festival', atts.length === 2, JSON.stringify(atts.map(a => a.name)));
     ok('SS1 student stamped cls=SS1', atts.some(a => a.name === 'Ada Student' && a.cls === 'SS1'));
@@ -164,10 +179,10 @@ async function openOverview(p) {
         const isLast = i === 40;
         await S.p.click('#cbtNextBtn');
         if (isLast) {
-          const sub = S.p.locator('#cbtSubmitBtn');
-          if (await sub.count()) { await sub.click(); const cf = S.p.locator('#cbtConfirmSubmit'); if (await cf.count()) await cf.click(); }
+          await S.p.waitForSelector('#cbtRevSubmit', { timeout: 10000 });
+          await S.p.click('#cbtRevSubmit');
         } else {
-          await S.p.waitForFunction(n => new RegExp('Question ' + n + ' of 40').test(document.querySelector('#viewCbt').textContent), i + 1, { timeout: 10000 });
+          await S.p.waitForFunction(n => document.querySelectorAll('#cbtPalHost .done').length === n, i, { timeout: 10000 });
         }
       }
       await S.p.waitForFunction(() => /SUBMITTED/i.test(document.querySelector('#viewCbt').textContent), null, { timeout: 20000 });

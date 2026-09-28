@@ -7,6 +7,19 @@
 const { chromium } = require('playwright');
 const { spawn } = require('child_process');
 
+async function enterExam(p, ms) {
+  await p.waitForFunction(() => document.getElementById('cbtGateGo') || document.getElementById('cbtBriefGo') || document.getElementById('cbtRunTimer'), null, { timeout: ms || 20000 });
+  if (await p.locator('#cbtGateGo').count()) {
+    await p.click('#cbtGateCamEnable');
+    await p.click('#cbtGateVoxEnable');
+    await p.waitForFunction(() => { const g = document.getElementById('cbtGateGo'); return g && !g.disabled; }, null, { timeout: 15000 });
+    await p.click('#cbtGateGo');
+  }
+  await p.waitForFunction(() => document.getElementById('cbtBriefGo') || document.getElementById('cbtRunTimer'), null, { timeout: 8000 });
+  if (await p.locator('#cbtBriefGo').count()) { await p.check('#cbtBriefOk'); await p.click('#cbtBriefGo'); }
+  await p.waitForSelector('#cbtRunTimer', { timeout: 8000 });
+}
+
 const BASE = process.argv[2] || 'http://localhost:8100/';
 const MOCK_PORT = 8126;
 const MOCK = 'http://127.0.0.1:' + MOCK_PORT;
@@ -39,7 +52,8 @@ function seedFor(role, opts) {
     : '';
   return `
     ${head}
-    localStorage.setItem('nssc_mp_seen', '67');
+    localStorage.setItem('nssc_mp_seen', '70');
+      localStorage.setItem('nssc_cbt_who', '1');
     localStorage.setItem('nssc_devid', JSON.stringify('${role}-aud-device${opts.tag || ''}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
     ${noMic}
@@ -89,8 +103,6 @@ async function buildPaper(T, title, opts) {
   await T.p.waitForSelector('#cbtDraftTitle', { timeout: 10000 });
   await T.p.fill('#cbtDraftTitle', title);
   await T.p.fill('#cbtCount', '2');
-  if (opts.voice) await T.p.selectOption('#cbtVoice', opts.voice);
-  if (opts.webcam) await T.p.selectOption('#cbtWebcam', opts.webcam);
   await T.p.click('#cbtDraw');
   await T.p.waitForFunction(() => document.querySelectorAll('.cbt-draft-q').length === 2, null, { timeout: 30000 });
   await T.p.click('#cbtGoLive');
@@ -108,6 +120,8 @@ async function answerBoth(S) {
     await S.p.waitForFunction(() => { const b = document.getElementById('cbtNextBtn'); return b && !b.disabled; }, null, { timeout: 6000 });
     await S.p.click('#cbtNextBtn');
   }
+  await S.p.waitForSelector('#cbtRevSubmit', { timeout: 10000 });
+  await S.p.click('#cbtRevSubmit');
   await S.p.waitForFunction(() => /SUBMITTED/i.test(document.querySelector('#viewCbt').textContent), null, { timeout: 15000 });
 }
 
@@ -131,7 +145,7 @@ async function answerBoth(S) {
     const code = await buildPaper(T, 'Voice Paper', { voice: 'required', webcam: 'off' });
     const sess = (await dump('sessions')).find(x => x.code === code);
     ok('session settings carry voice=required', !!sess && sess.settings.voice === 'required');
-    ok('webcam stayed off on this paper', !!sess && sess.settings.webcam === 'off');
+    ok('webcam is compulsory on every paper now', !!sess && sess.settings.webcam === 'required');
     ok('monitor renders the audio wall', await T.p.locator('#cbtVox').count() === 1);
     ok('audio wall says it is never stored', await T.p.locator('#viewCbt').innerText().then(t => /audio is never stored/i.test(t)));
     ok('roster grows the 🎙 column', await T.p.locator('#cbtRoster').innerText().then(t => /🎙/.test(t)));
@@ -143,18 +157,20 @@ async function answerBoth(S) {
     await S.p.click('#cbtJoinBtn');
     await S.p.waitForSelector('#cbtGateVoxEnable', { timeout: 20000 });
     ok('required audio opens the MICROPHONE CHECK gate', await S.p.locator('#viewCbt').innerText().then(t => /MICROPHONE CHECK/.test(t)));
-    ok('gate states the audio privacy promise plainly', await S.p.locator('#viewCbt').innerText().then(t => /never recorded/i.test(t) && /never stored/i.test(t) && /the sound is gone/i.test(t)));
-    ok('no camera section on a voice-only paper', await S.p.locator('#cbtGateCamEnable').count() === 0);
+    ok('gate states the audio privacy promise plainly', await S.p.locator('#viewCbt').innerText().then(t => /Nothing is recorded and nothing is stored/i.test(t) && /the video and the sound are gone/i.test(t)));
+    ok('the gate asks for the camera on every paper too', await S.p.locator('#cbtGateCamEnable').count() === 1);
     await S.p.click('#cbtGateVoxEnable');
-    await S.p.waitForFunction(() => /Microphone live — start the exam/.test(document.getElementById('cbtGateVoxEnable').textContent), null, { timeout: 12000 });
-    ok('fake mic granted → the button becomes the start action', true);
-    await S.p.click('#cbtGateVoxEnable');
-    await S.p.waitForSelector('#cbtRunTimer', { timeout: 15000 });
+    await S.p.waitForFunction(() => /Microphone live/.test(document.getElementById('cbtGateVoxEnable').textContent), null, { timeout: 12000 });
+    ok('fake mic granted → the mic button confirms', true);
+    await S.p.click('#cbtGateCamEnable');
+    await S.p.waitForFunction(() => { const g = document.getElementById('cbtGateGo'); return g && !g.disabled; }, null, { timeout: 15000 });
+    await S.p.click('#cbtGateGo');
+    await enterExam(S.p, 15000);
     ok('runner opens behind the live mic', true);
     ok('chip shows 🎙 Vox live', await S.p.locator('#cbtCamChip').innerText().then(t => /Vox live/.test(t)));
     const atts = (await dump('attempts')).filter(a => a.session_code === code);
     ok('attempt row stamped voice=on', atts.length === 1 && atts[0].voice === 'on');
-    ok('voice stamp did not disturb the webcam column', atts.length === 1 && !atts[0].webcam);
+    ok('the gate stamps both columns honestly', atts.length === 1 && atts[0].webcam === 'on');
 
     /* ---------- 3. the teacher hears it: levels, chunks, tiles ---------- */
     await T.p.waitForFunction(() => { const l = MAMSS_CBT._test.voxLvls(); const k = Object.keys(l); return k.length === 1 && l[k[0]].n >= 2; }, null, { timeout: 15000 });
@@ -197,11 +213,8 @@ async function answerBoth(S) {
     /* paper 1 is still live; its gate is voice-required */
     await S4.p.waitForSelector('#cbtGateVoxEnable', { timeout: 20000 });
     await S4.p.click('#cbtGateVoxEnable');
-    await S4.p.waitForFunction(() => /continue without microphone/i.test(document.getElementById('cbtGateVoxFb').textContent), null, { timeout: 10000 });
-    ok('denied mic → honest error + continue option', true);
-    await S4.p.click('#cbtGateVoxSkip');
-    await S4.p.waitForSelector('#cbtRunTimer', { timeout: 15000 });
-    ok('exam still runs without a microphone (teacher decides)', true);
+    await S4.p.waitForFunction(() => /cannot start without the microphone/i.test(document.getElementById('cbtGateVoxFb').textContent), null, { timeout: 10000 });
+    ok('denied mic → honest error and the door stays shut', await S4.p.locator('#cbtGateGo').isDisabled() && await S4.p.locator('#cbtGateVoxSkip').count() === 0);
     const atts4 = (await dump('attempts')).filter(a => a.session_code === code);
     ok('denied mic stamped on the attempt row', atts4.some(a => a.voice === 'denied'));
     await T.p.waitForFunction(() => /denied/.test(document.getElementById('cbtRoster').textContent), null, { timeout: 20000 });
@@ -214,7 +227,7 @@ async function answerBoth(S) {
     await S2.p.fill('#cbtJoinCode', code2);
     await S2.p.click('#cbtJoinBtn');
     await S2.p.waitForSelector('#cbtGateCamEnable', { timeout: 20000 });
-    ok('both-required gate shows the camera check', await S2.p.locator('#viewCbt').innerText().then(t => /CAMERA CHECK/.test(t) && /requires webcam monitoring/i.test(t)));
+    ok('both-required gate shows the camera check', await S2.p.locator('#viewCbt').innerText().then(t => /CAMERA & MICROPHONE CHECK/.test(t) && /every paper proctored/i.test(t)));
     ok('both-required gate shows the microphone section', await S2.p.locator('#cbtGateVoxEnable').count() === 1);
     ok('both-required gate grows the shared start button', await S2.p.locator('#cbtGateGo').count() === 1);
     await S2.p.click('#cbtGateCamEnable');
@@ -224,7 +237,7 @@ async function answerBoth(S) {
     await S2.p.waitForFunction(() => /Microphone live/.test(document.getElementById('cbtGateVoxEnable').textContent), null, { timeout: 12000 });
     ok('mic enable does not start the paper on its own', await S2.p.locator('#cbtRunTimer').count() === 0);
     await S2.p.click('#cbtGateGo');
-    await S2.p.waitForSelector('#cbtRunTimer', { timeout: 15000 });
+    await enterExam(S2.p, 15000);
     ok('the shared button starts the exam once both are live', true);
     ok('chip shows camera AND mic', await S2.p.locator('#cbtCamChip').innerText().then(t => /On/.test(t) && /Vox live/.test(t)));
     await T.p.waitForFunction(() => Object.keys(MAMSS_CBT._test.voxs()).length >= 1, null, { timeout: 20000 });
@@ -239,16 +252,11 @@ async function answerBoth(S) {
     await openCbt(S.p);
     await S.p.fill('#cbtJoinCode', code3);
     await S.p.click('#cbtJoinBtn');
-    await S.p.waitForSelector('#cbtRunTimer', { timeout: 20000 });
-    ok('optional mode: runner opens with no gate', await S.p.locator('#cbtGateVoxEnable').count() === 0);
-    ok('optional mode: chip offers Enable microphone', await S.p.locator('#cbtVoxRunEnable').count() === 1);
+    await enterExam(S.p, 20000);
+    ok('policy mode: the gate came first even for an optional-setting paper', true);
+    ok('policy mode: chip shows Vox live after the gate', await S.p.locator('#cbtCamChip').innerText().then(t => /Vox live/.test(t)));
     const atts3a = (await dump('attempts')).filter(a => a.session_code === code3);
-    ok('no stamp until the student actually enables', atts3a.length === 1 && !atts3a[0].voice);
-    await S.p.click('#cbtVoxRunEnable');
-    await S.p.waitForFunction(() => /Vox live/.test(document.getElementById('cbtCamChip').textContent), null, { timeout: 12000 });
-    ok('mid-exam enable works and updates the chip', true);
-    const atts3b = (await dump('attempts')).filter(a => a.session_code === code3);
-    ok('enable stamps voice=on mid-paper', atts3b.length === 1 && atts3b[0].voice === 'on');
+    ok('the gate stamps voice=on', atts3a.length === 1 && atts3a[0].voice === 'on');
     await answerBoth(S);
     ok('mic stops again at the second submit', (await S.p.evaluate(() => MAMSS_CBT._test.vox().on)) === false);
 
@@ -259,11 +267,9 @@ async function answerBoth(S) {
     await openCbt(S5.p);
     await S5.p.fill('#cbtJoinCode', code4);
     await S5.p.click('#cbtJoinBtn');
-    await S5.p.waitForSelector('#cbtRunTimer', { timeout: 25000 });
+    await enterExam(S5.p, 25000);
     ok('join survives the pre-ALTER 400 (retry without cls)', true);
-    await S5.p.click('#cbtVoxRunEnable');
-    await S5.p.waitForFunction(() => /Vox live/.test(document.getElementById('cbtCamChip').textContent), null, { timeout: 12000 });
-    ok('mic still goes live even though the stamp 400s', true);
+    ok('mic already live from the gate even though the stamp 400s', await S5.p.locator('#cbtCamChip').innerText().then(t => /Vox live/.test(t)));
     ok('the fallback flag is remembered', await S5.p.evaluate(() => JSON.parse(localStorage.getItem('nssc_cbt_nocols') || '0') === 1));
     await answerBoth(S5);
     ok('paper submits cleanly on a pre-ALTER server', true);

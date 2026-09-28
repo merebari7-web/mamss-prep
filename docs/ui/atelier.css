@@ -2804,3 +2804,51 @@ html.ao-night .hab-bar{background:rgba(255,255,255,.12)}
 .mx-answer>b{font:700 9.5px/1.6 "Studio Sans",Arial,sans-serif;letter-spacing:.18em;text-transform:uppercase;color:var(--s-muted,#626973);margin-right:6px}
 html.ao-night .mx-frame{background:rgba(237,182,158,.06)}
 @media(prefers-reduced-motion:reduce){.mx-frame{animation:none}}
+
+/* ── v69 "The Gold Standard" — candidate desk: palette, briefing, review, certificate */
+.cbt-pal-wrap{margin:14px 0 4px;border-top:1px dashed var(--line,#d8d2c4);padding-top:10px}
+.cbt-pal{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.cbt-pal button{min-width:34px;height:34px;padding:0 6px;border:1.5px solid #b9b2a2;border-radius:8px;background:#fff;color:#1d3557;font:600 13px/1 inherit;cursor:pointer}
+.cbt-pal button.done{background:#1d3557;border-color:#1d3557;color:#fff}
+.cbt-pal button.mark{background:#fdf3d7;border-color:#b98a2e;color:#7a5a12}
+.cbt-pal button.mark.done{background:#b98a2e;border-color:#b98a2e;color:#fff}
+.cbt-pal button.cur{outline:3px solid #e0b64c;outline-offset:1px}
+.cbt-btn.marked{border-color:#b98a2e;color:#7a5a12;background:#fdf3d7}
+.cbt-brief-list{text-align:left;margin:8px 0 0;padding-left:20px;display:grid;gap:8px}
+.cbt-brief-list li{margin:0}
+.cbt-cert{border:3px double #b98a2e;border-radius:14px;background:#fffdf6;padding:8px;margin-top:6px}
+.cbt-cert-in{border:1px solid #1d3557;border-radius:10px;padding:26px 20px;text-align:center}
+.cbt-cert-kicker{letter-spacing:.22em;font:600 11px/1.4 inherit;color:#7a5a12;margin:10px 0 2px}
+.cbt-cert-title{font-family:Georgia,'Times New Roman',serif;font-size:26px;margin:4px 0;color:#1d3557}
+.cbt-cert-who{font:700 17px/1.4 inherit;margin:8px 0 2px;color:#12263f}
+.cbt-cert-line{margin:2px 0;color:#44506a}
+.cbt-cert-score{font:800 30px/1.2 inherit;margin:10px 0 0;color:#1d3557}
+.cbt-cert-band{display:inline-block;margin:6px 0 0;padding:4px 14px;border-radius:999px;background:#1d3557;color:#fff;font:700 12px/1.4 inherit;letter-spacing:.14em}
+.cbt-cert-ver{margin:12px 0 0;font:500 11px/1.5 inherit;color:#6b6455}
+.cbt-cert-sigs{display:flex;justify-content:space-between;gap:30px;margin:26px 8px 0;padding-top:6px;border-top:1px solid #b9b2a2;font:500 11px/1.4 inherit;color:#6b6455}
+@media print{
+  body.cert-print *{visibility:hidden}
+  body.cert-print #cbtCertSheet,body.cert-print #cbtCertSheet *{visibility:visible}
+  body.cert-print #cbtCertSheet{position:absolute;left:0;top:0;width:100%;border:0}
+}
+
+/* ── v70 "The Whole School" — console & runner lift ─────────────────────── */
+.cbt-tabs{background:var(--panel,#f4efe2);border:1px solid var(--line,#e2dac8);border-radius:12px;padding:4px;gap:4px}
+.cbt-tabs .cbt-tab{border:0;background:transparent;border-radius:9px;padding:8px 14px;font:700 13px/1.2 inherit;color:#5a5342;cursor:pointer}
+.cbt-tabs .cbt-tab.on{background:#1d3557;color:#fff;box-shadow:0 2px 8px -2px rgba(18,38,63,.5)}
+.cbt-tabs .cbt-tab:not(.on):hover{background:rgba(29,53,87,.08)}
+.cbt-card{box-shadow:0 10px 30px -18px rgba(18,38,63,.28);border-color:var(--line,#e6dfcd)}
+.cbt-table tr:nth-child(even) td{background:rgba(29,53,87,.035)}
+.cbt-table th{position:sticky;top:0;background:var(--card-solid,#fffdf6);z-index:1}
+.cbt-q-stem{font-size:1.06rem;line-height:1.55;font-weight:700;color:#12263f}
+.cbt-opt{transition:transform .12s ease,box-shadow .12s ease,border-color .12s ease}
+.cbt-opt:not([disabled]):hover{transform:translateY(-1px);box-shadow:0 6px 16px -10px rgba(18,38,63,.45);border-color:#b98a2e}
+.cbt-opt:not([disabled]):active{transform:translateY(0)}
+.cbt-who .cbt-chip,.cbt-gate .cbt-chip{letter-spacing:.14em}
+.cbt-who input.cbt-inp{text-align:center;font-weight:700}
+.cbt-gate .cbt-cam-self{border-radius:14px;overflow:hidden;margin:10px auto 0;max-width:260px}
+#cbtCalcBtn,#cbtCalcBtn2{font-size:16px;line-height:1}
+.cbt-board-live{transition:transform .12s ease,box-shadow .12s ease}
+.cbt-board-live:hover{transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(18,38,63,.5)}
+.cbt-pal button{transition:transform .1s ease}
+.cbt-pal button:not(.cur):hover{transform:translateY(-1px)}

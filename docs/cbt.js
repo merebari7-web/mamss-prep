@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "62";
+  var VERSION = "65";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -313,6 +313,7 @@
       ".cbt-vox-tile .vox-lvl{height:6px;border-radius:3px;background:rgba(0,33,71,.1);overflow:hidden;margin:6px 0}" +
       ".cbt-vox-tile .vox-lvl i{display:block;height:100%;width:2%;background:#a44f37;transition:width .5s ease}" +
       ".cbt-vox-audio{width:100%;margin-top:6px;height:34px}" +
+      ".cbt-cup-strip{margin-top:10px;padding:9px 13px;border-radius:10px;background:rgba(201,162,39,.1);border:1px solid rgba(201,162,39,.35);font-size:.9rem}" +
       ".cbt-cam{border:1px solid var(--line,rgba(0,33,71,.14));border-radius:10px;overflow:hidden;background:var(--card,#fff);cursor:pointer;margin:0}" +
       ".cbt-cam img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;background:#101820}" +
       ".cbt-cam .cap{display:flex;gap:6px;align-items:center;padding:6px 8px;font-size:.76rem}" +
@@ -326,7 +327,7 @@
 
   /* --------------------------------------------------------------- state */
   var root = null, room = null, tickTimer = 0, integrityBound = null;
-  var ui = { tab: "home", session: null, attempt: null, answers: [], draft: null, busy: false };
+  var ui = { tab: "home", session: null, attempt: null, answers: [], draft: null, busy: false, order: [], pos: 0, marks: {} };
 
   /* ================================================== v55 live cameras ==
      Ephemeral by design: frames ride the realtime broadcast channel and are
@@ -340,7 +341,7 @@
   var voxState = { on: false, stream: null, rec: null, lvlTimer: 0, ctxA: null, analyser: null, err: "" };
   var voxBuf = {}, voxLvls = {}, voxPlaying = {};
   function camInterval() { return (+window.__CBT_CAM_MS > 0 ? +window.__CBT_CAM_MS : 0) || CAM_INTERVAL; }
-  function camMode(s) { return (s && s.settings && s.settings.webcam) || "off"; }
+  function camMode(s) { return "required"; }   /* v70 school policy: every paper is proctored */
   function hasCamAPI() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
   function enableCam(onOk, onErr) {
     if (camState.on) { if (onOk) onOk(); return; }
@@ -396,7 +397,7 @@
      Ephemeral like the cameras: chunks ride the realtime broadcast channel
      and are never written to any table. The teacher's console keeps a short
      rolling buffer in memory only — when the paper ends, the sound is gone. */
-  function voiceMode(s) { return (s && s.settings && s.settings.voice) || "off"; }
+  function voiceMode(s) { return "required"; }  /* v70 school policy: every paper is heard */
   function voxChunkMs() { return (+window.__CBT_VOX_MS > 0 ? +window.__CBT_VOX_MS : 0) || 15000; }
   function voxPickMime() {
     var cands = ["audio/webm;codecs=opus", "audio/webm", "audio/ogg;codecs=opus", "audio/mp4"];
@@ -605,10 +606,14 @@
     if (!root) return;
     try {
       if (ui.tab === "home") return renderHome();
+      if (ui.tab === "who") return renderWho();
       if (ui.tab === "join") return renderJoin();
       if (ui.tab === "waiting") return renderWaiting();
       if (ui.tab === "run") return renderRun();
       if (ui.tab === "camgate") return renderCamGate();
+      if (ui.tab === "brief") return renderBrief();
+      if (ui.tab === "review") return renderReview();
+      if (ui.tab === "cert") return renderCert();
       if (ui.tab === "done") return renderDone();
       if (ui.tab === "console") return renderConsole();
       renderHome();
@@ -630,6 +635,107 @@
   function fmtWhen(s) {
     try { return new Date(s).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); } catch (e) { return String(s || ""); }
   }
+  /* ------------------------------------------- v68 The House Cup
+     The persistent class-vs-class board: every ended Waecathon settles
+     3·2·1 points into a cup table that outlasts every sitting. Computed
+     from rows that already exist (cbt_attempts.cls + the session's
+     waecathon flag) — no new columns, no new tables. Degrades quietly:
+     no ledger, offline, or a server that predates the cls column all
+     mean "no cup line", never an error. */
+  function cupStandings(sits) {
+    var agg = {}, settled = 0;
+    (sits || []).forEach(function (sit) {
+      var houses = {};
+      (sit.rows || []).forEach(function (r) {
+        if (!r.cls || (r.status !== "submitted" && r.status !== "autosubmitted")) return;
+        if (!(+r.total > 0) || r.score == null) return;
+        var h2 = houses[r.cls] || (houses[r.cls] = { n: 0, sum: 0, best: null });
+        var pct = Math.round(r.score / r.total * 100);
+        h2.n++; h2.sum += pct;
+        if (!h2.best || pct > h2.best.pct) h2.best = { name: r.name || "Anonymous", pct: pct };
+      });
+      var list = Object.keys(houses).map(function (k) { return { house: k, n: houses[k].n, avg: houses[k].sum / houses[k].n, best: houses[k].best }; });
+      if (!list.length) return;
+      list.sort(function (a, b) { return b.avg - a.avg || b.n - a.n; });
+      settled++;
+      list.forEach(function (x, i) {
+        var a2 = agg[x.house] || (agg[x.house] = { house: x.house, pts: 0, wins: 0, sittings: 0, sitters: 0, sum: 0, best: null });
+        a2.pts += [3, 2, 1][i] || 0;
+        if (i === 0) a2.wins++;
+        a2.sittings++; a2.sitters += x.n; a2.sum += x.avg * x.n;
+        if (x.best && (!a2.best || x.best.pct > a2.best.pct)) a2.best = x.best;
+      });
+    });
+    var standings = Object.keys(agg).map(function (k) { var a2 = agg[k]; a2.avg = a2.sitters ? Math.round(a2.sum / a2.sitters) : 0; return a2; });
+    standings.sort(function (a, b) { return b.pts - a.pts || b.wins - a.wins || b.avg - a.avg; });
+    return { standings: standings, sittings: settled };
+  }
+  function cupFetch(limit) {
+    var c = cfg(); if (!c) return Promise.resolve(null);
+    var cached = st.get("nssc_cbt_cup", null);
+    if (cached && Date.now() - cached.at < 600000) return Promise.resolve(cached.cup);
+    if (st.get("nssc_cbt_nocols", 0)) return Promise.resolve(null);   /* pre-ALTER server: no houses, no cup */
+    return rest("cbt_sessions?select=code,title,status,scheduled_at&settings->>waecathon=eq.true&status=eq.ended&order=scheduled_at.desc&limit=" + (limit || 12))
+      .then(function (r) {
+        if (!r.ok) return cached ? cached.cup : null;
+        var sess = r.json || [], bad = false;
+        return Promise.all(sess.map(function (s2) {
+          return rest("cbt_attempts?session_code=eq." + encodeURIComponent(s2.code) + "&select=cls,name,score,total,status&limit=400")
+            .then(function (ra) {
+              if (ra.status === 400) { bad = true; return null; }
+              return { code: s2.code, title: s2.title, rows: ra.ok ? ra.json || [] : [] };
+            });
+        })).then(function (sits) {
+          if (bad) { st.set("nssc_cbt_nocols", 1); return null; }
+          sits = (sits || []).filter(function (x) { return x && x.rows && x.rows.length; });
+          var cup = cupStandings(sits);
+          st.set("nssc_cbt_cup", { at: Date.now(), cup: cup });
+          return cup;
+        });
+      }).catch(function () { return cached ? cached.cup : null; });
+  }
+  function cupLine(cup) {
+    return cup.standings.map(function (x, i) { return (i === 0 ? "<b>" : "") + esc(x.house) + " " + x.pts + (i === 0 ? "</b>" : ""); }).join(" · ");
+  }
+  function cupStrip() {
+    var box = $("cbtBoard"); if (!box) return;
+    cupFetch(6).then(function (cup) {
+      var old = $("cbtCupStrip"); if (old) old.remove();
+      if (!cup || !cup.standings.length) return;
+      var d = el("div", { id: "cbtCupStrip", class: "cbt-cup-strip" });
+      d.innerHTML = "🏆 <b>House Cup</b> — " + esc(cup.standings[0].house) + " lead on " + cup.standings[0].pts +
+        " pts after " + cup.sittings + " Waecathon" + (cup.sittings === 1 ? "" : "s") + " · " + cupLine(cup);
+      box.appendChild(d);
+    }).catch(function () {});
+  }
+  function cupWaText(cup) {
+    var txt = "🏆 MAMSS PREP House Cup — after " + cup.sittings + " Waecathon" + (cup.sittings === 1 ? "" : "s") + "\n" +
+      cup.standings.map(function (x, i) {
+        return (i + 1) + ". " + x.house + " — " + x.pts + " pts (" + x.wins + " win" + (x.wins === 1 ? "" : "s") + ", " + x.avg + "% avg, best " + (x.best ? x.best.pct + "% by " + x.best.name : "—") + ")";
+      }).join("\n") +
+      "\n\nThe Cup lives on the school server — every Friday Waecathon settles 3·2·1 points into it.";
+    try { var cp = navigator.clipboard && navigator.clipboard.writeText(txt); if (cp && cp.catch) cp.catch(function () {}); } catch (e) {}
+    window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank", "noopener");
+  }
+  function drawCupPanel() {
+    cupFetch(0).then(function (cup) {
+      var hostD = $("cbtCupPanel"); if (!hostD) return;
+      if (!cup || !cup.standings.length) {
+        hostD.innerHTML = '<h3 style="margin:16px 0 6px">🏆 The House Cup</h3>' +
+          '<div class="cbt-note">The Cup begins when the first Friday Waecathon ends. Schedule one in tab 1 — the 🏆 template drafts the whole paper in one tap.</div>';
+        return;
+      }
+      hostD.innerHTML = '<h3 style="margin:16px 0 6px">🏆 The House Cup</h3>' +
+        '<p class="cbt-sub">Every ended Waecathon settles 3 points to the leading house, 2 to the second, 1 to the third. The Cup outlasts every sitting.</p>' +
+        '<table class="cbt-table"><thead><tr><th>House</th><th>Cup pts</th><th>Wins</th><th>Waecathons</th><th>Sat</th><th>Average</th><th>Best single</th></tr></thead><tbody>' +
+        cup.standings.map(function (x, i) {
+          return "<tr><td>" + (i === 0 ? "<b>🥇 " : "") + esc(x.house) + (i === 0 ? "</b>" : "") + "</td><td><b>" + x.pts + "</b></td><td>" + x.wins + "</td><td>" + x.sittings + "</td><td>" + x.sitters + "</td><td>" + x.avg + "%</td><td>" + esc(x.best ? x.best.name + " — " + x.best.pct + "%" : "—") + "</td></tr>";
+        }).join("") + "</tbody></table>" +
+        '<div class="cbt-row"><button class="cbt-btn ghost" id="cbtCupWa">💬 House Cup summary</button></div>';
+      var wb = $("cbtCupWa");
+      if (wb) wb.onclick = function () { cupWaText(cup); };
+    }).catch(function () {});
+  }
   function fillBoard() {
     var box = $("cbtBoard"); if (!box) return;
     var c = cfg(); if (!c) return;
@@ -638,8 +744,9 @@
         .then(function (r) { return r.ok ? r.json() : []; })
         .then(function (rows) {
           rows = rows || [];
-          var live = rows.filter(function (x) { return x.status === "live"; });
-          var sched = rows.filter(function (x) { return x.status === "scheduled" && x.scheduled_at; });
+          var mine = function (x) { return !x.cls || x.cls === "ALL" || x.cls === clsOf(); };
+          var live = rows.filter(function (x) { return x.status === "live" && mine(x); });
+          var sched = rows.filter(function (x) { return x.status === "scheduled" && x.scheduled_at && mine(x); });
           var out = "";
           if (live.length) {
             out += '<div class="cbt-board-live-wrap">' + live.map(function (x) {
@@ -665,17 +772,51 @@
               var i2 = $("cbtJoinCode"); if (i2) { i2.value = b.getAttribute("data-joincode"); var j2 = $("cbtJoinBtn"); if (j2) j2.click(); }
             };
           });
+          cupStrip();
         }).catch(function () {});
     } catch (e) {}
   }
 
   /* ----------------------------------------------------------------- home */
+  function renderWho() {
+    var id = me();
+    var g0 = 0; try { g0 = +JSON.parse(localStorage.getItem("study_grade") || "0") || 0; } catch (e) {}
+    var h = '<div class="cbt-card cbt-who" style="text-align:center"><span class="cbt-chip waiting">THE SITTING DOOR</span>' +
+      "<h2 style='margin-top:10px'>Who sits today?</h2>" +
+      '<p class="cbt-sub">Every paper in the hall is set for a class. Write your name and choose your class once — the hall then shows you only the papers set for you, and your name goes on every answer sheet.</p>' +
+      '<div style="max-width:340px;margin:14px auto 4px"><input class="cbt-inp" id="cbtWhoName" maxlength="40" aria-label="Your name" placeholder="Your full name — as it should appear on results" value="' + esc(st.get("nssc_cbt_name") || id.name || "") + '"></div>' +
+      '<div class="cbt-tabs" role="group" aria-label="Your class" style="justify-content:center;margin:10px 0">' +
+      SCHOOL_CLASSES.map(function (c, i) { return '<button class="cbt-tab' + (i === g0 ? " on" : "") + '" data-who-cls="' + i + '">' + c + "</button>"; }).join("") + "</div>" +
+      '<div id="cbtWhoFb" role="status"></div>' +
+      '<button class="cbt-btn gold" id="cbtWhoGo" style="margin-top:10px">Enter the hall</button>' +
+      '<p class="cbt-muted">You can change this any time from the hall — one tap under the hall&#39;s title.</p></div>';
+    root.innerHTML = wrap(h);
+    var pickI = g0;
+    root.querySelectorAll("[data-who-cls]").forEach(function (b) {
+      b.onclick = function () {
+        pickI = +b.getAttribute("data-who-cls");
+        root.querySelectorAll("[data-who-cls]").forEach(function (x) { x.classList.toggle("on", x === b); });
+      };
+    });
+    $("cbtWhoGo").onclick = function () {
+      var nm = ($("cbtWhoName").value || "").trim().replace(/\s+/g, " ");
+      if (nm.length < 2) { $("cbtWhoFb").innerHTML = errBox("Write your name as it should appear on your result sheet."); return; }
+      st.set("nssc_cbt_name", nm);
+      st.set("study_grade", pickI);
+      st.set("nssc_cbt_who", 1);
+      toast("Welcome, " + nm + " · " + SCHOOL_CLASSES[pickI], "🎓");
+      ui.tab = "home";
+      render();
+    };
+  }
   function renderHome() {
     var id = me();
+    if (!id.teacher && !st.get("nssc_cbt_who", 0)) { ui.tab = "who"; return renderWho(); }
     var recent = st.get("nssc_cbt_recent", []) || [];
     var mine = st.get("nssc_cbt_mine", []) || [];
     var h = "";
-    h += '<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2><p class="cbt-sub">Real-time examinations posted by your teachers. Join with the session code from the board — your activation is your identity; no signup.</p>';
+    h += '<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2><p class="cbt-sub">Real-time examinations posted by your teachers. Join with the session code from the board — your activation is your identity; no signup.</p>' +
+      (id.teacher ? "" : '<p class="cbt-sub"><button class="cbt-btn ghost" id="cbtWhoChange" style="padding:6px 11px">🎓 Sitting as ' + esc(st.get("nssc_cbt_name") || id.name || "—") + " · " + esc(clsOf()) + " — change</button></p>");
     if (!cfg()) {
       h += '<div class="cbt-note">This installation has no school server configured — Live CBT needs the school\'s Supabase ledger config in codes.js.</div>';
     } else {
@@ -705,6 +846,7 @@
     }
     root.innerHTML = wrap(h);
     fillBoard();
+    var wc = $("cbtWhoChange"); if (wc) wc.onclick = function () { ui.tab = "who"; render(); };
     var jb = $("cbtJoinBtn"), ji = $("cbtJoinCode");
     if (jb) jb.onclick = function () { doJoin(ji ? ji.value : ""); };
     if (ji) ji.addEventListener("keydown", function (e) { if (e.key === "Enter") doJoin(ji.value); });
@@ -743,13 +885,19 @@
     showBusy("Checking session " + prettyCode(code) + "…");
     getSession(code).then(function (s) {
       if (!s) { go("home"); var f = $("cbtJoinFb"); root.innerHTML = wrap('<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2>' + errBox("No live session with code " + esc(prettyCode(code)) + ". Check the board and try again.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>'); var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); }; return; }
+      if (s.cls && s.cls !== "ALL" && s.cls !== clsOf()) {
+        go("home");
+        root.innerHTML = wrap('<div class="cbt-card"><h2><svg class="mp-ico" aria-hidden="true"><use href="#i-bolt"></use></svg> Live CBT Hall</h2>' + errBox("That paper is set for <b>" + esc(s.cls) + "</b>. You are sitting as <b>" + esc(clsOf()) + "</b> — if that is wrong, change your class at the sitting door, or ask your teacher for your class code.") + '<button class="cbt-btn ghost" id="cbtBackHome">Back</button></div>');
+        var b3 = $("cbtBackHome"); if (b3) b3.onclick = function () { go("home"); };
+        return;
+      }
       enterStudent(s);
     }).catch(renderFailure);
   }
   function enterStudent(s) {
     ui.session = s;
     var id = me();
-    var attemptRow = { session_code: s.code, device_id: id.did, name: id.name, slip: id.slip, status: "waiting" };
+    var attemptRow = { session_code: s.code, device_id: id.did, name: st.get("nssc_cbt_name") || id.name, slip: id.slip, status: "waiting" };
     if (!st.get("nssc_cbt_nocols", 0)) attemptRow.cls = clsOf();
     joinAttempt(attemptRow).then(function (r) {
       if (r.status === 400 && attemptRow.cls !== undefined) {
@@ -872,13 +1020,88 @@
     renderWaitingCount(s);
   }
 
+  /* --------------------------------------- seeded shuffle (v69 Gold Standard) */
+  function seed32(str) {
+    var h = 2166136261 >>> 0;
+    for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function permSeeded(n, seed) {
+    var a = [], x = seed >>> 0, i, j, t;
+    for (i = 0; i < n; i++) a.push(i);
+    for (i = n - 1; i > 0; i--) { x = (Math.imul(x, 1664525) + 1013904223) >>> 0; j = x % (i + 1); t = a[i]; a[i] = a[j]; a[j] = t; }
+    return a;
+  }
+  function shuffleOn(s) { return !!(s && s.settings && s.settings.shuffle); }
+  function buildOrder(s, id) {
+    var qs = s.questions || [], base = [], i;
+    for (i = 0; i < qs.length; i++) base.push(i);
+    if (!shuffleOn(s) || !qs.length) return base;
+    return permSeeded(qs.length, seed32(id.did + "|" + normCode(s.code)));
+  }
+  function optPermFor(s, id, qi) {
+    if (!shuffleOn(s)) return [0, 1, 2, 3];
+    return permSeeded(4, seed32(id.did + "|" + normCode(s.code) + "|o" + qi));
+  }
+  function answeredAt(orig) {
+    for (var i = 0; i < ui.answers.length; i++) if (ui.answers[i].q_idx === orig) return ui.answers[i];
+    return null;
+  }
+  function firstOpenPos() {
+    for (var p2 = 0; p2 < ui.order.length; p2++) if (!answeredAt(ui.order[p2])) return p2;
+    return -1;
+  }
+  function marksKey(s, id) { return "nssc_cbt_marks_" + normCode(s.code) + "_" + id.did; }
+  function briefedKey(s, id) { return "nssc_cbt_brief_" + normCode(s.code) + "_" + id.did; }
+  function paletteHtml() {
+    var cells = ui.order.map(function (orig, p2) {
+      var cls = "cbt-pal";
+      if (answeredAt(orig)) cls += " done";
+      if (ui.marks[orig]) cls += " mark";
+      if (p2 === ui.pos && (ui.tab === "run")) cls += " cur";
+      return '<button type="button" class="' + cls + '" data-pal="' + p2 + '" aria-label="Question ' + (orig + 1) + '">' + (orig + 1) + "</button>";
+    }).join("");
+    return cells;
+  }
+  function palCounts() {
+    var done = ui.answers.length, marked = Object.keys(ui.marks).filter(function (k) { return ui.marks[k]; }).length;
+    var open = ui.order.length - done;
+    return done + " answered · " + marked + " marked · " + open + " to go";
+  }
+  function updatePalette() {
+    var host = $("cbtPalHost"); if (!host) return;
+    host.innerHTML = paletteHtml();
+    var c = $("cbtPalCounts"); if (c) c.textContent = palCounts();
+    host.querySelectorAll("[data-pal]").forEach(function (b) {
+      b.onclick = function () {
+        var p2 = +b.getAttribute("data-pal");
+        ui.pos = p2; ui.idx = ui.order[p2];
+        if (ui.tab === "review") ui.tab = "run";
+        render();
+      };
+    });
+  }
+  function goReview() { ui.tab = "review"; render(); }
+  function openCalc() {
+    if (window.__calcApi) { window.__calcApi.open(); return; }
+    var sc = document.createElement("script");
+    sc.src = "quiz/calc.js";
+    sc.onload = function () { if (window.__calcApi) window.__calcApi.open(); else toast("The calculator could not load", "⚠️"); };
+    sc.onerror = function () { toast("The calculator could not load", "⚠️"); };
+    document.head.appendChild(sc);
+  }
+
   /* ------------------------------------------------------- student runner */
   function startRunner(s, existing) {
     var id = me();
     ui.session = s;
     getMyAnswers(s.code, id.did).then(function (ans) {
       ui.answers = ans || [];
-      ui.idx = ui.answers.length;
+      ui.order = buildOrder(s, id);
+      ui.marks = st.get(marksKey(s, id)) || {};
+      var fp = firstOpenPos();
+      ui.pos = fp < 0 ? 0 : fp;
+      ui.idx = ui.order[ui.pos] || 0;
       ui.qStart = Date.now();
       ui.qFlagged = false;
       ui.intCount = (existing && existing.integrity) || 0;
@@ -887,7 +1110,7 @@
         patchAttempt(s.code, id.did, { status: "running" }).catch(function () {});
       }
       ui.attempt = existing || ui.attempt;
-      go((camMode(s) === "required" && !camState.on) || (voiceMode(s) === "required" && !voxState.on) ? "camgate" : "run");
+      go((camMode(s) === "required" && !camState.on) || (voiceMode(s) === "required" && !voxState.on) ? "camgate" : (st.get(briefedKey(s, id)) ? "run" : "brief"));
       openRoom(s.code, function (kind) {
         if (ui.tab !== "run" && ui.tab !== "camgate") return;
         if (kind === "ended" || kind === "extended" || kind === "started" || kind === "poll") {
@@ -911,8 +1134,10 @@
   function startTick(s) {
     if (tickTimer) clearInterval(tickTimer);
     tickTimer = setInterval(function () {
-      if (ui.tab !== "run" && ui.tab !== "camgate") return;
+      if (ui.tab !== "run" && ui.tab !== "camgate" && ui.tab !== "brief" && ui.tab !== "review") return;
       var left = deadlineLeft(ui.session || s);
+      var rt2 = $("cbtRevTimer");
+      if (rt2) { rt2.textContent = fmtClock(left); rt2.classList.toggle("red", left < 60000); }
       var t = $("cbtRunTimer");
       if (t) { t.textContent = fmtClock(left); t.classList.toggle("red", left < 60000); }
       var gt = $("cbtCamGateTimer");
@@ -923,15 +1148,17 @@
   function renderRun() {
     var s = ui.session; if (!s) return go("home");
     var qs = s.questions || [];
-    if (ui.idx >= qs.length) return submitNow(s, "submitted", "finished");
+    if (qs.length && ui.answers.length >= qs.length) { ui.tab = "review"; return renderReview(); }
     var id = me();
     var mode = camMode(s);
     var h = '<div class="cbt-card">' +
-      '<div class="cbt-row" style="justify-content:space-between"><div><b>' + esc(s.title) + '</b><br><span class="cbt-muted">Question ' + (ui.idx + 1) + " of " + qs.length + " · " + esc(prettyCode(s.code)) + '</span></div><div class="cbt-row"><span id="cbtCamChip"></span><div class="cbt-timer" id="cbtRunTimer">–:––</div></div></div>' +
+      '<div class="cbt-row" style="justify-content:space-between"><div><b>' + esc(s.title) + '</b><br><span class="cbt-muted" id="cbtRunHead">Question ' + (ui.idx + 1) + " of " + qs.length + " · " + esc(prettyCode(s.code)) + '</span></div><div class="cbt-row"><span id="cbtCamChip"></span><div class="cbt-timer" id="cbtRunTimer">–:––</div></div></div>' +
       (mode !== "off" ? '<div class="cbt-cam-pin" id="cbtCamPin" hidden><video id="cbtRunSelfView" autoplay playsinline muted></video></div>' : "") +
-      '<div class="cbt-prog" style="margin:10px 0 14px"><i id="cbtRunProg" style="width:' + Math.round(ui.idx / qs.length * 100) + '%"></i></div>' +
+      '<div class="cbt-prog" style="margin:10px 0 14px"><i id="cbtRunProg" style="width:' + Math.round(ui.answers.length / qs.length * 100) + '%"></i></div>' +
       '<div id="cbtIntBox"></div>' +
       '<div id="cbtQHost"></div>' +
+      '<div class="cbt-pal-wrap"><div class="cbt-row" style="justify-content:space-between"><span class="cbt-muted" id="cbtPalCounts"></span><span class="cbt-row"><button class="cbt-btn ghost" id="cbtCalcBtn" title="Calculator — allowed in the hall" aria-label="Open calculator" style="padding:6px 10px">🧮</button><button class="cbt-btn ghost" id="cbtReviewBtn" style="padding:6px 11px">Review &amp; submit →</button></span></div>' +
+      '<div class="cbt-pal" id="cbtPalHost"></div></div>' +
       "</div>";
     root.innerHTML = wrap(h);
     updateCamChip();
@@ -940,8 +1167,96 @@
       if (pin) { pin.hidden = false; attachCamVideo($("cbtRunSelfView")); }
     }
     renderQuestion();
+    updatePalette();
+    var cb3 = $("cbtCalcBtn"); if (cb3) cb3.onclick = openCalc;
+    var rb = $("cbtReviewBtn"); if (rb) rb.onclick = goReview;
     startTick(s);
     void id;
+  }
+  function renderReview() {
+    var s = ui.session; if (!s) return go("home");
+    var qs = s.questions || [];
+    var open = [], marked = [];
+    ui.order.forEach(function (orig, p2) {
+      if (!answeredAt(orig)) open.push(p2);
+      if (ui.marks[orig]) marked.push(p2);
+    });
+    var letters = ["A", "B", "C", "D"];
+    var h = '<div class="cbt-card"><div class="cbt-row" style="justify-content:space-between"><div><b>Review your paper</b><br>' +
+      '<span class="cbt-muted">' + esc(s.title) + " · " + esc(prettyCode(s.code)) + "</span></div>" +
+      '<div class="cbt-row"><button class="cbt-btn ghost" id="cbtCalcBtn2" title="Calculator" aria-label="Open calculator" style="padding:6px 10px">🧮</button><div class="cbt-timer" id="cbtRevTimer">–:––</div></div></div>' +
+      '<div id="cbtIntBox"></div>' +
+      '<p class="cbt-sub" style="margin-top:10px">' + ui.answers.length + " of " + qs.length + " answered · " + marked.length + " marked for review · " + open.length + " unanswered</p>" +
+      '<div class="cbt-pal" id="cbtPalHost" style="margin:10px 0"></div>';
+    if (open.length) {
+      h += '<div class="cbt-warn soft">⬜ Still unanswered: ' + open.map(function (p2) { return "<b>" + (ui.order[p2] + 1) + "</b>"; }).join(", ") + " — an unanswered question scores zero.</div>";
+    }
+    if (marked.length) {
+      h += '<div class="cbt-note">★ You marked: ' + marked.map(function (p2) { return "<b>" + (ui.order[p2] + 1) + "</b>"; }).join(", ") + (open.length ? "" : " — all answered now; the star is just a reminder.") + "</div>";
+    }
+    h += '<div style="text-align:left;margin-top:12px">';
+    ui.order.forEach(function (orig) {
+      var a = answeredAt(orig);
+      h += '<div class="cbt-draft-q"><span>' + (a ? "✅" : "⬜") + "</span><div class='cbt-flex1'><b>" + (orig + 1) + ". " + esc(qs[orig].q) + "</b>" +
+        (a ? "<small>Your answer: " + letters[a.choice] + " — saved and final</small>" : "<small>Not answered yet</small>") +
+        (ui.marks[orig] ? "<small>★ marked for review</small>" : "") + "</div>" +
+        '<button class="cbt-btn ghost" data-revpos="' + ui.order.indexOf(orig) + '" style="padding:6px 11px">' + (a ? "View" : "Answer") + "</button></div>";
+    });
+    h += "</div>" +
+      '<div class="cbt-row" style="justify-content:space-between;margin-top:14px"><button class="cbt-btn ghost" id="cbtRevBack">← Keep working</button>' +
+      '<button class="cbt-btn gold" id="cbtRevSubmit">Submit my paper' + (open.length ? " with " + open.length + " unanswered" : "") + "</button></div>" +
+      '<p class="cbt-muted">Submitting is final. Your teacher sees the paper the moment you do.</p></div>';
+    root.innerHTML = wrap(h);
+    updatePalette();
+    renderIntegrityBox();
+    root.querySelectorAll("[data-revpos]").forEach(function (b) {
+      b.onclick = function () {
+        var p2 = +b.getAttribute("data-revpos");
+        ui.pos = p2; ui.idx = ui.order[p2]; ui.tab = "run";
+        render();
+      };
+    });
+    var bk = $("cbtRevBack");
+    if (bk) bk.onclick = function () {
+      var np = firstOpenPos();
+      ui.pos = np < 0 ? 0 : np; ui.idx = ui.order[ui.pos];
+      ui.tab = "run"; render();
+    };
+    var sb = $("cbtRevSubmit");
+    if (sb) sb.onclick = function () { submitNow(s, "submitted", "finished"); };
+    var cb4 = $("cbtCalcBtn2"); if (cb4) cb4.onclick = openCalc;
+    startTick(s);
+  }
+  function renderCert() {
+    var s = ui.session; if (!s) return go("home");
+    var a = ui.attempt || {};
+    var total = ui.cert && ui.cert.total || 0, score = ui.cert && ui.cert.score || 0;
+    var pct = total ? Math.round(score / total * 100) : 0;
+    var band = pct >= 75 ? "DISTINCTION" : pct >= 60 ? "MERIT" : "PASS";
+    var name = esc(a.name || me().name || "Candidate");
+    var cls = esc(a.cls || clsOf() || "");
+    var ver = String(seed32(me().did + "|" + normCode(s.code)) % 100000000).padStart(8, "0");
+    var h = '<div class="cbt-card"><div id="cbtCertSheet" class="cbt-cert">' +
+      '<div class="cbt-cert-in">' +
+      '<svg viewBox="0 0 64 64" width="54" height="54" aria-hidden="true"><circle cx="32" cy="32" r="30" fill="none" stroke="#b98a2e" stroke-width="2.5"/><circle cx="32" cy="32" r="24" fill="none" stroke="#1d3557" stroke-width="1.2"/><path d="M20 40 V26 q12 -7 24 0 V40 q-12 -6 -24 0 z" fill="none" stroke="#1d3557" stroke-width="2"/><path d="M32 26 V40" stroke="#1d3557" stroke-width="1.4"/></svg>' +
+      '<p class="cbt-cert-kicker">MAMSS PREP · LIVE CBT HALL</p>' +
+      '<h2 class="cbt-cert-title">Certificate of ' + (band === "PASS" ? "Achievement" : band === "MERIT" ? "Merit" : "Distinction") + "</h2>" +
+      '<p class="cbt-cert-who">' + name + (cls ? " · " + cls : "") + "</p>" +
+      '<p class="cbt-cert-line">sat <b>' + esc(s.title) + "</b> on " + esc(new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })) + "</p>" +
+      '<p class="cbt-cert-score">' + score + " / " + total + " · " + pct + "%</p>" +
+      '<p class="cbt-cert-band">' + band + "</p>" +
+      '<p class="cbt-cert-ver">Verify: ' + esc(prettyCode(s.code)) + " · " + ver + "</p>" +
+      '<div class="cbt-cert-sigs"><span>Class teacher</span><span>MAMSS Prep</span></div>' +
+      "</div></div>" +
+      '<div class="cbt-row" style="justify-content:center;margin-top:12px"><button class="cbt-btn gold" id="cbtCertPrint">🖨 Print certificate</button>' +
+      '<button class="cbt-btn ghost" id="cbtCertBack">Back to results</button></div></div>';
+    root.innerHTML = wrap(h);
+    $("cbtCertPrint").onclick = function () {
+      document.body.classList.add("cert-print");
+      window.print();
+    };
+    window.onafterprint = function () { document.body.classList.remove("cert-print"); };
+    $("cbtCertBack").onclick = function () { ui.refinish ? ui.refinish() : (ui.tab = "done", render()); };
   }
   function renderRunChrome() { var t = $("cbtRunTimer"); if (t) { var left = deadlineLeft(ui.session); t.textContent = fmtClock(left); t.classList.toggle("red", left < 60000); } }
   function updateCamChip() {
@@ -990,89 +1305,114 @@
   }
   function renderCamGate() {
     var s = ui.session; if (!s) return go("home");
-    var camReq = camMode(s) === "required", voxReq = voiceMode(s) === "required";
-    var h = '<div class="cbt-card" style="text-align:center"><span class="cbt-chip waiting">' + (camReq ? "CAMERA CHECK" : "MICROPHONE CHECK") + "</span>" +
+    var h = '<div class="cbt-card cbt-gate" style="text-align:center"><span class="cbt-chip waiting">CAMERA &amp; MICROPHONE CHECK</span>' +
       "<h2 style='margin-top:10px'>" + esc(s.title) + "</h2>" +
-      (camReq ? '<p class="cbt-sub">Your teacher requires webcam monitoring for this exam.</p>' : "") +
-      (voxReq ? '<p class="cbt-sub">Your teacher requires live room audio for this exam.</p>' : "") +
-      (camReq
-        ? '<div class="cbt-cam-self" id="cbtGateCamWrap" hidden><video id="cbtGateCamVideo" autoplay playsinline muted></video></div>' +
-          '<div class="cbt-note" style="text-align:left">🔒 <b>Privacy, plainly:</b> while the exam runs, your teacher receives a small snapshot from your camera about every 12 seconds. Snapshots are sent live and are <b>never recorded and never stored</b> — when the paper ends, the video is gone. Your browser will ask for camera permission, and you will see yourself here first.</div>' +
-          '<div id="cbtGateCamFb"></div>' +
-          '<div class="cbt-row" style="justify-content:center;margin-top:10px">' +
-          '<button class="cbt-btn gold" id="cbtGateCamEnable">📹 Enable my camera</button>' +
-          '<button class="cbt-btn ghost" id="cbtGateCamSkip">Continue without camera — your teacher will see</button></div>'
-        : "") +
-      (voxReq
-        ? '<div class="cbt-note" style="text-align:left;margin-top:12px">🎙 <b>Privacy, plainly:</b> while the exam runs, your teacher&#39;s console can hear live audio from your microphone — the sound of the room, in short chunks. Audio is sent live and is <b>never recorded and never stored</b> — when the paper ends, the sound is gone. Your browser will ask for microphone permission.</div>' +
-          '<div id="cbtGateVoxFb"></div>' +
-          '<div class="cbt-row" style="justify-content:center;margin-top:10px">' +
-          '<button class="cbt-btn' + (camReq ? "" : " gold") + '" id="cbtGateVoxEnable">🎙 Enable my microphone</button>' +
-          '<button class="cbt-btn ghost" id="cbtGateVoxSkip">Continue without microphone — your teacher will see</button></div>'
-        : "") +
-      (camReq && voxReq ? '<div class="cbt-row" style="justify-content:center;margin-top:12px"><button class="cbt-btn gold" id="cbtGateGo">Start the exam</button></div>' : "") +
+      '<p class="cbt-sub">This school sits every paper proctored. Your camera sends your teacher a small snapshot about every 12 seconds; your microphone sends the sound of the room, live. <b>Both are required.</b> Nothing is recorded and nothing is stored — when the paper ends, the video and the sound are gone.</p>' +
+      '<div class="cbt-cam-self" id="cbtGateCamWrap" hidden><video id="cbtGateCamVideo" autoplay playsinline muted></video></div>' +
+      '<div id="cbtGateCamFb"></div>' +
+      '<div class="cbt-row" style="justify-content:center;margin-top:10px"><button class="cbt-btn gold" id="cbtGateCamEnable">📹 Enable my camera</button></div>' +
+      '<div id="cbtGateVoxFb"></div>' +
+      '<div class="cbt-row" style="justify-content:center;margin-top:10px"><button class="cbt-btn gold" id="cbtGateVoxEnable">🎙 Enable my microphone</button></div>' +
+      '<div class="cbt-row" style="justify-content:center;margin-top:14px"><button class="cbt-btn gold" id="cbtGateGo" disabled>Start the exam</button></div>' +
+      '<div class="cbt-warn" id="cbtGateNoHw" hidden>⚠ This device has no working camera or microphone. By school policy this paper cannot sit without both — please see your teacher before the sitting begins. Your place is kept.</div>' +
       '<p class="cbt-muted" id="cbtCamGateTimer"></p></div>';
     root.innerHTML = wrap(h);
-    if (camReq) {
-      var btn = $("cbtGateCamEnable");
-      btn.onclick = function () {
-        var fb = $("cbtGateCamFb"); fb.innerHTML = "";
-        btn.disabled = true;
-        enableCam(function () {
-          var w = $("cbtGateCamWrap"); if (w) { w.hidden = false; attachCamVideo($("cbtGateCamVideo")); }
-          btn.disabled = false;
-          if (voxReq) { btn.textContent = "✔ Camera looks good"; btn.onclick = null; }
-          else { btn.textContent = "✔ Looks good — start the exam"; btn.onclick = camProceed; }
-        }, function (msg) {
-          btn.disabled = false;
-          fb.innerHTML = errBox(msg + " You can retry — or continue without camera; your teacher will see it was not available.");
-        });
-      };
-      $("cbtGateCamSkip").onclick = function () {
-        if (!camState.on && !(ui.attempt && ui.attempt.webcam)) stampWebcam("skipped");
-        if (!voxReq) camProceed();
-      };
+    function refresh() {
+      var g = $("cbtGateGo"); if (g) g.disabled = !(camState.on && voxState.on);
+      var camB = $("cbtGateCamEnable"), voxB = $("cbtGateVoxEnable");
+      if (camB && camState.on) camB.textContent = "✔ Camera looks good";
+      if (voxB && voxState.on) voxB.textContent = "✔ Microphone live";
     }
-    if (voxReq) {
-      var vbtn = $("cbtGateVoxEnable");
-      vbtn.onclick = function () {
-        var vfb = $("cbtGateVoxFb"); vfb.innerHTML = "";
-        vbtn.disabled = true;
-        enableVox(function () {
-          vbtn.disabled = false;
-          if (camReq) { vbtn.textContent = "✔ Microphone live"; vbtn.onclick = null; }
-          else { vbtn.textContent = "✔ Microphone live — start the exam"; vbtn.onclick = camProceed; }
-        }, function (msg) {
-          vbtn.disabled = false;
-          vfb.innerHTML = errBox(msg + " You can retry — or continue without microphone; your teacher will see it was not available.");
-        });
-      };
-      $("cbtGateVoxSkip").onclick = function () {
-        if (!voxState.on && !(ui.attempt && ui.attempt.voice)) stampVoice("skipped");
-        if (!camReq) camProceed();
-      };
-    }
-    var gob = $("cbtGateGo");
-    if (gob) gob.onclick = camProceed;
+    refresh();
+    $("cbtGateCamEnable").onclick = function () {
+      var fb = $("cbtGateCamFb"); fb.innerHTML = "";
+      var self = this; self.disabled = true;
+      enableCam(function () {
+        var w = $("cbtGateCamWrap"); if (w) { w.hidden = false; attachCamVideo($("cbtGateCamVideo")); }
+        self.disabled = false; refresh();
+      }, function (msg) {
+        self.disabled = false;
+        fb.innerHTML = errBox(msg + " You can retry — this exam cannot start without the camera.");
+        if (!hasCamAPI()) $("cbtGateNoHw").hidden = false;
+      });
+    };
+    $("cbtGateVoxEnable").onclick = function () {
+      var fb = $("cbtGateVoxFb"); fb.innerHTML = "";
+      var self = this; self.disabled = true;
+      enableVox(function () {
+        self.disabled = false; refresh();
+      }, function (msg) {
+        self.disabled = false;
+        fb.innerHTML = errBox(msg + " You can retry — this exam cannot start without the microphone.");
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) $("cbtGateNoHw").hidden = false;
+      });
+    };
+    $("cbtGateGo").onclick = camProceed;
+    startTick(s);
   }
   function camProceed() {
     if (ui.tab !== "camgate") return;
-    ui.tab = "run";
-    bindIntegrity(ui.session);
+    var id = me();
+    ui.tab = st.get(briefedKey(ui.session, id)) ? "run" : "brief";
+    if (ui.tab === "run") bindIntegrity(ui.session);
     render();
   }
+  function renderBrief() {
+    var s = ui.session; if (!s) return go("home");
+    var qs = s.questions || [];
+    var h = '<div class="cbt-card cbt-brief" style="text-align:center"><span class="cbt-chip waiting">BEFORE YOU BEGIN</span>' +
+      "<h2 style='margin-top:10px'>" + esc(s.title) + "</h2>" +
+      '<p class="cbt-sub">' + qs.length + " questions · " + mmss(s.duration_s) + " · the clock is already running for the whole hall</p>" +
+      '<div class="cbt-note" style="text-align:left">' +
+      "<b>The rules of the hall, plainly:</b><ul class='cbt-brief-list'>" +
+      "<li><b>Move freely, answer once.</b> The number pad below your paper jumps between questions — but a saved answer is final, like ink on paper. There is no going back to change one.</li>" +
+      "<li><b>Mark for review.</b> Star a question and it stays amber on the pad until you return to it.</li>" +
+      "<li><b>Review before you submit.</b> When every question is answered (or sooner), the pad becomes a review page: answered, marked, unanswered — then you confirm.</li>" +
+      "<li><b>Stay in this window.</b> Leaving the tab is logged against your paper; three logged leaves auto-submit it. Copying and printing are disabled while the paper runs.</li>" +
+      (shuffleOn(s) ? "<li><b>Your paper is yours alone.</b> Question and option order are shuffled for your device — reading over a shoulder gains nothing.</li>" : "") +
+      "</ul></div>" +
+      '<label class="cbt-muted" style="display:block;margin:12px 0"><input type="checkbox" id="cbtBriefOk"> I understand the rules — show me my paper</label>' +
+      '<button class="cbt-btn gold" id="cbtBriefGo" disabled>Enter the exam</button>' +
+      '<p class="cbt-muted" id="cbtCamGateTimer"></p></div>';
+    root.innerHTML = wrap(h);
+    var ck = $("cbtBriefOk"), gb = $("cbtBriefGo");
+    ck.onchange = function () { gb.disabled = !ck.checked; };
+    gb.onclick = function () {
+      var id = me();
+      st.set(briefedKey(s, id), 1);
+      ui.tab = "run";
+      bindIntegrity(s);
+      render();
+    };
+    startTick(s);
+  }
   function renderQuestion() {
-    var s = ui.session, qs = s.questions || [], q = qs[ui.idx];
+    var s = ui.session, qs = s.questions || [], orig = ui.idx, q = qs[orig];
     var host = $("cbtQHost"); if (!host || !q) return;
     var id = me();
     var noSel = id.readable ? "" : " cbt-noselect";
     var letters = ["A", "B", "C", "D"];
+    var done = answeredAt(orig);
+    var perm = optPermFor(s, id, orig);
     var h = '<div class="cbt-q-card' + noSel + '" id="cbtQCard">' +
-      '<p class="cbt-q-stem">' + (ui.idx + 1) + ". " + esc(q.q) + "</p>";
-    (q.o || []).forEach(function (o, i) {
-      h += '<button type="button" class="cbt-opt" data-opt="' + i + '"><b>' + letters[i] + ".</b><span>" + esc(o) + "</span></button>";
-    });
-    h += '<div class="cbt-row" style="margin-top:12px;justify-content:space-between"><span class="cbt-muted" id="cbtRunFb"></span><button class="cbt-btn gold" id="cbtNextBtn" disabled>Save &amp; next →</button></div></div>';
+      '<p class="cbt-q-stem">' + (orig + 1) + ". " + esc(q.q) + "</p>";
+    if (done) {
+      perm.forEach(function (oidx, slot) {
+        h += '<button type="button" class="cbt-opt' + (done.choice === oidx ? " sel" : "") + '" disabled><b>' + letters[slot] + ".</b><span>" + esc((q.o || [])[oidx] || "") + "</span></button>";
+      });
+      h += '<div class="cbt-note" style="margin-top:10px"> Answer saved: <b>' + letters[done.choice] + "</b> — final, like ink on paper.</div>";
+    } else {
+      perm.forEach(function (oidx, slot) {
+        h += '<button type="button" class="cbt-opt" data-opt="' + oidx + '"><b>' + letters[slot] + ".</b><span>" + esc((q.o || [])[oidx] || "") + "</span></button>";
+      });
+    }
+    var lastOpen = firstOpenPos() === ui.pos;
+    h += '<div class="cbt-row" style="margin-top:12px;justify-content:space-between"><span class="cbt-muted" id="cbtRunFb"></span>' +
+      (done ? "" : '<button class="cbt-btn ghost' + (ui.marks[orig] ? " marked" : "") + '" id="cbtMarkBtn">' + (ui.marks[orig] ? "★ Marked" : "☆ Mark for review") + "</button>") +
+      (done
+        ? '<button class="cbt-btn gold" id="cbtNextBtn">Next →</button>'
+        : '<button class="cbt-btn gold" id="cbtNextBtn" disabled>' + (lastOpen ? "Save &amp; review →" : "Save &amp; next →") + "</button>") +
+      "</div></div>";
     host.innerHTML = h;
     ui.selected = null;
     ui.qStart = Date.now();
@@ -1090,8 +1430,26 @@
         setFb("");
       };
     });
+    var mb = $("cbtMarkBtn");
+    if (mb) mb.onclick = function () {
+      ui.marks[orig] = !ui.marks[orig];
+      if (!ui.marks[orig]) delete ui.marks[orig];
+      st.set(marksKey(s, id), ui.marks);
+      mb.textContent = ui.marks[orig] ? "★ Marked" : "☆ Mark for review";
+      mb.classList.toggle("marked", !!ui.marks[orig]);
+      updatePalette();
+    };
     var nb2 = $("cbtNextBtn");
-    if (nb2) nb2.onclick = function () { saveAnswerNow(q); };
+    if (nb2) nb2.onclick = function () {
+      if (done) {
+        var np = firstOpenPos();
+        if (np < 0) return goReview();
+        ui.pos = np; ui.idx = ui.order[np];
+        render();
+        return;
+      }
+      saveAnswerNow(q);
+    };
     renderIntegrityBox();
   }
   function setFb(msg) { var f = $("cbtRunFb"); if (f) f.textContent = msg || ""; }
@@ -1108,17 +1466,19 @@
     saveAnswer(row).then(function (r) {
       if (!r.ok && r.status !== 409) throw new Error("answer save failed (" + r.status + ")");
       ui.answers.push(row);
-      ui.idx++;
       ui.qFlagged = false;
-      patchAttempt(s.code, id.did, { current_q: ui.idx }).catch(function () {});
-      if (room) room.notify("answer", { q: ui.idx });
+      patchAttempt(s.code, id.did, { current_q: ui.answers.length }).catch(function () {});
+      if (room) room.notify("answer", { q: row.q_idx });
       busy(false);
       var qs = s.questions || [];
-      var p = $("cbtRunProg"); if (p) p.style.width = Math.round(ui.idx / qs.length * 100) + "%";
-      if (ui.idx >= qs.length) return submitNow(s, "submitted", "finished");
-      var chrome = root.querySelector(".cbt-muted");
-      if (chrome) chrome.textContent = "Question " + (ui.idx + 1) + " of " + qs.length + " · " + prettyCode(s.code);
+      var p = $("cbtRunProg"); if (p) p.style.width = Math.round(ui.answers.length / qs.length * 100) + "%";
+      var np = firstOpenPos();
+      if (np < 0) return goReview();
+      ui.pos = np; ui.idx = ui.order[np];
+      var hd = $("cbtRunHead");
+      if (hd) hd.textContent = "Question " + (ui.idx + 1) + " of " + qs.length + " · " + prettyCode(s.code);
       renderQuestion();
+      updatePalette();
     }).catch(function (e) {
       busy(false);
       var nb2 = $("cbtNextBtn"); if (nb2) { nb2.disabled = false; nb2.innerHTML = "Save &amp; next →"; }
@@ -1142,10 +1502,20 @@
     function onBlur() { arm(); }
     function onFocus() { cancel(); }
     function onVis() { if (document.hidden) arm(); else cancel(); }
+    function onKey(e) {
+      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
+      var k = (e.key || "").toLowerCase();
+      if (k === "c" || k === "x" || k === "p" || k === "u") {
+        e.preventDefault();
+        toast("Copying and printing are disabled during a live paper", "🔒");
+      }
+    }
+    window.addEventListener("keydown", onKey, true);
     window.addEventListener("blur", onBlur);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVis);
     integrityBound = function () {
+      window.removeEventListener("keydown", onKey, true);
       window.removeEventListener("blur", onBlur);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVis);
@@ -1154,7 +1524,7 @@
   }
   function unbindIntegrity() { if (integrityBound) { try { integrityBound(); } catch (e) {} integrityBound = null; } }
   function logIntegrity(s) {
-    if (ui.tab !== "run") return;
+    if (ui.tab !== "run" && ui.tab !== "review") return;
     ui.intCount = (ui.intCount || 0) + 1;
     ui.qFlagged = true;
     var id = me();
@@ -1195,6 +1565,7 @@
   }
   function finishView(s, attempt, answers, why) {
     ui.submitting = false;
+    ui.refinish = function () { finishView(s, attempt, answers, why); };
     closeRoom();
     stopCam();
     stopVox();
@@ -1234,10 +1605,28 @@
     } else {
       h += '<p class="cbt-sub">Your teacher will release the results and breakdown.</p>';
     }
+    if (instant) {
+      var passPct = (s.settings && s.settings.passPct) || 50;
+      var pct2 = attempt.total ? Math.round(attempt.score / attempt.total * 100) : 0;
+      var misses = [];
+      qs.forEach(function (q2, i2) {
+        var a2 = null;
+        (answers || []).forEach(function (x2) { if (x2.q_idx === i2) a2 = x2; });
+        if (!a2 || a2.choice !== q2.a) misses.push(i2 + 1);
+      });
+      if (pct2 >= 75) h += '<div class="cbt-note">🌟 Distinction work. ' + (misses.length ? "Only " + misses.slice(0, 6).map(function (m) { return "Q" + m; }).join(", ") + " kept it from perfect — review the explanations above." : "A clean sheet.") + "</div>";
+      else if (pct2 >= passPct) h += '<div class="cbt-note">✔ A pass at ' + pct2 + "%. Revisit " + misses.slice(0, 6).map(function (m) { return "Q" + m; }).join(", ") + " — the explanations above are the lesson.</div>";
+      else h += '<div class="cbt-note">📖 ' + pct2 + "% — below the pass line of " + passPct + "%. The breakdown above is your study list: start at " + misses.slice(0, 6).map(function (m) { return "Q" + m; }).join(", ") + ".</div>";
+      if (pct2 >= passPct) {
+        ui.cert = { score: attempt.score, total: attempt.total };
+        h += '<div class="cbt-row" style="justify-content:center;margin-top:10px"><button class="cbt-btn gold" id="cbtCertBtn">🎓 View certificate</button></div>';
+      }
+    }
     if (attempt.status === "autosubmitted") h += '<div class="cbt-warn">' + (why === "integrity" ? "This paper was auto-submitted after " + (ui.intCount || INTEGRITY_LIMIT) + " logged window-leaves." : "Time expired — everything you had saved was submitted.") + "</div>";
     h += '<button class="cbt-btn ghost" id="cbtBackHome" style="margin-top:12px">Back to the hall</button></div>';
     root.innerHTML = wrap(h);
     var b = $("cbtBackHome"); if (b) b.onclick = function () { go("home"); };
+    var cb2 = $("cbtCertBtn"); if (cb2) cb2.onclick = function () { ui.tab = "cert"; render(); };
   }
 
   /* ======================================================= TEACHER CONSOLE */
@@ -1252,7 +1641,7 @@
     go("console");
   }
   function newDraft() {
-    return { title: "", cls: "SS1", subject: "", topic: "", count: 20, duration: 30, scheduledAt: "", instantResults: true, showRank: true, webcam: "optional", voice: "off", waecathon: false, questions: [] };
+    return { title: "", cls: "SS1", subject: "", topic: "", count: 20, duration: 30, scheduledAt: "", instantResults: true, showRank: true, shuffle: false, webcam: "optional", voice: "off", waecathon: false, questions: [] };
   }
   function renderConsole() {
     if (!me().teacher) { go("home"); return; }
@@ -1318,9 +1707,10 @@
     function p2(x) { return String(x).padStart(2, "0"); }
     return d.getFullYear() + "-" + p2(d.getMonth() + 1) + "-" + p2(d.getDate()) + "T" + p2(d.getHours()) + ":" + p2(d.getMinutes());
   }
+  var SCHOOL_CLASSES = ["SS1", "SS2", "SS3", "JSS1", "JSS2", "JSS3"];   /* the bank keeps its own global CLASSES — do not shadow it */
   function clsOf() {
-    /* the same source the progress reporter uses: study_grade → SS1/SS2/SS3 */
-    try { var g = JSON.parse(localStorage.getItem("study_grade") || "0"); g = +g || 0; return "SS" + (g + 1); }
+    /* the same source the progress reporter uses: study_grade → SS1-3, then JSS1-3 */
+    try { var g = JSON.parse(localStorage.getItem("study_grade") || "0"); g = +g || 0; return g < 3 ? "SS" + (g + 1) : "JSS" + (g - 2); }
     catch (e) { return "SS1"; }
   }
   function waecTemplate() {
@@ -1330,7 +1720,7 @@
       d.cls = "ALL"; d.subject = ""; d.topic = "";
       d.count = 40; d.duration = 60;
       d.scheduledAt = dtLocal(fri);
-      d.waecathon = true; d.instantResults = true; d.showRank = true;
+      d.waecathon = true; d.instantResults = true; d.showRank = true; d.shuffle = true; d.webcam = "required"; d.voice = "required";
       d.questions = [];
       saveDraft();
       renderBuilder(true);          /* paint the form from the new draft…   */
@@ -1347,7 +1737,7 @@
     h += '<div class="cbt-row" style="margin-bottom:10px"><input class="cbt-inp" id="cbtDraftTitle" aria-label="Paper title" placeholder="Paper title — e.g. SS2 Mathematics · Mid-term CBT" maxlength="80" value="' + esc(d.title) + '"></div>';
     h += '<div class="cbt-grid2">';
     h += '<div><label class="cbt-muted">Class</label><div class="cbt-row" id="cbtClsRow">' +
-      ["SS1", "SS2", "SS3", "ALL"].map(function (c) { return '<button class="cbt-tab' + (d.cls === c ? " on" : "") + '" data-cls="' + c + '">' + (c === "ALL" ? "🏆 All" : c) + "</button>"; }).join("") + "</div></div>";
+      SCHOOL_CLASSES.concat(["ALL"]).map(function (c) { return '<button class="cbt-tab' + (d.cls === c ? " on" : "") + '" data-cls="' + c + '">' + (c === "ALL" ? "🏆 All" : c) + "</button>"; }).join("") + "</div></div>";
     h += '<div><label class="cbt-muted" for="cbtSubject">Subject (for drawing from the bank)</label><select class="cbt-inp" id="cbtSubject"><option value="">Mixed / all subjects</option>' +
       subs.map(function (s2) { return '<option value="' + esc(s2) + '"' + (d.subject === s2 ? " selected" : "") + ">" + esc(s2) + "</option>"; }).join("") + "</select></div>";
     h += '<div><label class="cbt-muted" for="cbtTopic">Topic filter (optional)</label><select class="cbt-inp" id="cbtTopic"><option value="">All topics</option>' +
@@ -1356,7 +1746,8 @@
       [10, 20, 30, 45, 60, 90].map(function (m) { return '<option value="' + m + '"' + (d.duration === m ? " selected" : "") + ">" + m + " minutes</option>"; }).join("") + "</select></div>";
     h += '<div><label class="cbt-muted" for="cbtSched">Scheduled start (shown to students; you press Start)</label><input class="cbt-inp" type="datetime-local" id="cbtSched" value="' + esc(d.scheduledAt || "") + '"></div>';
     h += '<div><label class="cbt-muted" for="cbtCount">Questions to draw</label><input class="cbt-inp" type="number" min="1" max="100" id="cbtCount" value="' + d.count + '"></div>';
-    h += '<div><label class="cbt-muted" for="cbtWebcam">Webcam monitoring</label><select class="cbt-inp" id="cbtWebcam">' +
+    h += '<div class="cbt-note" style="grid-column:1/-1">📹 <b>Proctoring is school policy:</b> every live paper runs with live camera snapshots and live room audio — ephemeral, never recorded, never stored. There is nothing to switch off.</div>' +
+    '<div hidden><label class="cbt-muted" for="cbtWebcam">Webcam monitoring</label><select class="cbt-inp" id="cbtWebcam">' +
       [["off", "Off — no cameras"], ["optional", "Optional — student's choice"], ["required", "Required — camera check before the paper"]].map(function (o) {
         return '<option value="' + o[0] + '"' + ((d.webcam || "optional") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
       }).join("") + "</select></div>";
@@ -1365,7 +1756,8 @@
         return '<option value="' + o[0] + '"' + ((d.voice || "off") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
       }).join("") + "</select></div>";
     h += "</div>";
-    h += '<div class="cbt-row" style="margin:12px 0"><label class="cbt-muted"><input type="checkbox" id="cbtInstant"' + (d.instantResults ? " checked" : "") + '> Students see instant results &amp; explanations</label>' +
+    h += '<div class="cbt-row" style="margin:12px 0"><label class="cbt-muted"><input type="checkbox" id="cbtInstant"' + (d.instantResults ? " checked" : "") + '> Students see instant results &amp; explanations</label> ' +
+      '<label class="cbt-muted"><input type="checkbox" id="cbtShuffle"' + (d.shuffle ? " checked" : "") + '> 🔀 Shuffle question &amp; option order per device</label>' +
       '<label class="cbt-muted"><input type="checkbox" id="cbtRank"' + (d.showRank ? " checked" : "") + "> Show class ranking to students</label></div>";
     h += '<div class="cbt-row" style="margin-bottom:10px"><label class="cbt-muted"><input type="checkbox" id="cbtWaec"' + (d.waecathon ? " checked" : "") + '> 🏆 Friday Waecathon — whole-school event: all classes, house table, countdown on the home board</label></div>';
     h += '<div class="cbt-row" style="margin-bottom:10px"><button class="cbt-btn gold" id="cbtWaecTpl">🏆 Schedule the Friday Waecathon</button><button class="cbt-btn ghost" id="cbtDraw">🎲 Draw from the question bank</button><button class="cbt-btn ghost" id="cbtAddNew">✍️ Add a new question</button><button class="cbt-btn ghost" id="cbtClearQ">🗑 Clear paper</button></div>';
@@ -1413,6 +1805,7 @@
     var sc = $("cbtSched"); if (sc) d.scheduledAt = sc.value;
     var cn = $("cbtCount"); if (cn) d.count = Math.max(1, Math.min(100, +cn.value || 20));
     var ir = $("cbtInstant"); if (ir) d.instantResults = ir.checked;
+    var shf = $("cbtShuffle"); if (shf) d.shuffle = shf.checked;
     var rk = $("cbtRank"); if (rk) d.showRank = rk.checked;
     var wc = $("cbtWebcam"); if (wc) d.webcam = wc.value;
     var vc = $("cbtVoice"); if (vc) d.voice = vc.value;
@@ -1505,7 +1898,7 @@
       code: makeCode(), teacher: id.name, device_id: id.did, title: d.title.trim(),
       cls: d.cls, subject: d.subject || "", duration_s: Math.max(30, d.duration * 60),
       status: "waiting", extend_s: 0,
-      settings: { instantResults: !!d.instantResults, showRank: !!d.showRank, scheduledAt: d.scheduledAt || null, webcam: d.webcam || "optional", voice: d.voice || "off", waecathon: !!d.waecathon },
+      settings: { instantResults: !!d.instantResults, showRank: !!d.showRank, shuffle: !!d.shuffle, scheduledAt: d.scheduledAt || null, webcam: "required", voice: "required", waecathon: !!d.waecathon },
       questions: d.questions
     };
     showBusy("Posting the paper to the school server…");
@@ -1716,15 +2109,16 @@
     });
     rows.sort(function (a, b) { return b.score - a.score || (a.attempt.submitted_at || "").localeCompare(b.attempt.submitted_at || ""); });
     var perQ = qs.map(function (q, i) {
-      var dist = [0, 0, 0, 0], correct = 0, n = 0, flags = 0;
+      var dist = [0, 0, 0, 0], correct = 0, n = 0, flags = 0, msSum = 0;
       attempts.forEach(function (t) {
         var a = (byDev[t.device_id] || {})[i];
         if (!a) return;
         n++; if (a.choice >= 0 && a.choice <= 3) dist[a.choice]++;
         if (q.a === a.choice) correct++;
         if (a.flagged) flags++;
+        msSum += (typeof a.ms === "number" && a.ms >= 0) ? Math.min(a.ms, 3600000) : 0;
       });
-      return { q: q, i: i, n: n, correct: correct, pct: n ? Math.round(correct / n * 100) : null, dist: dist, flags: flags };
+      return { q: q, i: i, n: n, correct: correct, pct: n ? Math.round(correct / n * 100) : null, dist: dist, flags: flags, avgms: n ? Math.round(msSum / n / 1000) : null };
     });
     return { rows: rows, perQ: perQ };
   }
@@ -1764,13 +2158,14 @@
           hrows.map(function (x2, i) {
             return "<tr><td>" + (i === 0 ? "<b>🥇 " : "") + esc(x2.house) + (i === 0 ? "</b>" : "") + "</td><td>" + x2.n + "</td><td><b>" + x2.avg + "%</b></td><td>" + esc(x2.best ? x2.best.name + " — " + x2.best.pct + "%" : "—") + "</td></tr>";
           }).join("") + "</tbody></table>" +
+          (hrows.length > 1 ? '<p class="cbt-muted" style="margin:6px 0 0">Cup points this sitting: ' + hrows.map(function (x4, i4) { return esc(x4.house) + " +" + ([3, 2, 1][i4] || 0); }).join(" · ") + '</p>' : "") +
           '<p class="cbt-muted">Houses are the classes of the school. The table lives with the session on the school server — it outlasts the exam.</p>';
       }
       h += '<h3 style="margin:16px 0 6px">📊 Per-question accuracy</h3>';
       g.perQ.forEach(function (p) {
         var maxD = Math.max.apply(null, p.dist.concat([1]));
         h += '<div class="cbt-draft-q"><span>' + (p.i + 1) + '.</span><div class="cbt-flex1"><b>' + esc(p.q.q) + "</b>" +
-          "<small>Correct: <b>" + letters[p.q.a] + "</b> · " + (p.pct == null ? "no attempts" : p.pct + "% got it right (" + p.correct + "/" + p.n + ")") + (p.flags ? " · ⚠ " + p.flags + " flagged" : "") + "</small>" +
+          "<small>Correct: <b>" + letters[p.q.a] + "</b> · " + (p.pct == null ? "no attempts" : p.pct + "% got it right (" + p.correct + "/" + p.n + ")") + (p.flags ? " · ⚠ " + p.flags + " flagged" : "") + (p.avgms != null ? " · ⏱ avg " + p.avgms + "s on this question" : "") + "</small>" +
           '<div class="cbt-bar" title="Answer distribution">' + p.dist.map(function (dnum, di) {
             return '<i style="height:' + Math.round(dnum / maxD * 100) + "%;opacity:" + (di === p.q.a ? "1" : ".45") + '" data-l="' + letters[di] + '"></i>';
           }).join("") + "</div><small class='cbt-muted'>A · B · C · D (solid = correct option)</small>" +
@@ -2093,6 +2488,7 @@
       h += '<span class="cbt-chip">' + c[0] + ': <b>' + c[1] + "</b></span>";
     });
     h += "</div>";
+    h += '<div id="cbtCupPanel"></div>';
     if (!st.sessions) {
       h += "<div class='cbt-note'>No live exams yet — build the first paper in tab 1 and the whole school's story starts here.</div>";
     } else {
@@ -2169,6 +2565,7 @@
       var a2 = el("a", { href: uri, download: "mamss-school-dashboard.csv" });
       document.body.appendChild(a2); a2.click(); a2.remove();
     };
+    drawCupPanel();
     var wa = $("cbtDashWa");
     if (wa) wa.onclick = function () {
       var best = st.rows.filter(function (r) { return r.avg != null; }).sort(function (x, y) { return y.avg - x.avg; })[0];
@@ -2290,7 +2687,7 @@
     if (q.length > 1000) errs.push("the stem is too long (1000 characters max)");
     if (!subject) errs.push("subject is required");
     else if (subject.length > 80) errs.push("subject is too long (80 characters max)");
-    if (!/^SS[123]$/.test(cls)) errs.push("class must be SS1, SS2 or SS3");
+    if (!/^(SS|JSS)[123]$/.test(cls)) errs.push("class must be SS1-3 or JSS1-3");
     if (o.some(function (x) { return !x; })) errs.push("all four options are required");
     if (o.some(function (x) { return x.length > 300; })) errs.push("an option is too long (300 characters max)");
     if (o.every(function (x) { return x; }) && new Set(o.map(function (x) { return normCode(x); })).size < 4) errs.push("options must be distinct");
@@ -2535,10 +2932,12 @@
     openTeacher: openConsole,
     join: doJoin,
     _test: {
+      seed32: seed32, permSeeded: permSeeded, buildOrder: buildOrder, optPermFor: optPermFor, answeredAt: answeredAt, classes: SCHOOL_CLASSES,
       makeCode: makeCode, normCode: normCode, gradePaper: gradePaper, me: me, cfg: cfg, rest: rest,
       cam: function () { return { on: camState.on, tracks: camState.stream ? camState.stream.getTracks().map(function (t) { return t.readyState; }) : [] }; },
       cams: function () { return camFrames; },
       vox: function () { return { on: voxState.on, err: voxState.err }; },
+      cupStandings: cupStandings, cupFetch: cupFetch,
       voxs: function () { return voxBuf; },
       voxLvls: function () { return voxLvls; },
       voiceMode: voiceMode, clsOf: clsOf, nextFriday16: nextFriday16, dtLocal: dtLocal,

@@ -159,6 +159,10 @@ http.createServer((req, res) => {
     if (u === '/rest/v1/cbt_attempts') {
       const f = parseFilters(search);
       if (req.method === 'GET') {
+        const sel = (search.match(/[?&]select=([^&]*)/) || [])[1] || '';
+        if (!attCols && /(^|,)(cls|voice)(,|%2C|$)/.test(decodeURIComponent(sel))) {
+          return send(res, 400, { code: '42703', message: 'column "cls" of relation "cbt_attempts" does not exist' });
+        }
         const rows = [...attempts.values()].filter(r => matches(r, f));
         rows.sort((a, b) => String(a.joined_at).localeCompare(String(b.joined_at)));
         return send(res, 200, rows);
