@@ -1,4 +1,9 @@
-/* v36.0 — AI Study Tutor (lazy, boot-safe, loaded by polish.js at idle).
+/* v37.0 — AI Study Tutor (lazy, boot-safe, loaded by polish.js at idle).
+   v37 "The Oracle" adds the step-by-step SOLVER (linear, quadratic and
+   simultaneous equations, percentages, interest, fractions, stats, bases,
+   rounding, Pythagoras, speed/distance/time — pure JS, never invents) and
+   a BANK SEARCH that answers from the 4,167-question library with the
+   examiner's explanation. Honest fallback when nothing can be proven.
    v36 adds the curriculum brain (currFor): answers drawn from the lazy
    window.CURR topic library across all 27 subjects, with a self-test
    question and a pointer to the Curriculum Atlas. v34.0 core below:
@@ -143,7 +148,7 @@
     { k: ["poultry", "livestock"], s: "Agricultural Science", a: "Poultry farming is raising fowls for eggs and meat. Key practices: brooding, vaccination, balanced feed, clean housing, culling. Livestock (cattle, goats, sheep) need grazing or zero-grazing, watering and disease control (e.g. Newcastle disease in poultry).", t: "Point-of-lay hens start laying at about 18–20 weeks." },
     { k: ["weed", "tillage"], s: "Agricultural Science", a: "Weeds are unwanted plants competing with crops for nutrients, water and light. Control: manual (hoeing), mechanical, chemical (herbicides), biological. Tillage is preparing the land (ploughing, harrowing) to give seeds a good seedbed.", t: "Zero tillage (no ploughing) conserves soil moisture and reduces erosion." }
   ];
-  var SUGGEST = ["What is photosynthesis?", "Newton's second law", "Quadratic formula", "Plan my revision", "Explain the current question"];
+  var SUGGEST = ["Solve 3x + 5 = 20", "Solve x² − 5x + 6 = 0", "Mean of 4, 8, 6, 10", "What is photosynthesis?", "Plan my revision"];
 
   var KW_RE = {};
   function kwRe(kw) {
@@ -325,6 +330,392 @@
   }
 
   /* ---------------- REPLIES ---------------- */
+
+  /* ================= v37 · THE SOLVER =================
+     Step-by-step answers for the exam's computation questions. Pure JS,
+     no eval of free text: a recursive-descent arithmetic parser plus
+     pattern-matched algebra. Anything it cannot prove, it declines. */
+  function fmtN(v) {
+    if (v === null || v === undefined || !isFinite(v)) return String(v);
+    var r = Math.round(v * 1e6) / 1e6;
+    return String(r);
+  }
+  function calcExpr(str) {
+    var i = 0;
+    var s2 = String(str).replace(/\s+/g, "").replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-");
+    if (!s2 || !/^[0-9+\-*/^().]+$/.test(s2)) return null;
+    function peek() { return s2.charAt(i); }
+    function num() { var m = /^\d+(?:\.\d+)?/.exec(s2.slice(i)); if (!m) throw 0; i += m[0].length; return parseFloat(m[0]); }
+    function prim() {
+      if (peek() === "(") { i++; var v = expr(); if (peek() !== ")") throw 0; i++; return v; }
+      if (peek() === "-") { i++; return -prim(); }
+      if (peek() === "+") { i++; return prim(); }
+      return num();
+    }
+    function pow() { var b = prim(); if (peek() === "^") { i++; return Math.pow(b, pow()); } return b; }
+    function term() { var v = pow(); while (peek() === "*" || peek() === "/") { var op = s2.charAt(i++); var r = pow(); v = op === "*" ? v * r : v / r; } return v; }
+    function expr() { var v = term(); while (peek() === "+" || peek() === "-") { var op = s2.charAt(i++); var r = term(); v = op === "+" ? v + r : v - r; } return v; }
+    try { var out = expr(); if (i < s2.length) return null; return isFinite(out) ? out : null; } catch (e) { return null; }
+  }
+  function gcd2(a, b) { a = Math.abs(Math.round(a)); b = Math.abs(Math.round(b)); while (b) { var t = b; b = a % b; a = t; } return a; }
+  function lcm2(a, b) { return Math.abs(Math.round(a) * Math.round(b)) / (gcd2(a, b) || 1); }
+  function numsIn(q) { var m = String(q).replace(/,/g, " ").match(/\d+(?:\.\d+)?/g); return m ? m.map(parseFloat) : []; }
+  function signC(c) {
+    if (c === "" || c === "+" || c === undefined) return 1;
+    if (c === "-") return -1;
+    return parseFloat(c);
+  }
+  function coSide1(side, v) {
+    var a = 0, k = 0;
+    side = side.replace(/\s+/g, "");
+    var re = new RegExp("([+-]?\\d*)" + v + "|([+-]?\\d+(?:\\.\\d+)?)", "g"), mm;
+    while ((mm = re.exec(side))) {
+      if (mm[1] !== undefined) a += signC(mm[1]);
+      else k += parseFloat(mm[2]);
+    }
+    return { a: a, k: k };
+  }
+  function lin1(eq, v) {
+    var sides = String(eq).split("=");
+    if (sides.length !== 2) return null;
+    var L = coSide1(sides[0], v), R = coSide1(sides[1], v);
+    var a = L.a - R.a, c = R.k - L.k;
+    if (!a) return null;
+    return { a: a, c: c };
+  }
+  function coSide2(side) {
+    var x = 0, y = 0, k = 0;
+    side = side.replace(/\s+/g, "");
+    var re = /([+-]?\d*)x|([+-]?\d*)y|([+-]?\d+(?:\.\d+)?)/g, mm;
+    while ((mm = re.exec(side))) {
+      if (mm[1] !== undefined) x += signC(mm[1]);
+      else if (mm[2] !== undefined) y += signC(mm[2]);
+      else if (mm[3] !== undefined) k += parseFloat(mm[3]);
+    }
+    return { x: x, y: y, k: k };
+  }
+  function lin2(eq) {
+    var sides = String(eq).split("=");
+    if (sides.length !== 2) return null;
+    var L = coSide2(sides[0]), R = coSide2(sides[1]);
+    return { a: L.x - R.x, b: L.y - R.y, c: R.k - L.k };
+  }
+  function quadCo(eq) {
+    var sides = String(eq).split("=");
+    if (sides.length !== 2) return null;
+    var A = 0, B = 0, C = 0;
+    for (var si = 0; si < 2; si++) {
+      var side = sides[si].replace(/\s+/g, "").replace(/x2/g, "x^2");
+      var sgn = si === 0 ? 1 : -1;
+      var rest = side;
+      rest = rest.replace(/([+-]?\d*)x\^2/g, function (_, c) { A += sgn * signC(c); return ""; });
+      rest = rest.replace(/([+-]?\d*)x/g, function (_, c) { B += sgn * signC(c); return ""; });
+      rest = rest.replace(/([+-]?\d+(?:\.\d+)?)/g, function (_, n) { C += sgn * parseFloat(n); return ""; });
+    }
+    if (!A) return null;
+    return { a: A, b: B, c: C };
+  }
+  function mathSolve(q) {
+    var s0 = String(q || "").replace(/²/g, "^2").replace(/³/g, "^3").replace(/×/g, "*").replace(/÷/g, "/").replace(/−/g, "-").replace(/₦/g, "");
+    var ql = s0.toLowerCase();
+    var steps = null, title = "";
+
+    /* simultaneous equations (two linear equations, x and y) */
+    if (!steps && /x/.test(s0) && /y/.test(s0) && (s0.match(/=/g) || []).length >= 2) {
+      var parts = s0.split(/\band\b|;|\n/i).filter(function (t) { return t.indexOf("=") > 0; });
+      if (parts.length === 1) parts = s0.split(",").filter(function (t) { return t.indexOf("=") > 0; });
+      if (parts.length === 2) {
+        var e1 = lin2(parts[0]), e2 = lin2(parts[1]);
+        if (e1 && e2) {
+          var det = e1.a * e2.b - e2.a * e1.b;
+          if (det === 0) {
+            steps = ["The two equations are not independent (one is a multiple of the other), so there is no single pair of solutions.", "Check the question for a mis-copied sign or number."];
+            title = "Simultaneous equations";
+          } else {
+            var xv = (e1.c * e2.b - e2.c * e1.b) / det;
+            var yv = (e1.a * e2.c - e2.a * e1.c) / det;
+            steps = [
+              "Write both in the form ax + by = c:",
+              "(1)  " + fmtN(e1.a) + "x + " + fmtN(e1.b) + "y = " + fmtN(e1.c),
+              "(2)  " + fmtN(e2.a) + "x + " + fmtN(e2.b) + "y = " + fmtN(e2.c),
+              "Eliminate y: (1)×" + fmtN(e2.b) + " − (2)×" + fmtN(e1.b) + ":",
+              "  " + fmtN(e1.a * e2.b - e2.a * e1.b) + "x = " + fmtN(e1.c * e2.b - e2.c * e1.b) + "  →  x = " + fmtN(xv),
+              "Substitute x into (1): y = " + fmtN(yv),
+              "",
+              "✅ x = " + fmtN(xv) + ",  y = " + fmtN(yv),
+              "Check: plug both back into equation (2) — it balances."
+            ];
+            title = "Simultaneous equations";
+          }
+        }
+      }
+    }
+
+    /* quadratic */
+    if (!steps && /x\^2/.test(s0) && s0.indexOf("=") > 0) {
+      var qc = quadCo(s0.split(/solve|find|the roots? of/gi).pop());
+      if (qc) {
+        var D = qc.b * qc.b - 4 * qc.a * qc.c;
+        var head = "a = " + fmtN(qc.a) + ", b = " + fmtN(qc.b) + ", c = " + fmtN(qc.c) + "   (from " + fmtN(qc.a) + "x² " + (qc.b < 0 ? "− " + fmtN(-qc.b) : "+ " + fmtN(qc.b)) + "x " + (qc.c < 0 ? "− " + fmtN(-qc.c) : "+ " + fmtN(qc.c)) + " = 0)";
+        if (D < 0) {
+          steps = [head, "Discriminant b² − 4ac = " + fmtN(D) + " — negative.", "No real roots: the parabola never crosses the x-axis. (WAEC expects you to state this, or the roots are complex: x = (" + fmtN(-qc.b) + " ± √" + fmtN(D) + ")/" + fmtN(2 * qc.a) + "."];
+        } else {
+          var sq = Math.sqrt(D), r1 = (-qc.b + sq) / (2 * qc.a), r2 = (-qc.b - sq) / (2 * qc.a);
+          steps = [head, "Discriminant b² − 4ac = (" + fmtN(qc.b) + ")² − 4(" + fmtN(qc.a) + ")(" + fmtN(qc.c) + ") = " + fmtN(D)];
+          steps.push("x = (−b ± √D) / 2a = (" + fmtN(-qc.b) + " ± " + fmtN(sq) + ") / " + fmtN(2 * qc.a));
+          steps.push("", "✅ x = " + fmtN(r1) + "  or  x = " + fmtN(r2));
+          if (sq === Math.round(sq)) steps.push("Integer roots — it factorises: " + (qc.a === 1 ? "" : fmtN(qc.a)) + "(x " + (r1 >= 0 ? "− " + fmtN(r1) : "+ " + fmtN(-r1)) + ")(x " + (r2 >= 0 ? "− " + fmtN(r2) : "+ " + fmtN(-r2)) + ") = 0");
+          steps.push("Check: sum of roots = " + fmtN(r1 + r2) + " (should be −b/a = " + fmtN(-qc.b / qc.a) + "); product = " + fmtN(r1 * r2) + " (c/a = " + fmtN(qc.c / qc.a) + ").");
+        }
+        title = "Quadratic equation";
+      }
+    }
+
+    /* linear equation in one variable */
+    if (!steps && s0.indexOf("=") > 0 && /(^|[^a-z])(x|n)([^a-z0-9]|$)/.test(ql)) {
+      var v = /(^|[^a-z])n([^a-z0-9]|$)/.test(ql) && !/(^|[^a-z])x([^a-z0-9]|$)/.test(ql) ? "n" : "x";
+      var le = lin1(s0.split(/solve|find|what is|value of/gi).pop(), v);
+      if (le) {
+        var sol = le.c / le.a;
+        steps = [
+          "Collect the " + v + "-terms on one side and the numbers on the other:",
+          fmtN(le.a) + v + " = " + fmtN(le.c),
+          "Divide both sides by " + fmtN(le.a) + ":",
+          "",
+          "✅ " + v + " = " + fmtN(le.c) + " ÷ " + fmtN(le.a) + " = " + fmtN(sol),
+          "Check: substitute " + v + " = " + fmtN(sol) + " back into the original equation — both sides balance."
+        ];
+        title = "Linear equation";
+      }
+    }
+
+    /* percentage of */
+    if (!steps) {
+      var pm = /(\d+(?:\.\d+)?)\s*%\s*of\s*(\d+(?:\.\d+)?)/.exec(s0);
+      if (pm) {
+        var pv = parseFloat(pm[1]) / 100 * parseFloat(pm[2]);
+        steps = [pm[1] + "% means " + pm[1] + "/100 = " + fmtN(parseFloat(pm[1]) / 100), fmtN(parseFloat(pm[1]) / 100) + " × " + pm[2] + " = " + fmtN(pv), "", "✅ " + pm[1] + "% of " + pm[2] + " = " + fmtN(pv)];
+        title = "Percentage";
+      }
+    }
+
+    /* percentage change */
+    if (!steps && /percent|%|change|increase|decrease|profit|loss/.test(ql)) {
+      var cm = /from\s*(\d+(?:\.\d+)?)\s*to\s*(\d+(?:\.\d+)?)/.exec(ql);
+      if (cm) {
+        var oldv = parseFloat(cm[1]), newv = parseFloat(cm[2]);
+        var chg = (newv - oldv) / oldv * 100;
+        steps = ["Change = (new − old) ÷ old × 100", "= (" + fmtN(newv) + " − " + fmtN(oldv) + ") ÷ " + fmtN(oldv) + " × 100", "= " + fmtN(chg) + "%", "", "✅ A " + (chg >= 0 ? "percentage increase of " + fmtN(chg) : "percentage decrease of " + fmtN(-chg)) + "%"];
+        title = "Percentage change";
+      }
+    }
+
+    /* simple / compound interest */
+    if (!steps && /interest/.test(ql)) {
+      var rm = /(\d+(?:\.\d+)?)\s*%/.exec(s0);
+      var tm = /(\d+(?:\.\d+)?)\s*(?:years?|yrs?)/.exec(ql);
+      var pmm = /(?:on|of|principal[^0-9]*)\s*(\d+(?:\.\d+)?)/.exec(s0) || s0.match(/(\d+(?:\.\d+)?)/);
+      if (rm && tm && pmm) {
+        var P = parseFloat(pmm[1]), R = parseFloat(rm[1]), T = parseFloat(tm[1]);
+        if (/compound/.test(ql)) {
+          var A = P * Math.pow(1 + R / 100, T);
+          steps = ["Compound interest: A = P(1 + r)ᵗ", "A = " + fmtN(P) + " × (1 + " + fmtN(R / 100) + ")^" + fmtN(T) + " = " + fmtN(Math.round(A * 100) / 100), "", "✅ Amount = " + fmtN(Math.round(A * 100) / 100) + ",  Interest = " + fmtN(Math.round((A - P) * 100) / 100)];
+        } else {
+          var I = P * R * T / 100;
+          steps = ["Simple interest: I = P × R × T ÷ 100", "I = " + fmtN(P) + " × " + fmtN(R) + " × " + fmtN(T) + " ÷ 100 = " + fmtN(I), "", "✅ Interest = " + fmtN(I) + ",  Total amount = " + fmtN(P + I)];
+        }
+        title = "Interest";
+      }
+    }
+
+    /* HCF / LCM */
+    if (!steps && /(hcf|gcd|highest common)/.test(ql)) {
+      var hn = numsIn(ql.replace(/(hcf|gcd|highest common factor|of|the|and|between)/g, " ")).filter(function (v) { return v >= 1 && v === Math.round(v); });
+      if (hn.length >= 2) {
+        var g = hn[0], lines = [];
+        for (var gi = 1; gi < hn.length; gi++) {
+          var a = g, b = hn[gi];
+          lines.push("gcd(" + a + ", " + b + "): " + (function (aa, bb) { var seq = []; while (bb) { seq.push(aa + " = " + bb + "×" + Math.floor(aa / bb) + " + " + (aa % bb)); var t = bb; bb = aa % bb; aa = t; } return seq.join("; ") + " → " + aa; })(a, b));
+          g = gcd2(g, hn[gi]);
+        }
+        steps = lines.concat(["", "✅ HCF of " + hn.join(", ") + " = " + g]);
+        title = "HCF";
+      }
+    }
+    if (!steps && /(lcm|lowest common|least common)/.test(ql)) {
+      var ln = numsIn(ql.replace(/(lcm|lowest common multiple|least common multiple|of|the|and|between)/g, " ")).filter(function (v) { return v >= 1 && v === Math.round(v); });
+      if (ln.length >= 2) {
+        var l = ln[0];
+        for (var li = 1; li < ln.length; li++) l = lcm2(l, ln[li]);
+        steps = ["LCM(a,b) = a×b ÷ HCF(a,b), applied step by step.", "", "✅ LCM of " + ln.join(", ") + " = " + fmtN(l)];
+        title = "LCM";
+      }
+    }
+
+    /* Pythagoras */
+    if (!steps && /(hypotenuse|pythagor)/.test(ql)) {
+      var pn = numsIn(s0);
+      if (pn.length >= 2) {
+        var c = Math.sqrt(pn[0] * pn[0] + pn[1] * pn[1]);
+        steps = ["c² = a² + b² = " + fmtN(pn[0]) + "² + " + fmtN(pn[1]) + "² = " + fmtN(pn[0] * pn[0] + pn[1] * pn[1]), "c = √" + fmtN(pn[0] * pn[0] + pn[1] * pn[1]) + " = " + fmtN(Math.round(c * 1000) / 1000), "", "✅ Hypotenuse = " + fmtN(Math.round(c * 1000) / 1000) + (c === Math.round(c) ? " (exact)" : " (3 s.f. ≈ " + Number(c.toPrecision(3)) + ")")];
+        title = "Pythagoras";
+      }
+    } else if (!steps && /(other side|third side|missing side|leg)/.test(ql)) {
+      var qn = numsIn(s0);
+      if (qn.length >= 2) {
+        var hyp = Math.max(qn[0], qn[1]), leg = Math.min(qn[0], qn[1]);
+        var ms = Math.sqrt(hyp * hyp - leg * leg);
+        steps = ["The longest side given (" + fmtN(hyp) + ") is the hypotenuse.", "b² = c² − a² = " + fmtN(hyp * hyp) + " − " + fmtN(leg * leg) + " = " + fmtN(hyp * hyp - leg * leg), "", "✅ Missing side = " + fmtN(Math.round(ms * 1000) / 1000)];
+        title = "Pythagoras";
+      }
+    }
+
+    /* statistics from a list */
+    if (!steps && /(mean|median|mode|average)/.test(ql)) {
+      var sn = numsIn(s0.replace(/(mean|median|mode|average|of|the|and|find|calculate|what is)/g, " "));
+      if (sn.length >= 3) {
+        var sorted = sn.slice().sort(function (a2, b2) { return a2 - b2; });
+        var sum = sn.reduce(function (a2, b2) { return a2 + b2; }, 0);
+        var mean = sum / sn.length;
+        var mid = sn.length % 2 ? sorted[(sn.length - 1) / 2] : (sorted[sn.length / 2 - 1] + sorted[sn.length / 2]) / 2;
+        var counts = {}, best2 = null, bestC = 1;
+        sn.forEach(function (v2) { counts[v2] = (counts[v2] || 0) + 1; if (counts[v2] > bestC) { bestC = counts[v2]; best2 = v2; } });
+        steps = [
+          "Data (" + sn.length + " values, ordered): " + sorted.join(", "),
+          "• Mean = sum ÷ n = " + fmtN(sum) + " ÷ " + sn.length + " = " + fmtN(Math.round(mean * 100) / 100),
+          "• Median = middle value = " + fmtN(mid),
+          "• Mode = " + (best2 === null ? "none (no value repeats)" : fmtN(best2) + " (appears " + bestC + "×)"),
+          "• Range = " + fmtN(sorted[sorted.length - 1] - sorted[0])
+        ];
+        title = "Statistics";
+      }
+    }
+
+    /* fraction arithmetic */
+    if (!steps) {
+      var fm = /(\d+)\s*\/\s*(\d+)\s*([+\-*/])\s*(\d+)\s*\/\s*(\d+)/.exec(s0);
+      if (fm) {
+        var n1 = +fm[1], d1 = +fm[2], op2 = fm[3], n2 = +fm[4], d2 = +fm[5];
+        if (d1 && d2) {
+          var rn, rd, expl = [];
+          if (op2 === "+" || op2 === "-") {
+            var L = lcm2(d1, d2);
+            rn = n1 * (L / d1) + (op2 === "+" ? 1 : -1) * n2 * (L / d2);
+            rd = L;
+            expl.push("LCM of " + d1 + " and " + d2 + " = " + L + " — convert both fractions:");
+            expl.push(n1 + "/" + d1 + " = " + n1 * (L / d1) + "/" + L + ",  " + n2 + "/" + d2 + " = " + n2 * (L / d2) + "/" + L);
+          } else if (op2 === "*") {
+            rn = n1 * n2; rd = d1 * d2;
+            expl.push("Multiply straight across: (" + n1 + "×" + n2 + ") / (" + d1 + "×" + d2 + ") = " + rn + "/" + rd);
+          } else {
+            rn = n1 * d2; rd = d1 * n2;
+            expl.push("Dividing by a fraction = multiply by its reciprocal:");
+            expl.push(n1 + "/" + d1 + " × " + d2 + "/" + n2 + " = " + rn + "/" + rd);
+          }
+          var g2 = gcd2(rn, rd) || 1;
+          expl.push("Simplify by HCF " + g2 + ":");
+          expl.push("", "✅ " + n1 + "/" + d1 + " " + op2 + " " + n2 + "/" + d2 + " = " + (rn / g2) + "/" + (rd / g2) + (Math.abs(rn / g2) > (rd / g2) && rd / g2 !== 1 ? "  = " + Math.floor(Math.abs(rn / g2) / (rd / g2)) + " " + (Math.abs(rn / g2) % (rd / g2)) + "/" + (rd / g2) : ""));
+          steps = expl;
+          title = "Fractions";
+        }
+      }
+    }
+
+    /* rounding */
+    if (!steps) {
+      var rdm = /round\s*(\d+(?:\.\d+)?)\s*to\s*(\d+)\s*(?:d\.?p\.?|decimal)/i.exec(s0);
+      if (rdm) {
+        steps = ["Look at the digit in position " + (parseInt(rdm[2], 10) + 1) + ": " + (rdm[1].split(".")[1] || "").charAt(parseInt(rdm[2], 10)) || "0", "5 or more rounds up; below 5 rounds down.", "", "✅ " + rdm[1] + " to " + rdm[2] + " d.p. = " + parseFloat(rdm[1]).toFixed(parseInt(rdm[2], 10))];
+        title = "Rounding";
+      }
+      var rnm = /round\s*(\d+(?:\.\d+)?)\s*to\s*(?:the\s*)?nearest\s*(ten|hundred|thousand|whole number|integer|unit)/i.exec(s0);
+      if (!steps && rnm) {
+        var fac = { ten: 10, hundred: 100, thousand: 1000 }[rnm[2].toLowerCase()] || 1;
+        steps = ["Divide by " + fac + ", round to the nearest whole, multiply back.", "", "✅ " + rnm[1] + " to the nearest " + rnm[2] + " = " + fmtN(Math.round(parseFloat(rnm[1]) / fac) * fac)];
+        title = "Rounding";
+      }
+      var sfm = /(\d+(?:\.\d+)?)\s*to\s*(\d+)\s*(?:s\.?f\.?|significant)/i.exec(s0);
+      if (!steps && sfm) {
+        steps = ["Count digits from the first non-zero digit; the next digit decides the round.", "", "✅ " + sfm[1] + " to " + sfm[2] + " s.f. = " + fmtN(parseFloat(parseFloat(sfm[1]).toPrecision(parseInt(sfm[2], 10))))];
+        title = "Significant figures";
+      }
+    }
+
+    /* number bases */
+    if (!steps && /(base|binary|denary|decimal|octal|hex)/.test(ql) && /(convert|change|express)/.test(ql)) {
+      var words = { binary: 2, octal: 8, denary: 10, decimal: 10, hex: 16, hexadecimal: 16 };
+      var bm = /convert\s*([0-9a-f]+)\s*(?:from\s*)?(?:base\s*)?(\d+|binary|octal|denary|decimal|hex(?:adecimal)?)\s*(?:in)?to\s*(?:base\s*)?(\d+|binary|octal|denary|decimal|hex(?:adecimal)?)/i.exec(ql);
+      if (bm) {
+        var fb = words[bm[2]] || parseInt(bm[2], 10), tb = words[bm[3]] || parseInt(bm[3], 10);
+        var dec = parseInt(bm[1], fb);
+        if (!isNaN(dec) && tb >= 2 && tb <= 16) {
+          var digs = bm[1].split("").map(function (ch2, ix) { return ch2 + "×" + fb + "^" + (bm[1].length - 1 - ix); }).join(" + ");
+          steps = ["Positional expansion: " + digs + " = " + dec + " (base 10)", "Now divide " + dec + " by " + tb + " repeatedly, keeping remainders.", "", "✅ " + bm[1] + " (base " + fb + ") = " + dec.toString(tb).toUpperCase() + " (base " + tb + ")"];
+          title = "Number bases";
+        }
+      }
+    }
+
+    /* speed / distance / time */
+    if (!steps && /(speed|velocity)/.test(ql) && !/average of/.test(ql)) {
+      var dm = /(\d+(?:\.\d+)?)\s*(?:km|m|metres?|meters?|miles?)/i.exec(s0);
+      var hm = /(\d+(?:\.\d+)?)\s*(?:h|hrs?|hours?|minutes?|mins?|seconds?|s)\b/i.exec(s0);
+      if (dm && hm) {
+        var tHours = /min|second/.test(hm[0]) ? parseFloat(hm[1]) / (/min/.test(hm[0]) ? 60 : 3600) : parseFloat(hm[1]);
+        var sp = parseFloat(dm[1]) / tHours;
+        steps = ["speed = distance ÷ time", "= " + dm[1] + " ÷ " + fmtN(tHours) + " h", "", "✅ Average speed = " + fmtN(Math.round(sp * 100) / 100) + " km/h"];
+        title = "Speed";
+      }
+    }
+
+    /* plain arithmetic (last, so the worded cases win first) */
+    if (!steps) {
+      var ar = s0.replace(/^(what is|whats|calculate|compute|evaluate|work out|solve|simplify)\s+/i, "").replace(/[?=]+$/g, "").trim();
+      if (/^[0-9+\-*/^(). ]+$/.test(ar) && /\d\s*[+\-*/^]\s*\d/.test(ar) && calcExpr(ar) !== null) {
+        steps = [ar, "", "✅ = " + fmtN(calcExpr(ar))];
+        title = "Arithmetic";
+      }
+    }
+
+    if (!steps) return null;
+    return { kind: "lib", title: "🧮 Solver · " + title, text: steps.join("\n"), src: "solver" };
+  }
+
+  /* ============ v37 · BANK SEARCH ============
+     Answer from the 4,167-question national bank itself: find the closest
+     past-question match and return it with the examiner's explanation. */
+  var BANKSTOP = ["what", "when", "which", "where", "define", "explain", "calculate", "compute", "solve", "find", "state", "give", "meaning", "question", "answer", "following", "between", "about", "with", "from", "that", "this", "will", "would", "their", "there"];
+  function bankFor(q) {
+    var B = null;
+    /* the bank is a top-level `let` in the page script — global scope, NOT on window */
+    try { if (typeof CLASSES !== "undefined" && CLASSES && CLASSES.length) B = CLASSES; } catch (e) {}
+    try { if (!B) B = window.CLAZZES || null; } catch (e) {}
+    if (!B || !B.forEach) return null;
+    var norm = String(q || "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    var toks = norm.split(" ").filter(function (t) { return (t.length >= 3 || (t.length === 2 && /\d/.test(t))) && BANKSTOP.indexOf(t) < 0; });
+    if (toks.length < 2) return null;
+    var best = null, bestScore = 0;
+    B.forEach(function (c) {
+      var qs = (c && c.questions) || [];
+      for (var i = 0; i < qs.length; i++) {
+        var qb = qs[i];
+        if (!qb || !qb.q) continue;
+        var hay = (qb.q + " " + ((qb.o || []).join(" ")) + " " + (qb.e || "")).toLowerCase();
+        var score = 0;
+        for (var j = 0; j < toks.length; j++) if (hay.indexOf(toks[j]) >= 0) score += toks[j].length;
+        if (score > bestScore) { bestScore = score; best = { cls: c["class"], q: qb }; }
+      }
+    });
+    if (!best || bestScore < 6) return null;
+    var qb2 = best.q;
+    var opts = (qb2.o || []).map(function (o, i) { return String.fromCharCode(65 + i) + ". " + o; }).join("\n");
+    var txt = "Closest match from your question bank (" + best.cls + "):\n\n**" + qb2.q + "**\n" + opts;
+    if (qb2.a !== undefined && qb2.a !== null && qb2.o) txt += "\n\n✅ Answer: " + String.fromCharCode(65 + qb2.a) + ". " + qb2.o[qb2.a];
+    if (qb2.e) txt += "\n\n💡 " + qb2.e;
+    txt += "\n\n_Want it as a drill? Practice → pick this class → the bank serves it up._";
+    return { kind: "lib", title: "🗂 From the bank", text: txt, src: "bank" };
+  }
+
   function replies(q) {
     var ql = q.toLowerCase();
     if (/plan|schedule|organi[sz]e|revis/.test(ql)) {
@@ -345,7 +736,7 @@
       var t = ["📊 **Your study insights** — " + a2.total + " complete paper(s), average " + a2.avg + "%.", "• " + (a2.recs.join("\n• ") || "Keep going — consistency is the whole game."), a2.streak ? "• 🔥 Streak: " + a2.streak + " day(s)." : "• Start a streak today!"];
       return { kind: "lib", title: "📊 Insights", text: t.join("\n"), src: "insights" };
     }
-    if (/explain|current question|on screen|this question/.test(ql)) {
+    if (/(explain|break ?down).{0,24}(question|screen)|current question|this question/.test(ql)) {
       var qt = null, subj = "";
       try { var el = document.getElementById("qText"); qt = el ? el.textContent : null; } catch (e) {}
       try { var sel = document.getElementById("qSubject"); subj = sel && sel.value ? sel.value : ""; } catch (e) {}
@@ -361,6 +752,8 @@
       body += "\n_Answer kept hidden — work it out and you'll remember it longer._";
       return { kind: "lib", title: "🎯 Breakdown", text: head + body, src: "explain" };
     }
+    var ms = mathSolve(q);
+    if (ms) return ms;
     var fact = factFor(q);
     if (fact) {
       var txt = "**" + fact.s + "** — " + fact.a + (fact.t ? "\n\n💡 " + fact.t : "");
@@ -370,6 +763,8 @@
     if (fo) {
       return { kind: "lib", title: fo[0] + " · " + fo[1], text: "**" + fo[2] + "**: " + fo[3] + "\n" + fo[4] + "\n\nLook it up any time in the 📐 Formula Vault.", src: "formula" };
     }
+    var bk = bankFor(q);
+    if (bk) return bk;
     var cu = currFor(q);
     if (cu) {
       var ctp = cu.tp, csm = Array.isArray(ctp[3]) ? ctp[3] : [];
@@ -378,7 +773,11 @@
       ctxt += "\n\nOpen 🗺 Curriculum Atlas to drill this topic.";
       return { kind: "lib", title: cu.s + " · " + ctp[0], text: ctxt, src: "curriculum" };
     }
-    return { kind: "lib", title: "Hmm", text: "I couldn't find that in your study library yet. Try one of these, or open 📐 Formula Vault if you're after a formula:\n• " + SUGGEST.slice(0, 4).join("\n• "), src: "fallback" };
+    var guess = topicDetect("", q);
+    var fb = "That one isn't in my offline library yet — and I won't invent an answer. Here's how to attack it:\n\n1. Underline what the question is really asking (the command word).\n";
+    fb += guess ? "2. It looks like **" + guess + "** — open 🗺 Curriculum Atlas for that topic's notes and a drill.\n" : "2. Write down what you already know: a formula, a fact, or a worked example.\n";
+    fb += "3. If it computes, type it as maths and I'll solve it step by step — e.g. \"solve 3x + 5 = 20\", \"mean of 4, 8, 6, 10\".\n4. Check the 📐 Formula Vault, or ask me to explain the question on screen during a paper.\n5. Still stuck? Ask your teacher — or add your own AI key (✨ tab) for a full LLM answer.";
+    return { kind: "lib", title: "Let's work it out together", text: fb, src: "fallback" };
   }
 
   function topicDetect(subj, text) {
@@ -500,7 +899,7 @@
     var saved = ls(CHAT, null);
     body.innerHTML =
       '<div class="ai-chat" id="aiChat">' +
-        (saved && saved.length ? "" : '<div class="ai-msg ai-b">👋 Hi — I\'m your study tutor. I answer from <b>your own library</b>: curriculum facts, the Formula Vault and your real results. Ask me anything, or try a chip below.</div>') +
+        (saved && saved.length ? "" : '<div class="ai-msg ai-b">👋 Hi — I\'m your study tutor. I answer from <b>your own library</b>: curriculum facts, the Formula Vault, your real results \u2014 and a step-by-step <b>Solver</b> for equations, percentages, fractions and statistics. Ask me anything, type maths like \u0027solve 3x + 5 = 20\u0027, or try a chip below.</div>') +
       "</div>" +
       '<div class="ai-row"><input class="ai-in" id="aiIn" placeholder="Ask… e.g. define osmosis, quadratic formula, plan my revision" aria-label="Ask the tutor"><button class="ai-go" id="aiGo">➤</button></div>' +
       '<div class="ai-chips" id="aiChips">' + SUGGEST.map(function (s) { return '<button type="button" class="ai-chip" data-q="' + esc(s) + '">' + esc(s) + "</button>"; }).join("") + "</div>";
@@ -629,7 +1028,7 @@
         if (e.key === "Escape" && document.getElementById("aiOv")) close();
       });
     } catch (e) {}
-    window.__aiApi = { ask: ask, reply: replies, analyze: analyze, curr: currFor, open: open, close: close, FACTS: FACTS.length };
+    window.__aiApi = { ask: ask, reply: replies, solve: mathSolve, calc: calcExpr, bank: bankFor, analyze: analyze, curr: currFor, open: open, close: close, FACTS: FACTS.length };
   }
   function chips() {
     var w = document.getElementById("examChip");

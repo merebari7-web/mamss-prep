@@ -1,0 +1,30 @@
+const { chromium } = require('playwright');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const browser = await chromium.launch();
+  const ctx = await browser.newContext({ serviceWorkers: 'block' });
+  await ctx.addInitScript(`
+    window.__CBT_FORCE_POLL = 1;
+    localStorage.setItem('nssc_mp_seen', '70');
+    localStorage.setItem('nssc_devid', JSON.stringify('dbg-who'));
+    localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify({ h: 'x', mask: 'M', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada' }))});
+  `);
+  const p = await ctx.newPage();
+  p.on('pageerror', e => console.log('[pageerror]', String(e).slice(0, 300)));
+  await p.goto('http://localhost:8100/', { waitUntil: 'domcontentloaded' });
+  await p.waitForFunction(() => !!window.MAMSS_ACT, null, { timeout: 40000 });
+  await p.evaluate(() => MAMSS_ACT.unlock && MAMSS_ACT.unlock());
+  await p.click('.study-nav a[data-view="cbt"]');
+  await p.waitForSelector('#cbtWhoGo', { timeout: 15000 });
+  await p.fill('#cbtWhoName', 'Who Student');
+  await p.click('[data-who-cls="4"]');
+  await p.click('#cbtWhoGo');
+  await sleep(1500);
+  console.log('LS who:', await p.evaluate(() => localStorage.getItem('nssc_cbt_who')), 'name:', await p.evaluate(() => localStorage.getItem('nssc_cbt_name')), 'grade:', await p.evaluate(() => localStorage.getItem('study_grade')));
+  console.log('home view:', (await p.locator('#viewCbt').innerText()).slice(0, 200).replace(/\n+/g, ' | '));
+  console.log('whochange count:', await p.locator('#cbtWhoChange').count());
+  await p.click('#cbtWhoChange');
+  await sleep(800);
+  console.log('after change click:', (await p.locator('#viewCbt').innerText()).slice(0, 120).replace(/\n+/g, ' | '), 'whoGo:', await p.locator('#cbtWhoGo').count());
+  await browser.close(); process.exit(0);
+})();

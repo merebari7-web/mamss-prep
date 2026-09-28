@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "65";
+  var VERSION = "66";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -241,7 +241,7 @@
       ".cbt-btn.danger{background:#8a1f1f;color:#fff}" +
       ".cbt-btn:disabled{opacity:.45;cursor:not-allowed}" +
       ".cbt-chip{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.74rem;font-weight:800;letter-spacing:.04em}" +
-      ".cbt-chip.waiting{background:rgba(201,162,39,.16);color:#8a6d1f}" +
+      ".cbt-chip.waiting{background:rgba(201,162,39,.16);color:#7a5c10}" +
       ".cbt-chip.live{background:rgba(20,120,60,.14);color:#14783c}" +
       ".cbt-chip.ended{background:rgba(0,33,71,.1);color:#3c4a63}" +
       ".cbt-big-code{font:800 2.2rem/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;color:#002147;text-align:center;margin:8px 0}" +
@@ -675,7 +675,7 @@
     var cached = st.get("nssc_cbt_cup", null);
     if (cached && Date.now() - cached.at < 600000) return Promise.resolve(cached.cup);
     if (st.get("nssc_cbt_nocols", 0)) return Promise.resolve(null);   /* pre-ALTER server: no houses, no cup */
-    return rest("cbt_sessions?select=code,title,status,scheduled_at&settings->>waecathon=eq.true&status=eq.ended&order=scheduled_at.desc&limit=" + (limit || 12))
+    return rest("cbt_sessions?select=code,title,status,settings&settings->>waecathon=eq.true&status=eq.ended&order=created_at.desc&limit=" + (limit || 12))
       .then(function (r) {
         if (!r.ok) return cached ? cached.cup : null;
         var sess = r.json || [], bad = false;
@@ -736,17 +736,19 @@
       if (wb) wb.onclick = function () { cupWaText(cup); };
     }).catch(function () {});
   }
+  function schedAt(x) { return (x.settings && x.settings.scheduledAt) || x.scheduled_at || ""; }
   function fillBoard() {
     var box = $("cbtBoard"); if (!box) return;
     var c = cfg(); if (!c) return;
     try {
-      fetch(c.url + "/rest/v1/cbt_sessions?select=code,title,status,scheduled_at,cls,subject&order=scheduled_at.asc&limit=8", { headers: { "apikey": c.key } })
+      fetch(c.url + "/rest/v1/cbt_sessions?select=code,title,status,settings,cls,subject&order=created_at.desc&limit=20", { headers: { "apikey": c.key } })
         .then(function (r) { return r.ok ? r.json() : []; })
         .then(function (rows) {
           rows = rows || [];
           var mine = function (x) { return !x.cls || x.cls === "ALL" || x.cls === clsOf(); };
           var live = rows.filter(function (x) { return x.status === "live" && mine(x); });
-          var sched = rows.filter(function (x) { return x.status === "scheduled" && x.scheduled_at && mine(x); });
+          var sched = rows.filter(function (x) { return x.status === "scheduled" && schedAt(x) && mine(x); });
+          sched.sort(function (a, b) { return schedAt(a) < schedAt(b) ? -1 : 1; });
           var out = "";
           if (live.length) {
             out += '<div class="cbt-board-live-wrap">' + live.map(function (x) {
@@ -755,7 +757,7 @@
           }
           if (sched.length) {
             out += '<p class="cbt-quiet-next">Next on the board: ' + sched.slice(0, 2).map(function (x) {
-              return '<b>' + esc(x.title || x.code) + '</b> · ' + esc(fmtWhen(x.scheduled_at));
+              return '<b>' + esc(x.title || x.code) + '</b> · ' + esc(fmtWhen(schedAt(x)));
             }).join(" &nbsp;·&nbsp; ") + '</p>';
           }
           if (!live.length && !sched.length) {

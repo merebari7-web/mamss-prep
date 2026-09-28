@@ -169,7 +169,7 @@
     var c = null;
     try { c = (window.MAMSS_ACT && MAMSS_ACT.ledger && MAMSS_ACT.ledger()) || (window.MAMSS_CODES && MAMSS_CODES.ledger) || null; } catch (e) {}
     if (!c) return Promise.resolve(cached ? cached.rows : null);
-    var qs = "/rest/v1/cbt_sessions?select=code,title,status,scheduled_at&settings->>waecathon=eq.true&status=in.(waiting,live)&order=scheduled_at.asc&limit=1";
+    var qs = "/rest/v1/cbt_sessions?select=code,title,status,settings&settings->>waecathon=eq.true&status=in.(waiting,live)&order=created_at.desc&limit=1";
     return fetch(c.url + qs, { headers: { "apikey": c.key, "Authorization": "Bearer " + c.key } })
       .then(function (r) {
         if (!r.ok) return cached ? cached.rows : null;
@@ -179,7 +179,8 @@
   function waecHtml(rows) {
     if (!rows || !rows.length) return "";            /* no waecathon: the banner stays quiet */
     var r = rows[0], now = Date.now();
-    var when = r.scheduled_at ? new Date(r.scheduled_at) : nextFriday16();
+    var sched = (r.settings && r.settings.scheduledAt) || r.scheduled_at;   /* v71: prod has no scheduled_at column */
+    var when = sched ? new Date(sched) : nextFriday16();
     if (isNaN(when.getTime())) when = nextFriday16();
     var head, sub, go = false;
     if (r.status === "live" || (r.status === "waiting" && when.getTime() <= now)) {

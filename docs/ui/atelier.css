@@ -2852,3 +2852,17 @@ html.ao-night .mx-frame{background:rgba(237,182,158,.06)}
 .cbt-board-live:hover{transform:translateY(-1px);box-shadow:0 10px 22px -14px rgba(18,38,63,.5)}
 .cbt-pal button{transition:transform .1s ease}
 .cbt-pal button:not(.cur):hover{transform:translateY(-1px)}
+
+/* ── v71 "The National Standard" — site-wide finish ──────────────────────── */
+::selection{background:rgba(201,162,39,.42)}
+.ai-chat::-webkit-scrollbar,.mp-new::-webkit-scrollbar,.cbt-scroll::-webkit-scrollbar,.rep-scroll::-webkit-scrollbar{width:9px;height:9px}
+.ai-chat::-webkit-scrollbar-thumb,.mp-new::-webkit-scrollbar-thumb,.cbt-scroll::-webkit-scrollbar-thumb,.rep-scroll::-webkit-scrollbar-thumb{background:rgba(29,53,87,.28);border-radius:99px}
+.ai-chat::-webkit-scrollbar-track,.mp-new::-webkit-scrollbar-track,.cbt-scroll::-webkit-scrollbar-track,.rep-scroll::-webkit-scrollbar-track{background:transparent}
+.subject-card,.rep-card,.plan-card,.notes-card{transition:transform .16s ease,box-shadow .16s ease}
+.subject-card:hover,.rep-card:hover,.plan-card:hover,.notes-card:hover{transform:translateY(-2px);box-shadow:0 12px 26px -16px rgba(18,38,63,.4)}
+#studioDock{padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+@media print{
+  .study-nav,#studioDock,.mp-skip,#mpNewOverlay,.ai-ov,.ca-ov,.mp-fab{display:none!important}
+  body{background:#fff!important}
+  .subject-card,.rep-card,.plan-card,.notes-card{break-inside:avoid;box-shadow:none}
+}

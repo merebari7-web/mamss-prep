@@ -1291,6 +1291,78 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 33 · v71 "The National Standard" — the oracle, the phantom column, the crawler (2026-09-28)
+
+The user's bar: *fix all bugs, and make it a site the President would
+recommend to every school in Nigeria.* So v71 is an inspection first and a
+brochure second: a new crawler audited every view, both roles, two widths and
+the guest gate — then everything it found got fixed, and the AI Tutor learned
+to show its working.
+
+1. **The Oracle (AI Tutor v37).** A step-by-step **Solver** answers the
+   exam's computation questions in examination English: linear equations
+   (terms collected, both sides shown), quadratics (a/b/c named, discriminant,
+   roots, factorised form, sum-and-product check), simultaneous pairs
+   (elimination written out), percentages and percentage change, simple and
+   compound interest, HCF (Euclidean steps) and LCM, Pythagoras, mean/median/
+   mode/range, fraction arithmetic (LCM conversion, simplification, mixed
+   numbers), rounding and significant figures, number bases (positional
+   expansion + repeated division), speed/distance/time, and plain arithmetic
+   through a recursive-descent parser — **never `eval`, never free text**. A
+   **bank search** answers from the 4,167-question national library itself,
+   returning the matched past question with its options and the examiner's
+   explanation. And when nothing can be proven, the fallback stays honest:
+   *"I won't invent an answer"* — then a five-step attack plan. 24-check node
+   battery + 13-check browser suite (aitest.js), both green.
+2. **The phantom column — a production bug since v67.** The class board, the
+   Waecathon history and the student Today-board countdown all queried
+   `cbt_sessions.scheduled_at` — a column the production table never had
+   (the schedule actually lives in `settings.scheduledAt`). Every one of
+   those queries 400'd in production while the local mock, which *did* have
+   the column, kept the suites green. Fixed at the root: cbt.js and habits.js
+   now select `settings` and read through a tolerant `schedAt()`, and the
+   live Supabase schema was verified column-by-column with the site's own
+   public key (cls ✓, voice ✓ on attempts, scheduled_at ✗ — now unused).
+3. **The overlay's invisible typo.** Eleven whats-new entries shipped with
+   literal `\U0001f58b`-style escapes — students saw the *text* "U0001f58b"
+   where a 🖋 should be. All eleven converted to real emoji, and the missing
+   comma that turned the v71 entry into `undefined` (TypeError on every
+   un-seeded device) was caught by the crawler's new pageerror capture and
+   fixed. codetest now records DOM error *sources* (file:line) for exactly
+   this class of bug.
+4. **Contrast + truth in copy.** The sitting-door chip (#7a5c10) and the
+   gate's WhatsApp line (#8f6c2c) now clear WCAG AA; Practice says
+   **JSS1–SS3** and Live CBT says **JSS+SS** because since v70 that is the
+   truth; the mobile dock's anchors point at real section ids instead of
+   dead `#overview`-style fragments.
+5. **The finish.** Selection gold, calmer scrollbars on the long-scroll
+   panels, a quiet lift on the overview cards, thumb-safe dock padding
+   (`env(safe-area-inset-bottom)`), and print rules that hide the chrome and
+   keep cards unbroken — the site prints like a document now.
+6. **The crawler (bughunt71.js).** Five passes — student/teacher × desktop/
+   phone plus a guest-gate pass — collecting pageerrors, console errors,
+   4xx responses, per-view axe scans and horizontal overflow. First run:
+   **68 findings. Final run: 0.** It stays in the grid as the regression net
+   for every future version.
+7. **Harness honesty.** :8101 serves a real ledger-stripped copy again
+   (docsnoledger — codes.js with no ledger), the a11y first-load budget was
+   rebaselined to what the uncompressed local server actually transfers
+   (≤750 KB; production gzips to roughly a third), and the habits fixtures
+   are now week-boundary aware — they used to pass or fail depending on
+   which day of the week CI ran.
+
+**Grid:** cbt 83 · waec 53 · audio 53 · prof 52 · cup 28 · dash 37 · sync 60 ·
+progress 35 · habits 14 · code 33 · slip 21 · offline 16 · marginalia 21 ·
+a11y 38 · response 51 · exclusive 15 · arena 16 · prestige 11 · cmd 14 ·
+adaptive 18 · bank 20 · pipe 57 · why 13 · ai 13 · oracle battery 24 —
+**882 checks, 0 failures**, crawler findings 0, verify.py 487 pins "Clear to
+deploy" (sw `-v76`, upgrade V=71, cbt VERSION 66).
+
+Honest edges: the Solver covers the exam's computation grammar, not word
+problems in prose (those route to facts, bank or the honest fallback); the
+bank search needs ≥2 content words to fire; JSS classes still share the SS
+bank until a JSS bank exists.
+
 ## 32 · v70 "The Whole School" — JSS joins the hall, the sitting door, the calculator, the locked proctoring door (2026-09-27)
 
 The user's brief, items 1–5: *add JSS 1–3 to the live CBT; ask name and class
