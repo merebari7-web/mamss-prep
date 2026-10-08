@@ -28,6 +28,37 @@ export function q(
   return { level, term, topic, question, options, answerIndex, explanation, difficulty, exams };
 }
 
+/**
+ * Deterministically permute a question's options so correct answers spread
+ * across positions A–D. Seed-authored questions mostly place the answer at
+ * index 0 (authoring convenience); without a spread, always picking "A" would
+ * ace every paper. The permutation is derived from the question text, so it is
+ * stable across reseeds and identical on every device.
+ */
+export function spread(item: SeedQ): SeedQ {
+  let h = 2166136261;
+  for (let i = 0; i < item.question.length; i++) {
+    h ^= item.question.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const rng = () => {
+    h ^= h << 13;
+    h ^= h >>> 17;
+    h ^= h << 5;
+    return (h >>> 0) / 4294967296;
+  };
+  const order = [0, 1, 2, 3];
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [order[i], order[j]] = [order[j], order[i]];
+  }
+  return {
+    ...item,
+    options: order.map((oi) => item.options[oi]),
+    answerIndex: order.indexOf(item.answerIndex) as 0 | 1 | 2 | 3,
+  };
+}
+
 export interface SubjectMeta {
   slug: string;
   name: string;

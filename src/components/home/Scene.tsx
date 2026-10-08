@@ -8,7 +8,7 @@ import type { Group, Points as ThreePoints, Mesh } from "three";
 function AnswerSheet({
   position,
   rotation,
-  accent = "#c8f169",
+  accent = "#cde74a",
 }: {
   position: [number, number, number];
   rotation: [number, number, number];
@@ -18,13 +18,13 @@ function AnswerSheet({
     <Float speed={1.6} rotationIntensity={0.35} floatIntensity={1.1}>
       <group position={position} rotation={rotation}>
         <RoundedBox args={[2.1, 2.8, 0.08]} radius={0.06} smoothness={4}>
-          <meshStandardMaterial color="#12171f" roughness={0.35} metalness={0.25} />
+          <meshStandardMaterial color="#0d1009" roughness={0.35} metalness={0.25} />
         </RoundedBox>
         {[-0.95, -0.55, -0.15, 0.25, 0.65, 1.05].map((y, i) => (
           <mesh key={i} position={[-0.08, y, 0.055]}>
             <boxGeometry args={[i === 0 ? 0.9 : 1.55, 0.1, 0.02]} />
             <meshStandardMaterial
-              color={i === 2 ? accent : "#2a3442"}
+              color={i === 2 ? accent : "#252c1e"}
               emissive={i === 2 ? accent : "#000000"}
               emissiveIntensity={i === 2 ? 1.4 : 0}
               roughness={0.4}
@@ -37,7 +37,7 @@ function AnswerSheet({
             <mesh key={`${r}-${c}`} position={[x - 0.4, y - 0.32, 0.06]}>
               <cylinderGeometry args={[0.055, 0.055, 0.02, 16]} />
               <meshStandardMaterial
-                color={(r === 0 && c === 1) || (r === 1 && c === 2) ? accent : "#39434f"}
+                color={(r === 0 && c === 1) || (r === 1 && c === 2) ? accent : "#39412c"}
                 emissive={(r === 0 && c === 1) || (r === 1 && c === 2) ? accent : "#000"}
                 emissiveIntensity={1.2}
               />
@@ -65,7 +65,7 @@ function Core() {
         <mesh ref={blob}>
           <sphereGeometry args={[1.35, 64, 64]} />
           <MeshDistortMaterial
-            color="#161c26"
+            color="#11150c"
             distort={0.42}
             speed={2.2}
             roughness={0.15}
@@ -75,11 +75,11 @@ function Core() {
       </Float>
       <mesh ref={ring}>
         <torusGeometry args={[2.35, 0.02, 12, 120]} />
-        <meshStandardMaterial color="#c8f169" emissive="#c8f169" emissiveIntensity={1.6} />
+        <meshStandardMaterial color="#cde74a" emissive="#cde74a" emissiveIntensity={1.6} />
       </mesh>
       <mesh rotation={[0.9, 0.4, 0.2]}>
         <torusGeometry args={[2.9, 0.015, 12, 120]} />
-        <meshStandardMaterial color="#a78bfa" emissive="#a78bfa" emissiveIntensity={1.1} />
+        <meshStandardMaterial color="#a793fa" emissive="#a793fa" emissiveIntensity={1.1} />
       </mesh>
     </group>
   );
@@ -150,17 +150,17 @@ function Rig() {
     <group ref={g}>
       <Core />
       <AnswerSheet position={[-3.4, 0.6, -1.2]} rotation={[0.1, 0.5, -0.14]} />
-      <AnswerSheet position={[2.9, -1.5, -0.6]} rotation={[-0.06, -0.5, 0.12]} accent="#a78bfa" />
+      <AnswerSheet position={[2.9, -1.5, -0.6]} rotation={[-0.06, -0.5, 0.12]} accent="#a793fa" />
       <Float speed={1.4} floatIntensity={1.4}>
         <mesh position={[-2.2, -1.8, 0.4]}>
           <icosahedronGeometry args={[0.42, 0]} />
-          <meshStandardMaterial color="#c8f169" wireframe />
+          <meshStandardMaterial color="#cde74a" wireframe />
         </mesh>
       </Float>
       <Float speed={1.8} floatIntensity={1.6}>
         <mesh position={[3.3, 1.9, -0.8]}>
           <octahedronGeometry args={[0.34, 0]} />
-          <meshStandardMaterial color="#a78bfa" wireframe />
+          <meshStandardMaterial color="#a793fa" wireframe />
         </mesh>
       </Float>
       <Starfield />
@@ -184,8 +184,8 @@ export default function Scene() {
     >
       <ambientLight intensity={0.5} />
       <directionalLight position={[5, 6, 6]} intensity={1.3} />
-      <pointLight position={[-5, 3, 2]} intensity={40} color="#c8f169" />
-      <pointLight position={[5, -3, -2]} intensity={30} color="#a78bfa" />
+      <pointLight position={[-5, 3, 2]} intensity={40} color="#cde74a" />
+      <pointLight position={[5, -3, -2]} intensity={30} color="#a793fa" />
       <Suspense fallback={null}>
         <Rig />
       </Suspense>

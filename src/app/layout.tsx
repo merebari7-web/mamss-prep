@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { Unbounded, Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Unbounded, Space_Grotesk, JetBrains_Mono, Fraunces } from "next/font/google";
 import Nav from "@/components/site/Nav";
 import Footer from "@/components/site/Footer";
+import CommandPalette from "@/components/site/CommandPalette";
 import "./globals.css";
 
 const unbounded = Unbounded({
@@ -20,6 +21,12 @@ const jet = JetBrains_Mono({
   variable: "--font-jet",
   weight: ["400", "500", "600", "700"],
 });
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  style: ["normal", "italic"],
+  weight: ["300", "400", "500", "600"],
+});
 
 export const metadata: Metadata = {
   title: "MAMSS Prep — Mater Misericordiae Secondary School | WAEC, JAMB & CBT Practice",
@@ -33,11 +40,12 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${unbounded.variable} ${space.variable} ${jet.variable}`}>
+    <html lang="en" className={`${unbounded.variable} ${space.variable} ${jet.variable} ${fraunces.variable}`}>
       <body className="bg-ink font-sans text-paper antialiased">
         <Nav />
         {children}
         <Footer />
+        <CommandPalette />
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowRight,
   BookOpen,
+  Brain,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -31,6 +32,7 @@ export interface PracticeQ {
   answerIndex: number;
   explanation: string;
   difficulty: string;
+  reason?: string;
 }
 
 interface Initial {
@@ -39,6 +41,7 @@ interface Initial {
   term: string;
   count: number;
   exam: string;
+  mode?: string;
   autoStart?: boolean;
 }
 
@@ -49,6 +52,8 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
   const [level, setLevel] = useState(initial.level);
   const [term, setTerm] = useState(initial.term);
   const [count, setCount] = useState(initial.count);
+  const [smart, setSmart] = useState(initial.mode === "smart");
+  const [smartMeta, setSmartMeta] = useState<{ accuracy: number | null; focusTopics: string[] } | null>(null);
 
   const [phase, setPhase] = useState<"setup" | "loading" | "run" | "done">("setup");
   const [qs, setQs] = useState<PracticeQ[]>([]);
@@ -69,18 +74,39 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
 
   const begin = useCallback(async () => {
     setPhase("loading");
-    const params = new URLSearchParams({
-      subject,
-      level,
-      limit: String(count),
-      mode: "practice",
-    });
-    if (term) params.set("term", term);
-    if (initial.exam) params.set("exam", initial.exam);
     try {
-      const res = await fetch(`/api/questions?${params.toString()}`);
-      const data = await res.json();
-      const rows: PracticeQ[] = data.questions ?? [];
+      let rows: PracticeQ[] = [];
+      if (smart) {
+        // Adaptive engine: server's pick of what YOU should face next.
+        const params = new URLSearchParams({
+          clientId: getClientId(),
+          subject,
+          limit: String(count),
+        });
+        if (level) params.set("level", level);
+        const res = await fetch(`/api/practice/smart?${params.toString()}`);
+        const data = await res.json();
+        rows = data.questions ?? [];
+        setSmartMeta({ accuracy: data.accuracy ?? null, focusTopics: data.focusTopics ?? [] });
+        if (rows.length === 0) {
+          // engine cold-start fallback: plain random set
+          const p2 = new URLSearchParams({ subject, level, limit: String(count), mode: "practice" });
+          const d2 = await fetch(`/api/questions?${p2.toString()}`).then((r) => r.json());
+          rows = d2.questions ?? [];
+        }
+      } else {
+        const params = new URLSearchParams({
+          subject,
+          level,
+          limit: String(count),
+          mode: "practice",
+        });
+        if (term) params.set("term", term);
+        if (initial.exam) params.set("exam", initial.exam);
+        const res = await fetch(`/api/questions?${params.toString()}`);
+        const data = await res.json();
+        rows = data.questions ?? [];
+      }
       if (rows.length === 0) {
         setPhase("setup");
         return;
@@ -95,7 +121,7 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
     } catch {
       setPhase("setup");
     }
-  }, [subject, level, term, count, initial.exam]);
+  }, [subject, level, term, count, initial.exam, smart]);
 
   useEffect(() => {
     if (initial.autoStart) begin();
@@ -118,7 +144,9 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
 
   const finish = useCallback(async () => {
     const answers = qs.map((qq, idx) => ({ id: qq.id, selected: chosen[idx] ?? null }));
-    const label = `${meta?.name ?? subject} · ${level}${term ? ` · ${TERM_LABELS[Number(term)]}` : ""}`;
+    const label = smart
+      ? `Smart Sprint · ${meta?.name ?? subject} · ${level}`
+      : `${meta?.name ?? subject} · ${level}${term ? ` · ${TERM_LABELS[Number(term)]}` : ""}`;
     setPhase("done");
     fetch("/api/attempts", {
       method: "POST",
@@ -129,10 +157,10 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
         label,
         durationSec: Math.round((Date.now() - startedAt.current) / 1000),
         answers,
-        meta: { subject, level, term, exam: initial.exam },
+        meta: { subject, level, term, exam: initial.exam, smart },
       }),
     }).catch(() => {});
-  }, [qs, chosen, meta, subject, level, term, initial.exam]);
+  }, [qs, chosen, meta, subject, level, term, initial.exam, smart]);
 
   const next = useCallback(() => {
     if (i + 1 >= qs.length) finish();
@@ -159,8 +187,41 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
         <div className="rounded-2xl border border-line bg-panel p-6 sm:p-8">
           <p className="font-mono text-xs tracking-[0.25em] text-dim">BUILD YOUR DRILL</p>
           <h2 className="mt-2 font-display text-2xl font-black tracking-tight">
-            {initial.exam ? `${initial.exam} PRACTICE SET` : "PRACTICE SET"}
+            {initial.exam ? `${initial.exam} PRACTICE SET` : smart ? "SMART SPRINT" : "PRACTICE SET"}
           </h2>
+
+          {/* engine toggle */}
+          <div className="mt-5 grid grid-cols-2 gap-2 rounded-xl border border-line bg-ink p-1.5">
+            <button
+              onClick={() => setSmart(false)}
+              className={cx(
+                "flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all",
+                !smart ? "bg-white/10 text-paper" : "text-dim hover:text-paper",
+              )}
+            >
+              <BookOpen size={13} /> Manual drill
+            </button>
+            <button
+              onClick={() => setSmart(true)}
+              className={cx(
+                "flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition-all",
+                smart ? "bg-lime text-ink shadow-[0_0_20px_rgba(200,241,105,0.25)]" : "text-dim hover:text-paper",
+              )}
+            >
+              <Brain size={13} /> Smart Sprint
+            </button>
+          </div>
+          {smart && (
+            <motion.p
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="mt-2 flex items-start gap-2 rounded-lg border border-lime/25 bg-lime/5 px-4 py-3 font-mono text-[11px] leading-relaxed text-lime"
+            >
+              <Brain size={13} className="mt-0.5 shrink-0" />
+              ADAPTIVE ENGINE: ranks the bank against your answer log — weak topics first, fresh
+              questions over repeats, difficulty matched to your demonstrated ability.
+            </motion.p>
+          )}
 
           <div className="mt-7 space-y-5">
             <div>
@@ -419,6 +480,18 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
         </span>
       </div>
 
+      {smart && smartMeta && (
+        <div className="mb-6 flex flex-wrap items-center gap-2 rounded-xl border border-lime/25 bg-lime/5 px-4 py-2.5">
+          <Brain size={13} className="text-lime" />
+          <p className="font-mono text-[10px] tracking-wider text-lime">
+            ADAPTIVE SET
+            {smartMeta.accuracy !== null && ` · your ${meta?.name ?? subject} accuracy: ${smartMeta.accuracy}%`}
+            {smartMeta.focusTopics.length > 0 && ` · targeting: ${smartMeta.focusTopics.join(", ")}`}
+            {smartMeta.accuracy === null && smartMeta.focusTopics.length === 0 && " · cold start — the engine learns as you answer"}
+          </p>
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         <motion.div
           key={i}
@@ -429,6 +502,14 @@ export default function PracticeRunner({ subjects, initial }: { subjects: Subjec
         >
           <div className="rounded-2xl border border-line bg-panel p-6 sm:p-8">
             <div className="flex flex-wrap items-center gap-2">
+              {q.reason && (
+                <span className={cx(
+                  "rounded px-2 py-1 font-mono text-[10px] font-black tracking-widest",
+                  q.reason === "weak topic" ? "bg-coral/15 text-coral" : q.reason === "stretch" ? "bg-iris/15 text-iris" : "bg-lime/10 text-lime",
+                )}>
+                  {q.reason.toUpperCase()}
+                </span>
+              )}
               <span className="rounded bg-white/5 px-2 py-1 font-mono text-[10px] tracking-widest text-dim">
                 {q.topic.toUpperCase()}
               </span>
