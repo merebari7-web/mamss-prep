@@ -4,6 +4,7 @@ import { questions, subjects } from "@/db/schema";
 import type { SubjectInfo } from "@/lib/constants";
 import Hero from "@/components/home/Hero";
 import VideoScroll from "@/components/home/VideoScroll";
+import DailyBand from "@/components/home/DailyBand";
 import { Stats, ExamTracks, CurriculumTeaser, CbtPromo, Features, BigBand } from "@/components/home/Sections";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +50,7 @@ export default async function HomePage() {
     <main className="relative">
       <Hero subjects={subjects} totalQuestions={total} />
       <VideoScroll />
+      <DailyBand />
       <Stats totalQuestions={total} />
       <ExamTracks />
       <CurriculumTeaser subjects={subjects} />

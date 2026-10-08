@@ -108,7 +108,9 @@ export default function RapidFire({ subjects }: { subjects: SubjectInfo[] }) {
       <main className="relative min-h-screen px-4 pb-24 pt-28 sm:px-6">
         <div className="mx-auto max-w-lg">
           <div className="rounded-2xl border border-line bg-panel p-6">
-            <p className="font-mono text-xs tracking-[0.25em] text-dim">⚡ RAPID FIRE</p>
+            <p className="flex items-center gap-1.5 font-mono text-xs tracking-[0.25em] text-dim">
+              <Zap size={13} className="text-amber-300" /> RAPID FIRE
+            </p>
             <h2 className="mt-2 font-display text-2xl font-black">Beat the clock</h2>
             <p className="mt-1 text-xs text-dim">Answer as many as you can before time runs out. No explanations, no mercy.</p>
             <div className="mt-5 space-y-4">
@@ -162,7 +164,7 @@ export default function RapidFire({ subjects }: { subjects: SubjectInfo[] }) {
     return (
       <main className="relative grid min-h-screen place-items-center px-4 pb-24 pt-28 sm:px-6">
         <div className="max-w-lg text-center">
-          <p className="text-5xl">⚡</p>
+          <Zap size={44} className="mx-auto text-amber-300" />
           <h2 className="mt-4 font-display text-3xl font-black">Time&apos;s up!</h2>
           <div className="mt-6 grid grid-cols-3 gap-3">
             <div className="rounded-xl border border-line bg-panel p-4">

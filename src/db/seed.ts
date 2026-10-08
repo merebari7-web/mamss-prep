@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { db, pool } from "./index";
 import { questions, subjects } from "./schema";
-import { SUBJECTS } from "./seed-data/helpers";
+import { SUBJECTS, spread } from "./seed-data/helpers";
 import { mathematics } from "./seed-data/mathematics";
 import { english } from "./seed-data/english";
 import { physics } from "./seed-data/physics";
@@ -39,18 +39,21 @@ async function main() {
   let total = 0;
   for (const { slug, items } of BANK) {
     await db.insert(questions).values(
-      items.map((it) => ({
-        subjectSlug: slug,
-        level: it.level,
-        term: it.term,
-        topic: it.topic,
-        question: it.question,
-        options: it.options,
-        answerIndex: it.answerIndex,
-        explanation: it.explanation,
-        difficulty: it.difficulty,
-        exams: it.exams,
-      })),
+      items.map((raw) => {
+        const it = spread(raw); // distribute correct answers across A–D
+        return {
+          subjectSlug: slug,
+          level: it.level,
+          term: it.term,
+          topic: it.topic,
+          question: it.question,
+          options: it.options,
+          answerIndex: it.answerIndex,
+          explanation: it.explanation,
+          difficulty: it.difficulty,
+          exams: it.exams,
+        };
+      }),
     );
     total += items.length;
     console.log(`  ${slug}: ${items.length} questions`);

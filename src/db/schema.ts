@@ -8,6 +8,7 @@ import {
   timestamp,
   uuid,
   index,
+  boolean,
 } from "drizzle-orm/pg-core";
 
 export const subjects = pgTable("subjects", {
@@ -61,6 +62,57 @@ export const attempts = pgTable(
   (t) => [index("attempts_client_idx").on(t.clientId)],
 );
 
+/**
+ * Per-question telemetry. Logged (fire-and-forget) after every sitting so the
+ * adaptive engine can find weak topics, calibrate difficulty and build streaks.
+ */
+export const answerLogs = pgTable(
+  "answer_logs",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    clientId: text("client_id").notNull(),
+    questionId: integer("question_id")
+      .notNull()
+      .references(() => questions.id, { onDelete: "cascade" }),
+    subjectSlug: text("subject_slug").notNull(),
+    level: text("level").notNull(),
+    topic: text("topic").notNull(),
+    difficulty: text("difficulty").notNull().default("medium"),
+    correct: boolean("correct").notNull(),
+    mode: text("mode").notNull().default("practice"), // practice | cbt | daily | rapid
+    durationMs: integer("duration_ms").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("answer_logs_client_idx").on(t.clientId),
+    index("answer_logs_client_subject_idx").on(t.clientId, t.subjectSlug),
+    index("answer_logs_created_idx").on(t.createdAt),
+  ],
+);
+
+/** Opt-in public board: a student pins one of their attempts under an alias. */
+export const leaderboardEntries = pgTable(
+  "leaderboard_entries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    alias: text("alias").notNull(),
+    clientId: text("client_id").notNull(),
+    attemptId: uuid("attempt_id").references(() => attempts.id, { onDelete: "cascade" }),
+    scorePct: integer("score_pct").notNull(),
+    utmeScore: integer("utme_score"), // null for practice sittings
+    totalQuestions: integer("total_questions").notNull(),
+    durationSec: integer("duration_sec").notNull().default(0),
+    label: text("label").notNull().default("UTME Mock"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("leaderboard_created_idx").on(t.createdAt),
+    index("leaderboard_client_idx").on(t.clientId),
+  ],
+);
+
 export type Subject = typeof subjects.$inferSelect;
 export type Question = typeof questions.$inferSelect;
 export type Attempt = typeof attempts.$inferSelect;
+export type AnswerLog = typeof answerLogs.$inferSelect;
+export type LeaderboardEntry = typeof leaderboardEntries.$inferSelect;

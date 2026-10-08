@@ -37,13 +37,15 @@ export default async function PracticePage({
   const list = await getSubjects();
 
   const subject = sp.subject && list.some((s) => s.slug === sp.subject) ? sp.subject : "mathematics";
+  const smart = sp.mode === "smart";
   const initial = {
     subject,
     level: ["SS1", "SS2", "SS3"].includes(sp.level ?? "") ? sp.level! : "SS2",
     term: ["1", "2", "3"].includes(sp.term ?? "") ? sp.term! : "",
     count: Math.min(20, Math.max(5, Number(sp.count ?? 10) || 10)),
     exam: ["WAEC", "JAMB", "NECO"].includes(sp.exam ?? "") ? sp.exam! : "",
-    autoStart: Boolean(sp.subject),
+    mode: smart ? "smart" : "",
+    autoStart: Boolean(sp.subject) || smart,
   };
 
   return (

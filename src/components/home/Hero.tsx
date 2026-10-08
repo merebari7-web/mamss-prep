@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import { ChevronDown, Play, Timer, Database } from "lucide-react";
+import { ArrowDown, ArrowUpRight, Database, Play, Timer } from "lucide-react";
 import { nextExamDates, daysUntil } from "@/lib/constants";
 import type { SubjectInfo } from "@/lib/constants";
 
@@ -15,13 +15,13 @@ const rise = {
   show: (i: number) => ({
     y: 0,
     opacity: 1,
-    transition: { delay: 0.12 * i, duration: 0.8, ease: [0.22, 1, 0.36, 1] as const },
+    transition: { delay: 0.1 * i, duration: 0.8, ease: [0.22, 1, 0.36, 1] as const },
   }),
 };
 
 function Diamond() {
   return (
-    <svg width="12" height="12" viewBox="0 0 12 12" className="mx-5 shrink-0 text-lime" fill="currentColor">
+    <svg width="10" height="10" viewBox="0 0 12 12" className="mx-6 shrink-0 text-lime" fill="currentColor">
       <path d="M6 0l6 6-6 6-6-6z" />
     </svg>
   );
@@ -37,133 +37,139 @@ export default function Hero({
   const { jamb, waec } = nextExamDates();
   const marquee = [...subjects, ...subjects, ...subjects];
 
+  const specs = [
+    { Icon: Database, k: "Q-BANK", v: String(totalQuestions), note: "exam-grade questions live" },
+    { Icon: Play, k: "SUBJECTS", v: "09", note: "core WAEC / JAMB papers" },
+    { Icon: Timer, k: `JAMB ${jamb.getFullYear()}`, v: `${daysUntil(jamb)}d`, note: "until the real UTME" },
+    { Icon: Timer, k: `WAEC ${waec.getFullYear()}`, v: `${daysUntil(waec)}d`, note: "until May/June papers" },
+  ];
+
   return (
     <section className="relative flex min-h-[100svh] flex-col overflow-hidden">
-      {/* 3D backdrop */}
+      {/* 3D backdrop + paper textures */}
       <div className="absolute inset-0 opacity-70 md:opacity-100">
         <Scene />
       </div>
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_60%_at_70%_30%,transparent_40%,rgba(6,8,10,0.75)_100%)]" />
-      <div className="grid-bg pointer-events-none absolute inset-0 opacity-40 [mask-image:linear-gradient(to_bottom,black,transparent_80%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(85%_65%_at_72%_28%,transparent_35%,rgba(6,8,5,0.8)_100%)]" />
+      <div className="graph-bg pointer-events-none absolute inset-0 opacity-50 [mask-image:linear-gradient(to_bottom,black,transparent_85%)]" />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-1 flex-col justify-center px-4 pb-24 pt-32 sm:px-6">
-        {/* School logo + badge */}
-        <motion.div variants={rise} initial="hidden" animate="show" custom={0} className="flex items-center gap-4">
-          <Image
-            src="/media/mamss-logo.png"
-            alt="Mater Misericordiae Secondary School Logo"
-            width={72}
-            height={72}
-            className="size-16 object-contain drop-shadow-[0_0_20px_rgba(200,241,105,0.2)] sm:size-[72px]"
-            priority
-          />
-          <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-line bg-panel/70 px-4 py-1.5 font-mono text-[11px] tracking-[0.2em] text-dim backdrop-blur">
-              <span className="size-1.5 rounded-full bg-lime animate-pulse-dot" />
-              MATER MISERICORDIAE SECONDARY SCHOOL
-            </p>
-            <p className="mt-1 font-mono text-[10px] tracking-[0.25em] text-dim/60">
-              SS1 → SS3 · NIGERIAN CURRICULUM · MORALS AND EXCELLENCE
-            </p>
+      <div className="relative z-10 mx-auto flex w-full max-w-[88rem] flex-1 flex-col justify-center px-5 pb-16 pt-32 sm:px-8">
+        {/* masthead row */}
+        <motion.div variants={rise} initial="hidden" animate="show" custom={0} className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <span className="grid size-14 place-items-center rounded-[4px] border border-line bg-panel/70 backdrop-blur">
+              <Image
+                src="/media/mamss-logo.png"
+                alt="Mater Misericordiae Secondary School crest"
+                width={44}
+                height={44}
+                className="size-11 object-contain drop-shadow-[0_0_18px_rgba(205,231,74,0.2)]"
+                priority
+              />
+            </span>
+            <div>
+              <p className="chip-mono">
+                <span className="size-1.5 rounded-full bg-lime animate-pulse-dot" />
+                Mater Misericordiae Secondary School
+              </p>
+              <p className="mt-1.5 pl-0.5 font-mono text-[9px] tracking-[0.3em] text-dim">
+                SS1 → SS3 · NIGERIAN CURRICULUM · RUMUOMASI
+              </p>
+            </div>
           </div>
+          <p className="hidden text-right font-mono text-[10px] leading-relaxed tracking-[0.25em] text-dim lg:block">
+            THE EXAM-PREPARATION BULLETIN
+            <br />
+            <span className="text-paper/80">VOL. 09 — REVISED EDITION</span>
+          </p>
         </motion.div>
 
-        <h1 className="mt-6 font-display text-[13vw] font-black leading-[0.92] tracking-tight sm:text-[9vw] lg:text-[6.4rem]">
-          <motion.span className="block" variants={rise} initial="hidden" animate="show" custom={1}>
+        {/* headline */}
+        <h1 className="mt-10 font-display font-black leading-[0.92] tracking-tight">
+          <motion.span
+            className="block text-[13.5vw] sm:text-[10vw] lg:text-[7.2rem]"
+            variants={rise} initial="hidden" animate="show" custom={1}
+          >
             FAIL IS NOT
           </motion.span>
           <motion.span
-            className="block text-stroke"
-            variants={rise}
-            initial="hidden"
-            animate="show"
-            custom={2}
+            className="block text-[13.5vw] sm:text-[10vw] lg:text-[7.2rem]"
+            variants={rise} initial="hidden" animate="show" custom={2}
           >
-            IN YOUR
-          </motion.span>
-          <motion.span className="block" variants={rise} initial="hidden" animate="show" custom={3}>
-            SYLLABUS<span className="text-lime">.</span>
+            <span className="text-stroke">IN YOUR</span>{" "}
+            <span className="serif-a text-lime">syllabus.</span>
           </motion.span>
         </h1>
 
-        <motion.p
-          variants={rise}
-          initial="hidden"
-          animate="show"
-          custom={4}
-          className="mt-6 max-w-xl text-base leading-relaxed text-dim sm:text-lg"
-        >
-          MAMSS Prep — curriculum-true quizzes for every term of senior secondary, a live CBT hall
-          built the JAMB way, and worked answers to the questions WAEC repeats.{" "}
-          <span className="text-paper">Start in SS1. Finish with a first choice.</span>
-        </motion.p>
+        <div className="mt-8 grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-end">
+          <motion.div variants={rise} initial="hidden" animate="show" custom={3}>
+            <p className="max-w-xl text-base leading-relaxed text-dim sm:text-lg">
+              Curriculum-true quizzes for every term of senior secondary, a live CBT hall built
+              the JAMB way, and an adaptive engine that learns your weak spots — with worked
+              answers to the questions WAEC repeats.{" "}
+              <span className="serif-a text-paper/90">Start in SS1. Finish with a first choice.</span>
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3.5">
+              <Link href="/practice" className="btn btn-lime group">
+                <Play size={13} className="transition-transform group-hover:scale-125" />
+                Start practicing — free
+              </Link>
+              <Link href="/cbt" className="btn btn-ghost">
+                <Timer size={13} />
+                Enter the CBT hall
+              </Link>
+            </div>
+          </motion.div>
 
-        <motion.div
-          variants={rise}
-          initial="hidden"
-          animate="show"
-          custom={5}
-          className="mt-9 flex flex-wrap items-center gap-4"
-        >
-          <Link
-            href="/practice"
-            className="group inline-flex items-center gap-2 rounded-full bg-lime px-7 py-3.5 text-sm font-bold text-ink transition-all hover:bg-lime2 hover:shadow-[0_0_36px_rgba(200,241,105,0.4)]"
-          >
-            <Play size={16} className="transition-transform group-hover:scale-125" />
-            Start practicing — free
-          </Link>
-          <Link
-            href="/cbt"
-            className="inline-flex items-center gap-2 rounded-full border border-white/20 px-7 py-3.5 text-sm font-bold text-paper backdrop-blur transition-colors hover:border-lime hover:text-lime"
-          >
-            <Timer size={16} />
-            Enter the CBT hall
-          </Link>
-        </motion.div>
-
-        <motion.div
-          variants={rise}
-          initial="hidden"
-          animate="show"
-          custom={6}
-          className="mt-12 flex flex-wrap items-center gap-3"
-        >
-          <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-panel/70 px-4 py-2.5 font-mono text-xs backdrop-blur">
-            <Database size={13} className="text-lime" />
-            <span className="tabular font-bold text-paper">{totalQuestions}</span>
-            <span className="text-dim">exam-grade questions live</span>
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-panel/70 px-4 py-2.5 font-mono text-xs backdrop-blur">
-            <span className="text-lime">JAMB {jamb.getFullYear()}</span>
-            <span className="tabular font-bold">{daysUntil(jamb)}d</span>
-          </span>
-          <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-panel/70 px-4 py-2.5 font-mono text-xs backdrop-blur">
-            <span className="text-iris">WAEC {waec.getFullYear()}</span>
-            <span className="tabular font-bold">{daysUntil(waec)}d</span>
-          </span>
-        </motion.div>
+          {/* spec sheet */}
+          <motion.div variants={rise} initial="hidden" animate="show" custom={4} className="tick relative">
+            <div className="grid grid-cols-2 rounded-[4px] border border-line bg-panel/70 backdrop-blur">
+              {specs.map((s, i) => (
+                <div
+                  key={s.k + i}
+                  className={
+                    "p-4 sm:p-5 " +
+                    (i % 2 === 0 ? "border-r border-line " : "") +
+                    (i < 2 ? "border-b border-line" : "")
+                  }
+                >
+                  <p className="flex items-center gap-1.5 font-mono text-[9px] tracking-[0.25em] text-dim">
+                    <s.Icon size={10} className="text-lime" /> {s.k}
+                  </p>
+                  <p className="mt-1.5 font-display text-2xl font-black tabular sm:text-3xl">{s.v}</p>
+                  <p className="mt-1 text-[10px] text-dim">{s.note}</p>
+                </div>
+              ))}
+            </div>
+            <Link
+              href="/daily"
+              className="group mt-3 flex items-center justify-between rounded-[4px] border border-lime/30 bg-lime/5 px-4 py-3 backdrop-blur transition-colors hover:bg-lime/10"
+            >
+              <span className="font-mono text-[10px] tracking-[0.22em] text-lime">
+                TODAY&apos;S DAILY CHALLENGE IS LIVE
+              </span>
+              <ArrowUpRight size={15} className="text-lime transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+            </Link>
+          </motion.div>
+        </div>
       </div>
 
       {/* scroll cue */}
-      <div className="relative z-10 flex justify-center pb-6">
-        <motion.span
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 1.8 }}
-          className="text-dim"
-        >
-          <ChevronDown size={20} />
+      <div className="relative z-10 flex justify-center pb-5">
+        <motion.span animate={{ y: [0, 8, 0] }} transition={{ repeat: Infinity, duration: 1.8 }} className="text-dim">
+          <ArrowDown size={18} />
         </motion.span>
       </div>
 
-      {/* marquee */}
-      <div className="relative z-10 border-y border-line bg-panel/60 backdrop-blur-md">
-        <div className="flex w-max animate-marquee items-center py-4">
+      {/* subjects ticker */}
+      <div className="relative z-10 border-y border-line bg-panel/70 backdrop-blur-md">
+        <div className="flex w-max animate-marquee items-center py-3.5">
           {[0, 1].map((rep) => (
             <div key={rep} className="flex items-center">
               {marquee.map((s, i) => (
                 <span
                   key={`${rep}-${i}`}
-                  className="flex items-center font-display text-sm font-bold tracking-wide text-paper/80"
+                  className="flex items-center font-mono text-[11px] font-bold tracking-[0.2em] text-paper/75"
                 >
                   {s.name.toUpperCase()}
                   <Diamond />

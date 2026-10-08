@@ -8,6 +8,8 @@ import {
   BookOpen, Zap, Keyboard, FileText, Map, Box, Timer, Save,
   Trophy, BarChart3, Brain, Medal, CalendarDays, Flame,
   Gamepad2, Clock, Target, Sparkles, ChevronRight, ArrowRight,
+  FlaskConical, Ruler, RefreshCw, Calculator, GraduationCap,
+  Lightbulb, ClipboardList, ListChecks,
 } from "lucide-react";
 import { cx, getClientId } from "@/lib/utils";
 import { nextExamDates, daysUntil, type SubjectInfo } from "@/lib/constants";
@@ -179,7 +181,9 @@ export default function StudyHall({ subjects }: { subjects: SubjectInfo[] }) {
         >
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="text-2xl">🎯</span>
+              <span className="grid size-11 place-items-center rounded-xl bg-lime/10">
+                <Target size={22} className="text-lime" />
+              </span>
               <div>
                 <h2 className="font-display text-base font-bold">Exam countdown</h2>
                 <p className="text-xs text-dim">
@@ -203,7 +207,7 @@ export default function StudyHall({ subjects }: { subjects: SubjectInfo[] }) {
                 onClick={() => setShowExamModal(true)}
                 className="inline-flex items-center gap-2 rounded-xl border border-line bg-ink px-4 py-2.5 text-xs font-bold transition-colors hover:border-lime hover:text-lime"
               >
-                📅 Set exam date
+                <CalendarDays size={14} /> Set exam date
               </button>
             </div>
           </div>
@@ -250,7 +254,7 @@ export default function StudyHall({ subjects }: { subjects: SubjectInfo[] }) {
             className="rounded-xl border border-line bg-panel p-5"
           >
             <div className="flex items-center gap-2">
-              <span className="text-lg">📘</span>
+              <BookOpen size={16} className="text-lime" />
               <p className="font-mono text-[10px] tracking-widest text-dim">WORD OF THE DAY</p>
             </div>
             <div className="mt-3 flex flex-wrap items-baseline gap-3">
@@ -272,7 +276,7 @@ export default function StudyHall({ subjects }: { subjects: SubjectInfo[] }) {
             className="rounded-xl border border-line bg-panel p-5"
           >
             <div className="flex items-center gap-2">
-              <span className="text-lg">🔥</span>
+              <Flame size={16} className="text-amber-300" />
               <p className="font-mono text-[10px] tracking-widest text-dim">QUOTE OF THE DAY</p>
             </div>
             <blockquote className="mt-3 text-base font-semibold leading-relaxed text-paper/90">
@@ -287,18 +291,18 @@ export default function StudyHall({ subjects }: { subjects: SubjectInfo[] }) {
           <p className="mb-4 font-mono text-xs tracking-[0.3em] text-dim">QUICK TOOLS</p>
           <div className="flex flex-wrap gap-3">
             {[
-              { label: "Periodic Table", icon: "🧪", href: "/tools#periodic" },
-              { label: "Formula Vault", icon: "📐", href: "/tools#formulas" },
-              { label: "Unit Converter", icon: "🔄", href: "/tools#converter" },
-              { label: "Calculator", icon: "🔢", href: "/tools#calculator" },
-              { label: "Mind Map", icon: "🧠", href: "/tools#mindmap" },
+              { label: "Periodic Table", icon: FlaskConical, href: "/tools#periodic" },
+              { label: "Formula Vault", icon: Ruler, href: "/tools#formulas" },
+              { label: "Unit Converter", icon: RefreshCw, href: "/tools#converter" },
+              { label: "Calculator", icon: Calculator, href: "/tools#calculator" },
+              { label: "Mind Map", icon: Brain, href: "/tools#mindmap" },
             ].map((t) => (
               <Link
                 key={t.label}
                 href={t.href}
                 className="inline-flex items-center gap-2.5 rounded-full border border-line bg-panel px-5 py-3 text-sm font-semibold transition-all hover:border-lime/50 hover:bg-lime/5"
               >
-                <span className="text-base">{t.icon}</span>
+                <t.icon size={15} className="text-lime" />
                 {t.label}
               </Link>
             ))}
@@ -346,16 +350,16 @@ export default function StudyHall({ subjects }: { subjects: SubjectInfo[] }) {
         {/* ── stats footer ── */}
         <section className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
           {[
-            { v: totalQ, l: "EXAM QUESTIONS", icon: "📝" },
-            { v: subjects.length, l: "SUBJECTS", icon: "📚" },
-            { v: Math.round(totalQ / subjects.length), l: "PER SUBJECT", icon: "🎯" },
-            { v: 3, l: "CLASSES", icon: "🏫" },
-            { v: 100, l: "% EXPLAINED", icon: "💡" },
-            { v: 9, l: "TERMS", icon: "📋" },
+            { v: totalQ, l: "EXAM QUESTIONS", Icon: ListChecks },
+            { v: subjects.length, l: "SUBJECTS", Icon: BookOpen },
+            { v: Math.round(totalQ / subjects.length), l: "PER SUBJECT", Icon: Target },
+            { v: 3, l: "CLASSES", Icon: GraduationCap },
+            { v: 100, l: "% EXPLAINED", Icon: Lightbulb },
+            { v: 9, l: "TERMS", Icon: ClipboardList },
           ].map((s) => (
             <div key={s.l} className="rounded-xl border border-line bg-panel p-4 text-center">
-              <p className="text-lg">{s.icon}</p>
-              <p className="font-display text-2xl font-black text-lime tabular">{s.v}</p>
+              <s.Icon size={18} className="mx-auto text-lime" />
+              <p className="mt-2 font-display text-2xl font-black text-lime tabular">{s.v}</p>
               <p className="mt-1 font-mono text-[8px] tracking-widest text-dim">{s.l}</p>
             </div>
           ))}

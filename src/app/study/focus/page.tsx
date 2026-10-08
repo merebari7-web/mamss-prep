@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pause, Play, RotateCcw, Coffee, Brain } from "lucide-react";
+import { Pause, Play, RotateCcw, Coffee, Brain, Flame } from "lucide-react";
 import { cx } from "@/lib/utils";
 import { formatClock } from "@/lib/constants";
 
@@ -63,7 +63,9 @@ export default function FocusPage() {
 
   return (
     <main className="relative flex min-h-screen flex-col items-center justify-center px-4 pb-24 pt-28 sm:px-6">
-      <p className="font-mono text-xs tracking-[0.3em] text-dim">🔥 FOCUS LAB</p>
+      <p className="flex items-center gap-1.5 font-mono text-xs tracking-[0.3em] text-dim">
+        <Flame size={13} className="text-coral" /> FOCUS LAB
+      </p>
       <h1 className="mt-2 font-display text-2xl font-black">Pomodoro Timer</h1>
       <p className="mt-1 text-xs text-dim">Study hard, rest smart. Lock in.</p>
 
