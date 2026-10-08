@@ -17,7 +17,7 @@ async function crawl(role, act, width, label) {
   const ctx = await browser.newContext({ viewport: { width, height: width < 600 ? 844 : 900 }, serviceWorkers: 'block' });
   await ctx.addInitScript(`
     window.__CBT_FORCE_POLL = 1;
-    localStorage.setItem('nssc_mp_seen', '71');
+    localStorage.setItem('nssc_mp_seen', '72');
     localStorage.setItem('nssc_devid', JSON.stringify('bug71-${label}'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(act))});
   `);
@@ -59,7 +59,7 @@ async function crawl(role, act, width, label) {
   // guest pass (no activation): the gate itself must be clean
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1366, height: 900 }, serviceWorkers: 'block' });
-  await ctx.addInitScript(`localStorage.setItem('nssc_mp_seen', '71'); localStorage.setItem('nssc_devid', JSON.stringify('bug71-guest'));`);
+  await ctx.addInitScript(`localStorage.setItem('nssc_mp_seen', '72'); localStorage.setItem('nssc_devid', JSON.stringify('bug71-guest'));`);
   const p = await ctx.newPage();
   p.on('pageerror', e => note('guest', 'gate', 1366, 'pageerror', String(e).slice(0, 200)));
   p.on('console', m => { if (m.type() === 'error' && !/favicon|127\.0\.0\.1:9|supabase|accounts\.google/.test(m.text())) note('guest', 'gate', 1366, 'console', m.text().slice(0, 200)); });

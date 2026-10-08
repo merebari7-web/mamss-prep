@@ -26,7 +26,7 @@ function seedFor(role, opts) {
   const act = role === 'teacher'
     ? { h: 'a11ysuite000000t', mask: 'MAMSS··TEACH··', at: Date.now(), batch: 'TEACHER-1', role: 'teacher', name: 'Mr Okoro' }
     : { h: 'a11ysuite000000s', mask: 'MAMSS··STUDE··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada Student' };
-  const seen = opts.fresh ? '' : `localStorage.setItem('nssc_mp_seen', '71');\n    localStorage.setItem('nssc_cbt_who', '1');`;
+  const seen = opts.fresh ? '' : `localStorage.setItem('nssc_mp_seen', '72');\n    localStorage.setItem('nssc_cbt_who', '1');`;
   return `
     window.__CBT_FORCE_POLL = 1;
     ${seen}

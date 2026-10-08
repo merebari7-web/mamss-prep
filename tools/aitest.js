@@ -8,7 +8,7 @@ function ok(name, cond, got) { if (cond) { pass++; console.log('  ok', pass + fa
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 860 }, serviceWorkers: 'block' });
   await ctx.addInitScript(`
-    localStorage.setItem('nssc_mp_seen', '71');
+    localStorage.setItem('nssc_mp_seen', '72');
     localStorage.setItem('nssc_devid', JSON.stringify('aitest-student'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify({ h: 'aitestsuite0000s', mask: 'M', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada Student' }))});
   `);

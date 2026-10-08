@@ -8,7 +8,7 @@ const ACT = { h: 'shot710000000s', mask: 'MAMSS··STUDE··', at: Date.now(), b
   // Shot 1: the Solver working a quadratic, desktop
   const ctx = await browser.newContext({ viewport: { width: 1180, height: 940 }, deviceScaleFactor: 2, serviceWorkers: 'block' });
   await ctx.addInitScript(`
-    localStorage.setItem('nssc_mp_seen', '71');
+    localStorage.setItem('nssc_mp_seen', '72');
     localStorage.setItem('nssc_devid', JSON.stringify('shot71-student'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(ACT))});
   `);
@@ -35,7 +35,7 @@ const ACT = { h: 'shot710000000s', mask: 'MAMSS··STUDE··', at: Date.now(), b
   const b2 = await chromium.launch();
   const c2 = await b2.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3, serviceWorkers: 'block', isMobile: true, hasTouch: true });
   await c2.addInitScript(`
-    localStorage.setItem('nssc_mp_seen', '71');
+    localStorage.setItem('nssc_mp_seen', '72');
     localStorage.setItem('nssc_devid', JSON.stringify('shot71-phone'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify(ACT))});
   `);

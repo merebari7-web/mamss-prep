@@ -26,7 +26,7 @@
   "use strict";
   if (window.MAMSS_CBT) return;
 
-  var VERSION = "66";
+  var VERSION = "67";
   var CODE_ALPHABET = "23456789ABCDEFGHJKMNPQRSTUVWXYZ";   // no 0/O, 1/I/L
   var POLL_MS = 2500, POLL_HIDDEN_MS = 6000, HEARTBEAT_MS = 25000;
   var INTEGRITY_LIMIT = 5, INTEGRITY_GRACE_MS = 1200;
@@ -320,6 +320,24 @@
       ".cbt-cam .cap b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}" +
       ".cbt-cam.big{grid-column:1/-1}" +
       ".cbt-cam.big img{aspect-ratio:16/9;max-height:60vh;object-fit:contain}" +
+      /* ── v72 "The Watchful Hall" — flags, attention, incident log, room check ── */
+      ".cbt-cam.flag-dark{outline:3px solid #c9a227;outline-offset:-1px}" +
+      ".cbt-cam.flag-covered,.cbt-cam.flag-still{outline:3px solid #a44f37;outline-offset:-1px;animation:cbtFlagPulse 2.2s ease-in-out infinite}" +
+      "@keyframes cbtFlagPulse{0%,100%{outline-color:#a44f37}50%{outline-color:rgba(164,79,55,.35)}}" +
+      "@media (prefers-reduced-motion:reduce){.cbt-cam.flag-covered,.cbt-cam.flag-still{animation:none}}" +
+      ".cbt-flagmini{display:inline-block;margin-left:4px;padding:1px 7px;border-radius:999px;background:rgba(164,79,55,.12);border:1px solid rgba(164,79,55,.4);color:#8c3f2c;font-size:.7rem;font-weight:700;white-space:nowrap}" +
+      ".cbt-attention{margin:10px 0;padding:10px 13px;border-radius:12px;background:rgba(164,79,55,.08);border:1px solid rgba(164,79,55,.35);display:flex;flex-wrap:wrap;gap:7px;align-items:center;font-size:.88rem}" +
+      ".cbt-attention>b{color:#8c3f2c;margin-right:3px}" +
+      ".cbt-att-chip{display:inline-flex;gap:5px;align-items:baseline;padding:4px 10px;border-radius:999px;background:#fff;border:1px solid rgba(164,79,55,.35);font-size:.8rem;font-weight:600;color:#12263f}" +
+      ".cbt-att-chip small{color:var(--mut,#5b6b84);font-weight:500}" +
+      ".cbt-calm{margin:10px 0;padding:9px 13px;border-radius:12px;background:rgba(47,125,79,.08);border:1px solid rgba(47,125,79,.3);color:#22603c;font-size:.88rem}" +
+      ".cbt-inc{list-style:none;margin:0;padding:0;display:grid;gap:5px;font-size:.83rem}" +
+      ".cbt-inc li{padding:6px 10px;border-left:3px solid #c9a227;background:rgba(201,162,39,.07);border-radius:0 9px 9px 0;color:#12263f}" +
+      ".cbt-inc li b{font-variant-numeric:tabular-nums;color:#7a5a12;margin-right:5px}" +
+      ".cbt-gate-hint{margin:8px auto 0;max-width:420px;text-align:center;font-size:.86rem;font-weight:600;color:#7a5a12;background:rgba(201,162,39,.1);border:1px dashed rgba(185,138,46,.55);border-radius:10px;padding:8px 12px}" +
+      ".cbt-meter{max-width:260px;height:9px;margin:9px auto 2px;border-radius:999px;background:rgba(0,33,71,.1);overflow:hidden;border:1px solid var(--line,rgba(0,33,71,.14))}" +
+      ".cbt-meter i{display:block;height:100%;width:2%;border-radius:999px;background:linear-gradient(90deg,#2f7d4f,#c9a227);transition:width .18s ease}" +
+      ".cbt-pace .cbt-tab{padding:7px 12px}" +
       ".cbt-flex1{flex:1}";
     var n = el("style", { id: "cbtStyles" }); n.textContent = css;
     document.head.appendChild(n);
@@ -336,11 +354,20 @@
      browser permission prompt can never be bypassed, and the attempt row
      records only a status word (on/denied/unavailable/skipped).            */
   var CAM_INTERVAL = 12000;
-  var camState = { stream: null, video: null, timer: 0, on: false, err: "" };
+  var camState = { stream: null, video: null, timer: 0, on: false, err: "", flag: null, flagAt: 0, stillRun: 0, small: null, gateHint: 0 };
   var camFrames = {}, camTickN = 0;
-  var voxState = { on: false, stream: null, rec: null, lvlTimer: 0, ctxA: null, analyser: null, err: "" };
+  var voxState = { on: false, stream: null, rec: null, lvlTimer: 0, ctxA: null, analyser: null, err: "", vstate: null, silenceSince: 0, gateMeter: 0 };
+  /* v72 · The Watchful Hall — teacher-side, IN MEMORY ONLY: plain status
+     words (camera dark / covered / frozen, room silent) and a rolling
+     incident log. Never written to any table; dies with the console. */
+  var proctor = {}, incidents = [];
   var voxBuf = {}, voxLvls = {}, voxPlaying = {};
-  function camInterval() { return (+window.__CBT_CAM_MS > 0 ? +window.__CBT_CAM_MS : 0) || CAM_INTERVAL; }
+  var PACE_MS = { calm: 20000, standard: 12000, watchful: 6000 };
+  function paceOf(s2) { return (s2 && s2.settings && s2.settings.proctorPace) || "standard"; }
+  function camInterval() {
+    var base = (+window.__CBT_CAM_MS > 0 ? +window.__CBT_CAM_MS : 0) || PACE_MS[paceOf(ui.session)] || CAM_INTERVAL;
+    return (room && room.dead) ? base * 2 : base;   /* v72: auto-throttle when the realtime socket is down */
+  }
   function camMode(s) { return "required"; }   /* v70 school policy: every paper is proctored */
   function hasCamAPI() { return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia); }
   function enableCam(onOk, onErr) {
@@ -367,9 +394,9 @@
     } catch (e) {}
   }
   function startCamLoop() {
-    if (camState.timer) clearInterval(camState.timer);
+    if (camState.timer) clearTimeout(camState.timer);
     sendCamFrame();
-    camState.timer = setInterval(sendCamFrame, camInterval());
+    (function loop() { camState.timer = setTimeout(function () { sendCamFrame(); loop(); }, camInterval()); })();
   }
   function sendCamFrame() {
     if (!camState.on || !camState.stream || !ui.session) return;
@@ -379,7 +406,48 @@
     var img = grabFrame(v, 320, 240, 0.55);
     if (img.length > 26000) img = grabFrame(v, 240, 180, 0.45);
     if (img.length > 30000) img = grabFrame(v, 192, 144, 0.4);
+    sendCamFlag(camFlagOf(camStats(v)));          /* v72: measured on the device — only a word leaves */
     if (room) room.notify("cam", { img: img, n: me().name });
+  }
+  /* v72 — on-device camera heuristics. A tiny 80x60 copy of the frame is
+     measured for brightness and motion; ONLY the resulting word (ok / dark /
+     covered / still) is broadcast. No metric and no analysis is ever stored. */
+  function camStats(v) {
+    try {
+      var c = document.createElement("canvas"); c.width = 80; c.height = 60;
+      var x = c.getContext("2d", { willReadFrequently: true });
+      x.drawImage(v, 0, 0, 80, 60);
+      var d = x.getImageData(0, 0, 80, 60).data;
+      var lum = 0, i;
+      for (i = 0; i < d.length; i += 4) lum += d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+      lum /= (d.length / 4);
+      var diff = null, prev = camState.small;
+      if (prev && prev.length === d.length) {
+        var acc = 0;
+        for (i = 0; i < d.length; i += 4) acc += Math.abs((d[i] + d[i + 1] + d[i + 2]) / 3 - (prev[i] + prev[i + 1] + prev[i + 2]) / 3);
+        diff = acc / (d.length / 4);
+      }
+      camState.small = d;
+      return { lum: lum, diff: diff };
+    } catch (e) { return null; }
+  }
+  function camFlagOf(stats) {
+    if (!stats) return "ok";
+    if (stats.lum < 12) { camState.stillRun = 0; return "covered"; }
+    if (stats.lum < 30) { camState.stillRun = 0; return "dark"; }
+    if (stats.diff !== null && stats.diff < 0.6) {
+      camState.stillRun = (camState.stillRun || 0) + 1;
+      return camState.stillRun >= (+window.__CBT_STILL_N > 0 ? +window.__CBT_STILL_N : 4) ? "still" : "ok";
+    }
+    camState.stillRun = 0;
+    return "ok";
+  }
+  function sendCamFlag(flag) {
+    if (camState.flag === flag) return;
+    var now = Date.now();
+    if (camState.flagAt && now - camState.flagAt < 4000) return;   /* throttle flip-flops */
+    camState.flag = flag; camState.flagAt = now;
+    if (room) room.notify("camflag", { flag: flag, n: me().name });
   }
   function grabFrame(v, W, H, Q) {
     var c = document.createElement("canvas"); c.width = W; c.height = H;
@@ -388,7 +456,9 @@
     return c.toDataURL("image/jpeg", Q);
   }
   function stopCam() {
-    if (camState.timer) { clearInterval(camState.timer); camState.timer = 0; }
+    if (camState.timer) { clearTimeout(camState.timer); camState.timer = 0; }
+    if (camState.gateHint) { clearInterval(camState.gateHint); camState.gateHint = 0; }
+    camState.flag = null; camState.stillRun = 0; camState.small = null;
     if (camState.stream) { try { camState.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} }
     camState.stream = null; camState.on = false; camState.video = null;
   }
@@ -454,19 +524,43 @@
         if (onErr) onErr(voxState.err);
       });
   }
-  function sendVoxLevel() {
-    if (!voxState.on || !voxState.analyser || !room) return;
+  function voxRms() {
     try {
-      if (typeof voxState.analyser.getByteTimeDomainData !== "function") return;
+      if (!voxState.analyser || typeof voxState.analyser.getByteTimeDomainData !== "function") return 0;
       var arr = new Uint8Array(voxState.analyser.fftSize);
       voxState.analyser.getByteTimeDomainData(arr);
       var sum = 0;
       for (var i = 0; i < arr.length; i++) { var v = (arr[i] - 128) / 128; sum += v * v; }
-      room.notify("voxlvl", { lvl: Math.min(100, Math.round(Math.sqrt(sum / arr.length) * 300)), n: me().name });
+      return Math.min(100, Math.round(Math.sqrt(sum / arr.length) * 300));
+    } catch (e) { return 0; }
+  }
+  /* v72 — the voice state machine: speaking / quiet / silent. Ninety seconds
+     of near-nothing means the room went quiet — the teacher is told in one
+     honest word, never with a recording. */
+  function voxStateOf(lvl) {
+    var now = Date.now();
+    if (lvl < 2) { if (!voxState.silenceSince) voxState.silenceSince = now; }
+    else voxState.silenceSince = 0;
+    var silentMs = +window.__CBT_SILENT_MS > 0 ? +window.__CBT_SILENT_MS : 90000;
+    if (voxState.silenceSince && now - voxState.silenceSince >= silentMs) return "silent";
+    return lvl >= 6 ? "speaking" : "quiet";
+  }
+  function sendVoxLevel() {
+    if (!voxState.on || !voxState.analyser || !room) return;
+    try {
+      var lvl = voxRms();
+      var vs = voxStateOf(lvl);
+      if (voxState.vstate !== vs) {
+        voxState.vstate = vs;
+        room.notify("voxstate", { st: vs, n: me().name });
+      }
+      room.notify("voxlvl", { lvl: lvl, n: me().name });
     } catch (e) {}
   }
   function stopVox() {
     if (voxState.lvlTimer) { clearInterval(voxState.lvlTimer); voxState.lvlTimer = 0; }
+    if (voxState.gateMeter) { clearInterval(voxState.gateMeter); voxState.gateMeter = 0; }
+    voxState.vstate = null; voxState.silenceSince = 0;
     try { if (voxState.rec && voxState.rec.state !== "inactive") voxState.rec.stop(); } catch (e) {}
     if (voxState.stream) { try { voxState.stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {} }
     try { if (voxState.ctxA && voxState.ctxA.close) voxState.ctxA.close(); } catch (e) {}
@@ -485,6 +579,48 @@
     if (!elm) return;
     camState.video = elm;
     try { elm.srcObject = camState.stream; if (elm.play) { var pr = elm.play(); if (pr && pr.catch) pr.catch(function () {}); } } catch (e) {}
+  }
+  /* v72 — the watchful console: plain words, an attention strip and an
+     incident log that live in memory only and die with the console. */
+  function flagWord(f) {
+    return f === "covered" ? "camera covered" : f === "dark" ? "camera dark" : f === "still" ? "feed looks frozen" : f === "silent" ? "room silent" : "";
+  }
+  function pushIncident(name, text) {
+    incidents.unshift({ t: Date.now(), name: name, text: text });
+    if (incidents.length > 12) incidents.pop();
+  }
+  function renderAttention() {
+    var box = $("cbtAttention");
+    if (box) {
+      var active = [];
+      Object.keys(proctor).forEach(function (did) {
+        var ps = proctor[did];
+        if (ps.camFlag && ps.camFlag !== "ok") active.push({ name: ps.name, w: flagWord(ps.camFlag), at: ps.camFlagAt || 0 });
+        if (ps.voxState === "silent") active.push({ name: ps.name, w: flagWord("silent"), at: ps.voxStateAt || 0 });
+      });
+      if (!active.length) {
+        box.innerHTML = '<div class="cbt-calm">🕊 The hall looks calm — every camera and microphone is behaving.</div>';
+      } else {
+        active.sort(function (a, b) { return b.at - a.at; });
+        box.innerHTML = '<div class="cbt-attention"><b>⚠ Needs attention</b>' + active.map(function (a) {
+          return '<span class="cbt-att-chip">' + esc(a.name) + " — " + esc(a.w) + " <small>" + Math.max(0, Math.round((Date.now() - a.at) / 1000)) + "s ago</small></span>";
+        }).join("") + "</div>";
+      }
+    }
+    var tk = $("cbtIncidents");
+    if (!tk) return;
+    tk.innerHTML = incidents.length
+      ? '<ul class="cbt-inc">' + incidents.map(function (v) {
+          var d = new Date(v.t);
+          var hh = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0") + ":" + String(d.getSeconds()).padStart(2, "0");
+          return "<li><b>" + hh + "</b> " + esc(v.name) + " — " + esc(v.text) + "</li>";
+        }).join("") + "</ul>"
+      : '<p class="cbt-muted">No incidents yet. If a camera goes dark, a feed freezes or a room falls silent, it appears here — in memory only, never stored.</p>';
+  }
+  function flagMini(ps) {
+    if (!ps) return "";
+    var w = ps.camFlag && ps.camFlag !== "ok" ? flagWord(ps.camFlag) : ps.voxState === "silent" ? flagWord("silent") : "";
+    return w ? ' <span class="cbt-flagmini">' + esc(w) + "</span>" : "";
   }
   function voxCell(v) {
     return v === "on" ? "🎙" : v === "denied" ? '<span style="color:#8a1f1f">denied</span>' : v === "unavailable" ? '<span class="cbt-muted">no mic</span>' : v === "skipped" ? '<span style="color:#8a6d1f">skipped</span>' : "—";
@@ -514,8 +650,12 @@
       fig.querySelector("img").src = f.img;
       fig.querySelector("img").alt = "Live snapshot from " + f.name;
       fig.querySelector("b").textContent = f.name;
-      fig.querySelector("small").textContent = age < 25000 ? "live" : Math.round(age / 1000) + "s ago";
-      fig.querySelector(".cbt-dot").className = "cbt-dot " + (age < 25000 ? "fresh" : "stale");
+      var ps2 = proctor[did];
+      var fw = ps2 && ps2.camFlag && ps2.camFlag !== "ok" ? flagWord(ps2.camFlag) : "";
+      fig.querySelector("small").textContent = (fw ? fw + " · " : "") + (age < 25000 ? "live" : Math.round(age / 1000) + "s ago");
+      fig.querySelector(".cbt-dot").className = "cbt-dot " + (fw ? "stale" : age < 25000 ? "fresh" : "stale");
+      fig.classList.remove("flag-dark", "flag-covered", "flag-still");
+      if (fw) fig.classList.add("flag-" + ps2.camFlag);
     });
   }
 
@@ -546,7 +686,9 @@
       var fresh = Math.max(b.at || 0, l.at || 0) > Date.now() - 30000;
       tile.querySelector("b").textContent = b.name || l.name || "Student";
       tile.querySelector(".vox-lvl i").style.width = Math.max(2, Math.min(100, l.lvl || 0)) + "%";
-      tile.querySelector("small").textContent = (b.chunks && b.chunks.length ? b.chunks.length + " live chunk" + (b.chunks.length === 1 ? "" : "s") : "listening…") + (fresh ? " · live" : " · stale");
+      var pv2 = proctor[did];
+      var vword = pv2 && pv2.voxState ? pv2.voxState : "";
+      tile.querySelector("small").textContent = (vword ? vword + " · " : "") + (b.chunks && b.chunks.length ? b.chunks.length + " live chunk" + (b.chunks.length === 1 ? "" : "s") : "listening…") + (fresh ? " · live" : " · stale");
       tile.querySelector(".cbt-vox-play").onclick = function () { playVox(did, tile); };
     });
   }
@@ -1309,11 +1451,14 @@
     var s = ui.session; if (!s) return go("home");
     var h = '<div class="cbt-card cbt-gate" style="text-align:center"><span class="cbt-chip waiting">CAMERA &amp; MICROPHONE CHECK</span>' +
       "<h2 style='margin-top:10px'>" + esc(s.title) + "</h2>" +
-      '<p class="cbt-sub">This school sits every paper proctored. Your camera sends your teacher a small snapshot about every 12 seconds; your microphone sends the sound of the room, live. <b>Both are required.</b> Nothing is recorded and nothing is stored — when the paper ends, the video and the sound are gone.</p>' +
+      '<p class="cbt-sub">This school sits every paper proctored. Your camera sends your teacher a small snapshot about every 12 seconds; your microphone sends the sound of the room, live. <b>Both are required.</b> Nothing is recorded and nothing is stored — when the paper ends, the video and the sound are gone. Besides the live snapshots and sound, only plain status words (like “dark” or “silent”) ever leave this device.</p>' +
       '<div class="cbt-cam-self" id="cbtGateCamWrap" hidden><video id="cbtGateCamVideo" autoplay playsinline muted></video></div>' +
+      '<p class="cbt-gate-hint" id="cbtGateCamHint" hidden></p>' +
       '<div id="cbtGateCamFb"></div>' +
       '<div class="cbt-row" style="justify-content:center;margin-top:10px"><button class="cbt-btn gold" id="cbtGateCamEnable">📹 Enable my camera</button></div>' +
       '<div id="cbtGateVoxFb"></div>' +
+      '<div class="cbt-meter" id="cbtGateVoxMeter" hidden aria-hidden="true"><i></i></div>' +
+      '<p class="cbt-gate-hint" id="cbtGateVoxHint" hidden>Say something — the bar should move. Your teacher hears the room live; there is no recording.</p>' +
       '<div class="cbt-row" style="justify-content:center;margin-top:10px"><button class="cbt-btn gold" id="cbtGateVoxEnable">🎙 Enable my microphone</button></div>' +
       '<div class="cbt-row" style="justify-content:center;margin-top:14px"><button class="cbt-btn gold" id="cbtGateGo" disabled>Start the exam</button></div>' +
       '<div class="cbt-warn" id="cbtGateNoHw" hidden>⚠ This device has no working camera or microphone. By school policy this paper cannot sit without both — please see your teacher before the sitting begins. Your place is kept.</div>' +
@@ -1331,6 +1476,7 @@
       var self = this; self.disabled = true;
       enableCam(function () {
         var w = $("cbtGateCamWrap"); if (w) { w.hidden = false; attachCamVideo($("cbtGateCamVideo")); }
+        startGateCamHint();
         self.disabled = false; refresh();
       }, function (msg) {
         self.disabled = false;
@@ -1342,6 +1488,7 @@
       var fb = $("cbtGateVoxFb"); fb.innerHTML = "";
       var self = this; self.disabled = true;
       enableVox(function () {
+        startGateVoxMeter();
         self.disabled = false; refresh();
       }, function (msg) {
         self.disabled = false;
@@ -1352,8 +1499,37 @@
     $("cbtGateGo").onclick = camProceed;
     startTick(s);
   }
+  /* v72 — the room check: an honest brightness hint beside the self-preview
+     (advisory only — a dark room never blocks a sitting), and a live mic
+     meter so the student can SEE that the room is being heard. */
+  function startGateCamHint() {
+    if (camState.gateHint) clearInterval(camState.gateHint);
+    camState.gateHint = setInterval(function () {
+      var v = $("cbtGateCamVideo"), hint = $("cbtGateCamHint");
+      if (!v || !hint) { clearInterval(camState.gateHint); camState.gateHint = 0; return; }
+      var stats = camStats(v);
+      if (!stats) return;
+      if (stats.lum < 30) {
+        hint.hidden = false;
+        hint.textContent = stats.lum < 12 ? "🌑 The camera sees almost nothing — make sure it is uncovered and pointing at you." : "🌥 Your room looks dark — face a light or a window so your invigilator can see you clearly.";
+      } else hint.hidden = true;
+    }, 900);
+  }
+  function startGateVoxMeter() {
+    var m = $("cbtGateVoxMeter"), hint = $("cbtGateVoxHint");
+    if (m) m.hidden = false;
+    if (hint) hint.hidden = false;
+    if (voxState.gateMeter) clearInterval(voxState.gateMeter);
+    voxState.gateMeter = setInterval(function () {
+      var bar = document.querySelector("#cbtGateVoxMeter i");
+      if (!bar) { clearInterval(voxState.gateMeter); voxState.gateMeter = 0; return; }
+      bar.style.width = Math.max(2, Math.min(100, voxRms())) + "%";
+    }, 220);
+  }
   function camProceed() {
     if (ui.tab !== "camgate") return;
+    if (camState.gateHint) { clearInterval(camState.gateHint); camState.gateHint = 0; }
+    if (voxState.gateMeter) { clearInterval(voxState.gateMeter); voxState.gateMeter = 0; }
     var id = me();
     ui.tab = st.get(briefedKey(ui.session, id)) ? "run" : "brief";
     if (ui.tab === "run") bindIntegrity(ui.session);
@@ -1643,7 +1819,7 @@
     go("console");
   }
   function newDraft() {
-    return { title: "", cls: "SS1", subject: "", topic: "", count: 20, duration: 30, scheduledAt: "", instantResults: true, showRank: true, shuffle: false, webcam: "optional", voice: "off", waecathon: false, questions: [] };
+    return { title: "", cls: "SS1", subject: "", topic: "", count: 20, duration: 30, scheduledAt: "", instantResults: true, showRank: true, shuffle: false, webcam: "optional", voice: "off", proctorPace: "standard", waecathon: false, questions: [] };
   }
   function renderConsole() {
     if (!me().teacher) { go("home"); return; }
@@ -1722,7 +1898,7 @@
       d.cls = "ALL"; d.subject = ""; d.topic = "";
       d.count = 40; d.duration = 60;
       d.scheduledAt = dtLocal(fri);
-      d.waecathon = true; d.instantResults = true; d.showRank = true; d.shuffle = true; d.webcam = "required"; d.voice = "required";
+      d.waecathon = true; d.instantResults = true; d.showRank = true; d.shuffle = true; d.webcam = "required"; d.voice = "required"; d.proctorPace = "watchful";
       d.questions = [];
       saveDraft();
       renderBuilder(true);          /* paint the form from the new draft…   */
@@ -1753,6 +1929,10 @@
       [["off", "Off — no cameras"], ["optional", "Optional — student's choice"], ["required", "Required — camera check before the paper"]].map(function (o) {
         return '<option value="' + o[0] + '"' + ((d.webcam || "optional") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
       }).join("") + "</select></div>";
+    h += '<div class="cbt-row" style="grid-column:1/-1;align-items:center;gap:8px;margin:2px 0 6px;flex-wrap:wrap"><span class="cbt-muted">📸 Snapshot pace:</span><span class="cbt-tabs cbt-pace" id="cbtPaceTabs">' +
+      [["calm", "Calm · 20s"], ["standard", "Standard · 12s"], ["watchful", "Watchful · 6s"]].map(function (o) {
+        return '<button type="button" class="cbt-tab' + ((d.proctorPace || "standard") === o[0] ? " on" : "") + '" data-pace="' + o[0] + '">' + o[1] + "</button>";
+      }).join("") + '</span><span class="cbt-muted">How often the hall sees a snapshot. Flags (dark · covered · frozen · silent) ride along at any pace.</span></div>';
     h += '<div><label class="cbt-muted" for="cbtVoice">Live room audio</label><select class="cbt-inp" id="cbtVoice">' +
       [["off", "Off — no microphones"], ["optional", "Optional — student's choice"], ["required", "Required — microphone check before the paper"]].map(function (o) {
         return '<option value="' + o[0] + '"' + ((d.voice || "off") === o[0] ? " selected" : "") + ">" + o[1] + "</option>";
@@ -1806,6 +1986,14 @@
     var du = $("cbtDuration"); if (du) d.duration = +du.value || 30;
     var sc = $("cbtSched"); if (sc) d.scheduledAt = sc.value;
     var cn = $("cbtCount"); if (cn) d.count = Math.max(1, Math.min(100, +cn.value || 20));
+    var paceBox = $("cbtPaceTabs");
+    if (paceBox) Array.prototype.forEach.call(paceBox.querySelectorAll(".cbt-tab"), function (b) {
+      b.onclick = function () {
+        d.proctorPace = b.getAttribute("data-pace");
+        saveDraft();
+        Array.prototype.forEach.call(paceBox.querySelectorAll(".cbt-tab"), function (x2) { x2.classList.toggle("on", x2 === b); });
+      };
+    });
     var ir = $("cbtInstant"); if (ir) d.instantResults = ir.checked;
     var shf = $("cbtShuffle"); if (shf) d.shuffle = shf.checked;
     var rk = $("cbtRank"); if (rk) d.showRank = rk.checked;
@@ -1900,7 +2088,7 @@
       code: makeCode(), teacher: id.name, device_id: id.did, title: d.title.trim(),
       cls: d.cls, subject: d.subject || "", duration_s: Math.max(30, d.duration * 60),
       status: "waiting", extend_s: 0,
-      settings: { instantResults: !!d.instantResults, showRank: !!d.showRank, shuffle: !!d.shuffle, scheduledAt: d.scheduledAt || null, webcam: "required", voice: "required", waecathon: !!d.waecathon },
+      settings: { instantResults: !!d.instantResults, showRank: !!d.showRank, shuffle: !!d.shuffle, scheduledAt: d.scheduledAt || null, webcam: "required", voice: "required", proctorPace: d.proctorPace || "standard", waecathon: !!d.waecathon },
       questions: d.questions
     };
     showBusy("Posting the paper to the school server…");
@@ -1964,10 +2152,13 @@
       '<label class="cbt-muted"><input type="checkbox" id="cbtMonInstant"' + (s.settings && s.settings.instantResults !== false ? " checked" : "") + '> instant results</label>' +
       "</div>" +
       '<div id="cbtMonWarn"></div>' +
-      (camMode(s) !== "off" ? '<h3 style="margin:16px 0 8px">📹 Live cameras <span class="cbt-muted">(' + esc(camMode(s)) + " for this paper · snapshots are never stored)</span></h3>" +
+      '<div id="cbtAttention"></div>' +
+      (camMode(s) !== "off" ? '<h3 style="margin:16px 0 8px">📹 Live cameras <span class="cbt-muted">(' + esc(camMode(s)) + " for this paper · snapshots are never stored · flags are plain words)</span></h3>" +
         '<div id="cbtCamDead"></div><div class="cbt-cams" id="cbtCams"></div>' : "") +
       (voiceMode(s) !== "off" ? '<h3 style="margin:16px 0 8px">🎙 Live room audio <span class="cbt-muted">(' + esc(voiceMode(s)) + " for this paper · audio is never stored)</span></h3>" +
         '<div class="cbt-cams" id="cbtVox"></div>' : "") +
+      '<h3 style="margin:16px 0 8px">🧾 Incident log <span class="cbt-muted">(in memory only — nothing is stored)</span></h3>' +
+      '<div id="cbtIncidents"></div>' +
       '<table class="cbt-table" id="cbtRoster"><tr><th>Student</th><th>Status</th><th>Progress</th><th>⚠</th><th>📹</th>' + (voiceMode(s) !== "off" ? "<th>🎙</th>" : "") + '<th>Seen</th></tr></table>';
     host.innerHTML = h;
     var invite = "MAMSS PREP — Live CBT: " + s.title + ". Join in the Live CBT tab with code " + prettyCode(s.code) + ". https://merebari7-web.github.io/mamss-prep/";
@@ -2024,6 +2215,30 @@
         updateVox();
         return;
       }
+      if (kind === "camflag" && p && p.did && p.did !== me().did) {
+        var pc = proctor[p.did] || (proctor[p.did] = { name: p.n || "Student" });
+        pc.name = p.n || pc.name;
+        if (pc.camFlag !== p.flag) {
+          pc.camFlag = p.flag; pc.camFlagAt = Date.now();
+          if (p.flag && p.flag !== "ok") pushIncident(pc.name, "camera — " + flagWord(p.flag));
+          renderAttention();
+          refreshRoster(false);
+        }
+        updateCams();
+        return;
+      }
+      if (kind === "voxstate" && p && p.did && p.did !== me().did) {
+        var pv = proctor[p.did] || (proctor[p.did] = { name: p.n || "Student" });
+        pv.name = p.n || pv.name;
+        if (pv.voxState !== p.st) {
+          pv.voxState = p.st; pv.voxStateAt = Date.now();
+          if (p.st === "silent") pushIncident(pv.name, "voice — " + flagWord("silent"));
+          renderAttention();
+          refreshRoster(false);
+        }
+        updateVox();
+        return;
+      }
       if (kind === "voxlvl" && p && p.did && p.did !== me().did) {
         var vl = voxLvls[p.did] || (voxLvls[p.did] = { n: 0, name: "Student" });
         vl.lvl = Math.max(0, Math.min(100, +p.lvl || 0));
@@ -2044,13 +2259,14 @@
     refreshRoster(false);
     updateCams();
     updateVox();
+    renderAttention();
     camTickN = 0;
     if (tickTimer) clearInterval(tickTimer);
     tickTimer = setInterval(function () {
       if (cons.session && (camMode(cons.session) !== "off" || voiceMode(cons.session) !== "off")) {
         camTickN = (camTickN + 1) % 5;
         if (camTickN === 0) {
-          updateCams(); updateVox();
+          updateCams(); updateVox(); renderAttention();
           var dn = $("cbtCamDead");
           if (dn) dn.innerHTML = (room && room.dead) ? '<div class="cbt-note">📡 The realtime socket is not connected right now — camera and audio tiles need it. Everything else keeps working through polling.</div>' : "";
         }
@@ -2083,7 +2299,7 @@
           '<td><span class="cbt-chip ' + (r.status === "running" ? "live" : r.status === "waiting" ? "waiting" : "ended") + '">' + esc(r.status.toUpperCase()) + "</span></td>" +
           '<td><div class="cbt-prog"><i style="width:' + pctDone + '%"></i></div><small class="cbt-muted">' + (r.current_q || 0) + "/" + qs + "</small></td>" +
           "<td>" + (r.integrity ? '<b style="color:#8a1f1f">' + r.integrity + "</b>" : "—") + "</td>" +
-          "<td>" + camCell(r.webcam) + "</td>" + (voiceMode(s) !== "off" ? "<td>" + voxCell(r.voice) + "</td>" : "") +
+          "<td>" + camCell(r.webcam) + flagMini(proctor[r.device_id]) + "</td>" + (voiceMode(s) !== "off" ? "<td>" + voxCell(r.voice) + "</td>" : "") +
           '<td><span class="cbt-dot ' + dot + '"></span>' + (isFinite(seen) ? Math.round(seen / 1000) + "s" : "—") + "</td></tr>";
       });
       t.innerHTML = h;
@@ -2943,6 +3159,8 @@
       voxs: function () { return voxBuf; },
       voxLvls: function () { return voxLvls; },
       voiceMode: voiceMode, clsOf: clsOf, nextFriday16: nextFriday16, dtLocal: dtLocal,
+      paceOf: paceOf, PACE_MS: PACE_MS, camFlagOf: camFlagOf, voxStateOf: voxStateOf, voxRms: voxRms,
+      proctorState: function () { return proctor; }, incidentLog: function () { return incidents; },
       schoolStats: schoolStats, schoolFetch: schoolFetch,
       progStats: progStats, progAcc: progAcc, prog: function () { return { rows: dashProg.rows, sel: dashProg.sel }; },
       dash: function () { return { data: dash.data, stats: dash.stats || null, err: dash.err }; },

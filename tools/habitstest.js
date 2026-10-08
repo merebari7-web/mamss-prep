@@ -44,7 +44,7 @@ const ATTEMPTS = [
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, serviceWorkers: 'block' });
   await ctx.addInitScript(`
     window.__MP_TEST_REPORT_OK__ = 1;
-    localStorage.setItem('nssc_mp_seen', '71');
+    localStorage.setItem('nssc_mp_seen', '72');
     localStorage.setItem('nssc_devid', JSON.stringify('habits-device'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify({ h: 'habitstest0000', mask: 'MAMSS··STUDE··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada Student' }))});
     localStorage.setItem('nssc_attempts_guest', ${JSON.stringify(JSON.stringify(ATTEMPTS))});

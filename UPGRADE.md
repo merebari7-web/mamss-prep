@@ -1291,6 +1291,114 @@ as-is); the audit scans primary view states, not every transient modal.
 
 ---
 
+## 34 · v72 "The Watchful Hall" — advanced proctoring that still stores nothing (2026-09-28)
+
+The user's ask: *continue, and make advanced upgrades on the live CBT webcam
+and voice recording.* The constraint that shaped every line: v67/v70 made the
+hall ephemeral — snapshots and sound are broadcast live and never written
+anywhere. "Advanced" had to mean **smarter, not hungrier**: the upgrade is
+allowed to add understanding, never storage.
+
+### 34.1 On-device camera intelligence (student side)
+
+Each sitting device now measures its own feed. A tiny 80×60 copy of every
+snapshot frame is read locally (`camStats`): mean luminance plus the absolute
+pixel difference against the previous frame. `camFlagOf` turns those two
+numbers into exactly one word —
+
+| word | rule | meaning for the hall |
+|---|---|---|
+| `covered` | lum < 12 | lens blocked / face-down phone |
+| `dark` | lum < 30 | room too dim to invigilate by eye |
+| `still` | diff < 0.6 for ≥ 4 consecutive frames (`__CBT_STILL_N`) | frozen feed or a photo held to the lens |
+| `ok` | anything else | broadcast stops — the word only travels on change, throttled to one flip per 4 s |
+
+**Only the word leaves the device** (`camflag` event on the existing realtime
+broadcast). No luminance value, no diff metric, no analysis, no new table, no
+new column. The measurement is computed, used, and forgotten in the same tick.
+
+### 34.2 The voice state machine
+
+`sendVoxLevel` now runs the same RMS through `voxStateOf`: `speaking`
+(lvl ≥ 6), `quiet`, and `silent` — near-nothing (lvl < 2) sustained for 90 s
+(`__CBT_SILENT_MS`). The state word rides a `voxstate` event, again only on
+change. Ninety seconds of silence in a proctored hall is information a human
+invigilator would walk over for; now the console knows without a single
+recording existing.
+
+### 34.3 Snapshot pace — the teacher's one honest control
+
+Proctoring stays school policy (cameras + mics required, nothing to switch
+off), but the *cadence* is now a real choice stored inside the existing
+`settings` JSONB (`proctorPace`) — zero schema change: **calm 20 s · standard
+12 s · watchful 6 s**. The builder grows a three-tab control; the Waecathon
+template sits watchful; go-live pins the choice into the session row. The cam
+loop became self-scheduling (`setTimeout` re-reading `camInterval()` each
+frame) so a pace change or a dead socket takes effect immediately — and when
+the realtime socket drops, the pace **auto-throttles ×2** to spare the
+fallback channel. Flags ride along at any pace: a covered lens is reported at
+20 s cadence just as surely as at 6 s.
+
+### 34.4 The watchful console (teacher side)
+
+Two in-memory stores — `proctor{}` (latest word per device) and `incidents[]`
+(cap 12, newest first) — feed three surfaces: an **attention strip** ("⚠ Needs
+attention: Ada Student — camera covered · 12s ago", or the honest calm state
+"🕊 The hall looks calm"), an **incident log** under a header that says
+*in memory only — nothing is stored*, and per-tile truth: flagged camera tiles
+wear a gold (`dark`) or pulsing red (`covered`/`still`) outline, tile captions
+carry the word, mic tiles show their state, and roster rows grow mini-chips.
+Both stores die with the console tab. There is no export, by design.
+
+### 34.5 The room check graduates
+
+The pre-exam gate keeps its fail-closed law (both devices live or the door
+stays shut) but stops being a blind handshake: after "Enable my camera" a
+live **brightness hint** appears when the room measures dark ("face a light or
+a window…") or covered ("the camera sees almost nothing") — advisory only, it
+never blocks a dim-but-honest sitting; after "Enable my microphone" a **meter
+bar** dances with the room's actual sound so the student can *see* the hall is
+being heard. The privacy copy now names the full data budget: snapshots, live
+sound, "and only plain status words (like 'dark' or 'silent')" beyond those.
+Gate timers are torn down on proceed and on stop.
+
+### 34.3+34.4 wiring notes
+
+Console `onChange` handles `camflag`/`voxstate` before the level events,
+updates the stores, pushes incidents on transitions into a flagged state,
+re-renders attention + roster, and never touches REST. `_test` grew
+`paceOf · PACE_MS · camFlagOf · voxStateOf · voxRms · proctorState ·
+incidentLog` for the suite. Styles live in the cbt-injected stylesheet next
+to the tiles they decorate, with a `prefers-reduced-motion` guard on the pulse.
+
+### 34.6 Tests
+
+New `testrig/proctortest.js` (mirrored in `tools/`) → **46 passed · 0
+failed**. Deterministic media: `getUserMedia` stubbed with a canvas source
+(black / dim / animated / frozen modes) and a WebAudio oscillator mic with a
+test-controllable gain, over the cbtmock + WS-echo topology. It proves: the
+thresholds as pure functions (covered/dark/still-run/recovery, speaking/
+quiet/silent/recovery, pace ladder); pace persistence through draft →
+template → session `settings`; the gate hint appearing, escalating, and
+clearing with the light, and the meter moving with sound; `camflag` +
+`voxstate` crossing the socket as single words; attention strip, incident
+log (order, cap, "in memory only" label), tile outlines, roster chips;
+recovery clearing chips while the log keeps history; and the privacy law —
+attempt rows still carry only `webcam=on, voice=on`, and no flag ever
+reaches any table. Full grid re-run green: **928 checks** (incl. cbt 83,
+waec 53, audio 53, roll-call 33 on :8101, offline 16 re-pinned to -v77).
+`verify.py` §37 (26 pins) → **512 · 0**.
+
+Honest edges: the heuristics are deliberately coarse — a very still,
+well-lit student can read as `still` after four frames (the teacher sees a
+word, not an accusation, and the next motion clears it); `silent` cannot
+distinguish a quiet room from a muted mic (both deserve a glance, which is
+the point); pace is per-paper, not per-student; the incident log has no
+persistence — a console refresh erases it, which is the privacy promise
+kept even when it is inconvenient.
+
+---
+
 ## 33 · v71 "The National Standard" — the oracle, the phantom column, the crawler (2026-09-28)
 
 The user's bar: *fix all bugs, and make it a site the President would

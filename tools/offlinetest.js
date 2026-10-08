@@ -29,7 +29,7 @@ const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + Stri
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   await ctx.addInitScript(`
     window.__MP_TEST_REPORT_OK__ = 1;
-    localStorage.setItem('nssc_mp_seen', '71');
+    localStorage.setItem('nssc_mp_seen', '72');
     localStorage.setItem('nssc_devid', JSON.stringify('offline-device'));
     localStorage.setItem('nssc_act', ${JSON.stringify(JSON.stringify({ h: 'offlinetest0000', mask: 'MAMSS··STUDE··', at: Date.now(), batch: 'SS1-3-topup', role: 'student', name: 'Ada Student' }))});
     localStorage.setItem('nssc_attempts_guest', JSON.stringify([{ d: 'x', tms: Date.now() - 86400e3, cls: 'SS1', subj: 'Mathematics', total: 10, correct: 6, pct: 60, mode: 'study' }]));
@@ -65,7 +65,7 @@ const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + Stri
   ok('service worker controls the page after first visit', true);
   const cached = await p.evaluate(async () => {
     const keys = await caches.keys();
-    const v68 = keys.find(k => k.includes('-v76'));
+    const v68 = keys.find(k => k.includes('-v77'));
     if (!v68) return { v68: false };
     const c = await caches.open(v68);
     const reqs = await c.keys();
@@ -76,7 +76,7 @@ const dayKey = () => { const d = new Date(); return d.getFullYear() + '-' + Stri
       worker: reqs.some(r => r.url.includes('progress-up.js')),
     };
   });
-  ok('v71 cache holds shell + question bank + reporter', cached.v68 && cached.bank && cached.shell && cached.worker, cached);
+  ok('v72 cache holds shell + question bank + reporter', cached.v68 && cached.bank && cached.shell && cached.worker, cached);
   await sleep(2500);
   ok('first visit files a progress report while online', hits > 0, hits);
   ok('persistent-storage request was made', await p.evaluate(() => localStorage.getItem('nssc_persist') !== null));
